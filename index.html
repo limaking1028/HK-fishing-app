@@ -1,0 +1,1567 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0a6e7a">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-title" content="釣魚HK">
+  <title>香港釣魚數據平台</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --teal-dark: #0a6e7a; --teal: #0d8a99; --teal-light: #e0f5f8; --teal-pale: #f0fafb;
+    --orange: #ff6b35; --orange-light: #fff0eb; --gold: #f5a623; --green: #34a853;
+    --red: #ea4335; --gray-1: #f5f5f5; --gray-2: #e8e8e8; --gray-3: #ccc;
+    --gray-4: #999; --gray-5: #666; --gray-6: #333; --dark: #1a1a2e; --white: #fff;
+--shadow: 0 2px 8px rgba(0,0,0,0.08); --shadow-lg: 0 4px 16px rgba(0,0,0,0.12);
+  --radius: 14px; --radius-sm: 10px; --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+/* ===== 登入畫面 ===== */
+.login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, var(--teal-dark), var(--teal)); display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 9999; }
+.login-card { background: white; border-radius: 16px; padding: 32px 24px; width: 100%; max-width: 360px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+.login-logo { font-size: 48px; text-align: center; margin-bottom: 8px; }
+.login-title { font-size: 22px; font-weight: 700; color: var(--teal-dark); text-align: center; margin-bottom: 4px; }
+.login-subtitle { font-size: 13px; color: var(--gray-5); text-align: center; margin-bottom: 24px; }
+.login-tabs { display: flex; gap: 4px; background: var(--gray-1); border-radius: 10px; padding: 4px; margin-bottom: 20px; }
+.login-tab { flex: 1; padding: 8px; text-align: center; font-size: 13px; font-weight: 600; color: var(--gray-5); border-radius: 8px; cursor: pointer; border: none; background: transparent; }
+.login-tab.active { background: white; color: var(--teal-dark); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+.login-field { margin-bottom: 14px; }
+.login-field label { display: block; font-size: 12px; color: var(--gray-5); margin-bottom: 6px; font-weight: 600; }
+.login-input { width: 100%; padding: 12px 14px; border: 1px solid var(--gray-2); border-radius: 10px; font-size: 15px; background: var(--gray-1); transition: all 0.2s; }
+.login-input:focus { outline: none; border-color: var(--teal); background: white; }
+.pin-input { letter-spacing: 8px; text-align: center; font-size: 20px; font-weight: 600; }
+.login-btn { width: 100%; padding: 13px; background: var(--teal); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; transition: all 0.2s; }
+.login-btn:hover { background: var(--teal-dark); }
+.login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.login-msg { font-size: 12px; color: var(--red); margin-top: 8px; text-align: center; min-height: 16px; }
+.login-footer { text-align: center; font-size: 11px; color: var(--gray-4); margin-top: 20px; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif;
+    background: var(--gray-1); color: var(--gray-6); line-height: 1.6;
+    -webkit-font-smoothing: antialiased; overscroll-behavior: none;
+  }
+  #app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--gray-1); position: relative; display: flex; flex-direction: column; }
+  #header { background: linear-gradient(135deg, var(--teal-dark), var(--teal)); color: white; padding: 14px 18px; text-align: center; font-size: 17px; font-weight: 700; position: sticky; top: 0; z-index: 100; letter-spacing: 0.5px; box-shadow: 0 2px 8px rgba(10,110,122,0.3); display: flex; align-items: center; justify-content: space-between; }
+  .header-title { flex: 1; text-align: center; }
+  .header-settings { font-size: 13px; font-weight: 600; opacity: 0.9; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
+  .header-edit { font-size: 12px; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: none; align-items: flex-end; justify-content: center; }
+  .modal-overlay.show { display: flex; }
+  .modal-sheet { background: white; border-radius: 16px 16px 0 0; width: 100%; max-width: 500px; padding: 24px 20px calc(24px + env(safe-area-inset-bottom)); animation: slideUp 0.25s ease; }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 16px; text-align: center; color: var(--gray-6); }
+  .modal-input { width: 100%; padding: 12px 14px; border: 1.5px solid var(--gray-2); border-radius: 10px; font-size: 16px; font-family: inherit; margin-bottom: 16px; box-sizing: border-box; }
+  .modal-input:focus { outline: none; border-color: var(--teal); }
+  .modal-btns { display: flex; gap: 10px; }
+  .modal-btns .btn { flex: 1; }
+  .modal-close { position: absolute; top: 12px; right: 16px; font-size: 22px; color: var(--gray-4); cursor: pointer; }
+  #main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 70px; }
+  .view { display: none; padding: 16px 14px 20px; }
+  .view.active { display: block; }
+  .view.fade-in { animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  #bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--white); display: flex; border-top: 1px solid var(--gray-2); padding-bottom: var(--safe-bottom); z-index: 100; box-shadow: 0 -2px 12px rgba(0,0,0,0.06); }
+  .nav-item { flex: 1; background: none; border: none; padding: 8px 0 10px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; color: var(--gray-4); transition: color 0.2s; font-family: inherit; }
+  .nav-item.active { color: var(--teal-dark); }
+  .nav-icon { font-size: 22px; }
+  .nav-label { font-size: 11px; font-weight: 600; }
+  .card { background: var(--white); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); margin-bottom: 12px; }
+  .section-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--dark); display: flex; align-items: center; gap: 6px; }
+  .form-group { margin-bottom: 14px; }
+  .form-label { display: block; font-size: 13px; font-weight: 600; color: var(--gray-5); margin-bottom: 6px; }
+  .form-label .req { color: var(--red); }
+  .form-input, .form-select, .form-textarea { width: 100%; padding: 11px 14px; border: 1.5px solid var(--gray-2); border-radius: var(--radius-sm); font-size: 15px; font-family: inherit; background: var(--white); color: var(--gray-6); transition: border-color 0.2s; -webkit-appearance: none; }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--teal); }
+  .form-textarea { resize: vertical; min-height: 70px; }
+  .form-row { display: flex; gap: 10px; }
+  .form-row > .form-group { flex: 1; }
+  .input-suffix { display: flex; align-items: center; border: 1.5px solid var(--gray-2); border-radius: var(--radius-sm); overflow: hidden; }
+  .input-suffix .form-input { border: none; border-radius: 0; }
+  .input-suffix .suffix { padding: 0 12px; font-size: 14px; color: var(--gray-4); font-weight: 600; background: var(--gray-1); height: 100%; display: flex; align-items: center; }
+  .species-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .species-chip { text-align: center; padding: 8px 4px; border: 1.5px solid var(--gray-2); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s; font-size: 12px; background: var(--white); position: relative; }
+  .species-chip .chip-thumb { width: 100%; aspect-ratio: 16/9; border-radius: 5px; object-fit: cover; display: block; margin: 0 auto 3px; background: var(--gray-1); }
+  .species-chip .chip-thumb-fallback { width: 100%; aspect-ratio: 16/9; font-size: 22px; display: flex; align-items: center; justify-content: center; margin: 0 auto 3px; background: var(--gray-1); border-radius: 5px; }
+  .species-chip .chip-icon { font-size: 20px; display: block; margin-bottom: 3px; }
+  .species-chip.selected { border-color: var(--teal); background: var(--teal-light); color: var(--teal-dark); font-weight: 600; }
+  .species-chip:active { transform: scale(0.95); }
+  .photo-upload { border: 2px dashed var(--gray-3); border-radius: var(--radius); padding: 24px 16px; text-align: center; cursor: pointer; transition: border-color 0.2s; position: relative; }
+  .photo-upload:active { border-color: var(--teal); }
+  .photo-upload .upload-icon { font-size: 36px; }
+  .photo-upload .upload-text { font-size: 13px; color: var(--gray-4); margin-top: 6px; }
+  .photo-preview { width: 100%; max-height: 240px; border-radius: var(--radius-sm); margin-top: 10px; }
+  .btn { width: 100%; padding: 14px; border: none; border-radius: var(--radius-sm); font-size: 16px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; font-family: inherit; }
+  .btn:active { opacity: 0.85; }
+  .btn-primary { background: linear-gradient(135deg, var(--teal-dark), var(--teal)); color: white; }
+  .btn-outline { background: var(--white); border: 1.5px solid var(--teal); color: var(--teal-dark); }
+  .btn-share { background: linear-gradient(135deg, #ff6b35, #ff8c5a); color: white; font-size: 16px; font-weight: 700; box-shadow: 0 4px 12px rgba(255,107,53,0.3); }
+  .btn-share:active { transform: scale(0.98); }
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat-card { background: var(--white); border-radius: var(--radius); padding: 14px 8px; text-align: center; box-shadow: var(--shadow); }
+  .stat-value { font-size: 24px; font-weight: 800; color: var(--teal-dark); }
+  .stat-label { font-size: 11px; color: var(--gray-4); margin-top: 2px; }
+  .catch-card { background: var(--white); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); margin-bottom: 10px; }
+  .catch-card-top { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+  .catch-fish-icon { width: 100px; aspect-ratio: 16/9; border-radius: 8px; background: var(--teal-light); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; overflow: hidden; }
+  .catch-fish-icon .catch-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .catch-info { flex: 1; min-width: 0; }
+  .catch-species { font-size: 16px; font-weight: 700; color: var(--dark); }
+  .catch-meta { font-size: 12px; color: var(--gray-4); margin-top: 2px; }
+  .catch-weight-badge { text-align: right; flex-shrink: 0; }
+  .catch-weight { font-size: 18px; font-weight: 800; color: var(--orange); }
+  .biggest-card { background: linear-gradient(135deg, #f9d976 0%, #f39f86 100%); border-radius: var(--radius); padding: 14px; margin-bottom: 16px; box-shadow: var(--shadow); }
+  .biggest-card-header { margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .biggest-badge { background: rgba(255,255,255,0.35); padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; color: #fff; }
+  .biggest-card-body { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.4); border-radius: 10px; padding: 10px; }
+  .biggest-info { flex: 1; min-width: 0; color: #fff; }
+  .biggest-species { font-size: 16px; font-weight: 700; }
+  .biggest-weight { font-size: 24px; font-weight: 800; margin: 2px 0; }
+  .biggest-weight span { font-size: 13px; font-weight: 500; }
+  .biggest-meta { font-size: 11px; opacity: 0.85; }
+  .species-breakdown { background: var(--white); border-radius: var(--radius); padding: 12px; box-shadow: var(--shadow); margin-bottom: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .breakdown-item { text-align: center; padding: 8px 4px; border-radius: 8px; background: var(--gray-1); }
+  .breakdown-thumb-wrap { width: 100%; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden; margin-bottom: 4px; background: var(--teal-light); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .breakdown-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .breakdown-name { font-size: 11px; color: var(--gray-5); font-weight: 600; margin-bottom: 2px; }
+  .breakdown-count { font-size: 16px; font-weight: 800; color: var(--teal-dark); line-height: 1; }
+  .breakdown-count span { font-size: 10px; font-weight: 500; color: var(--gray-4); margin-left: 1px; }
+  .collapsible-header { display: flex; align-items: center; justify-content: space-between; background: var(--white); padding: 12px 14px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 8px; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+  .collapsible-header:active { background: var(--gray-1); }
+  .collapsible-title { font-size: 15px; font-weight: 700; color: var(--dark); display: flex; align-items: center; gap: 6px; }
+  .collapsible-arrow { font-size: 12px; color: var(--gray-4); transition: transform 0.2s; }
+  .collapsible.expanded .collapsible-arrow { transform: rotate(90deg); }
+  .collapsible-content { display: none; margin-bottom: 16px; }
+  .collapsible.expanded .collapsible-content { display: block; }
+  .species-row { display: flex; align-items: center; gap: 10px; background: var(--white); padding: 10px 12px; border-radius: var(--radius-sm); box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.05)); margin-bottom: 6px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .species-row:active { background: var(--gray-1); }
+  .species-row-thumb { width: 50px; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden; background: var(--teal-light); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+  .species-row-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .species-row-name { flex: 1; font-size: 14px; font-weight: 600; color: var(--dark); }
+  .species-row-count { font-size: 13px; color: var(--teal-dark); font-weight: 700; background: var(--teal-light); padding: 3px 10px; border-radius: 10px; flex-shrink: 0; }
+  .species-row-arrow { font-size: 11px; color: var(--gray-4); margin-left: 4px; }
+  .species-catches-list { background: var(--gray-1); border-radius: var(--radius-sm); padding: 8px; margin-bottom: 10px; }
+  .catch-weight-unit { font-size: 11px; color: var(--gray-4); }
+  .catch-card-bottom { padding: 8px 14px 10px; display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--gray-5); border-top: 1px solid var(--gray-1); }
+  .catch-tag { background: var(--gray-1); padding: 2px 8px; border-radius: 6px; font-size: 11px; }
+  .verified-badge { background: var(--teal-light); color: var(--teal-dark); padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+  .share-btn { background: var(--orange-light); color: var(--orange); padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; }
+  .lb-tabs { display: flex; background: var(--white); border-radius: var(--radius-sm); padding: 3px; margin-bottom: 14px; box-shadow: var(--shadow); }
+  .lb-tab { flex: 1; padding: 8px 4px; text-align: center; border: none; background: none; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--gray-4); cursor: pointer; transition: all 0.2s; font-family: inherit; }
+  .lb-tab.active { background: var(--teal-dark); color: white; }
+  .lb-period-row { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px; }
+  .lb-period { white-space: nowrap; padding: 6px 16px; border-radius: 20px; border: 1.5px solid var(--gray-2); background: var(--white); font-size: 13px; font-weight: 600; color: var(--gray-5); cursor: pointer; transition: all 0.2s; font-family: inherit; }
+  .lb-period.active { border-color: var(--orange); color: var(--orange); background: var(--orange-light); }
+  .lb-list { list-style: none; }
+  .lb-item { display: flex; align-items: center; gap: 12px; background: var(--white); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px; box-shadow: var(--shadow); }
+  .lb-rank { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; flex-shrink: 0; }
+  .lb-rank.gold { background: linear-gradient(135deg, #f5a623, #e8941a); color: white; }
+  .lb-rank.silver { background: linear-gradient(135deg, #c0c0c0, #a8a8a8); color: white; }
+  .lb-rank.bronze { background: linear-gradient(135deg, #cd7f32, #b06820); color: white; }
+  .lb-rank.normal { background: var(--gray-1); color: var(--gray-5); }
+  .lb-user { flex: 1; min-width: 0; }
+  .lb-username { font-size: 14px; font-weight: 600; color: var(--dark); }
+  .lb-detail { font-size: 12px; color: var(--gray-4); margin-top: 2px; }
+  .lb-value { font-size: 18px; font-weight: 800; color: var(--teal-dark); text-align: right; flex-shrink: 0; }
+  .lb-value .unit { font-size: 11px; color: var(--gray-4); }
+  .lb-item.mine { background: linear-gradient(135deg, #fff4e8, #ffe8d8); border-left: 4px solid var(--orange); box-shadow: 0 2px 8px rgba(255,107,53,0.15); }
+  .lb-item.mine .lb-username { color: var(--orange); }
+  .rank-badge { background: linear-gradient(135deg, var(--gold), #e8941a); color: white; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; white-space: nowrap; box-shadow: 0 1px 3px rgba(229,148,26,0.3); }
+  .spot-card { background: var(--white); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; box-shadow: var(--shadow); }
+  .spot-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .spot-name { font-size: 16px; font-weight: 700; color: var(--dark); }
+  .spot-type { font-size: 11px; padding: 2px 8px; border-radius: 6px; background: var(--teal-light); color: var(--teal-dark); font-weight: 600; }
+  .spot-stats { display: flex; gap: 16px; font-size: 13px; color: var(--gray-5); }
+  .spot-stat-value { font-weight: 700; color: var(--orange); }
+  .spot-fish { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .spot-fish-tag { font-size: 11px; background: var(--gray-1); padding: 3px 8px; border-radius: 6px; color: var(--gray-5); }
+  .map-placeholder { background: linear-gradient(180deg, #d4ecda, #c8e6c9); border-radius: var(--radius); height: 200px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; position: relative; overflow: hidden; }
+  .map-pin { position: absolute; font-size: 24px; animation: bounce 2s infinite; }
+  @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--gray-4); }
+  .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state .empty-text { font-size: 14px; }
+  /* ===== 魚種圖鑑 ===== */
+  .pokedex-progress-box { background: linear-gradient(135deg, var(--teal-dark), var(--teal)); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 14px; color: white; box-shadow: 0 3px 12px rgba(10,110,122,0.3); }
+  .pokedex-progress-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .pokedex-progress-bar { height: 10px; background: rgba(255,255,255,0.25); border-radius: 5px; overflow: hidden; margin-bottom: 6px; }
+  .pokedex-progress-fill { height: 100%; background: linear-gradient(90deg, #fbbf24, #f97316); border-radius: 5px; transition: width 0.5s ease; }
+  .pokedex-progress-text { font-size: 12px; opacity: 0.9; }
+  .pokedex-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pokedex-card { background: var(--white); border-radius: var(--radius); padding: 14px 12px; text-align: center; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+  .pokedex-card.locked { opacity: 0.55; filter: grayscale(1); }
+  .pokedex-card.unlocked { border: 2px solid var(--teal); }
+  .pokedex-card.unlocked::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--teal), var(--orange)); }
+  .pokedex-icon { font-size: 36px; margin-bottom: 6px; }
+  .pokedex-photo { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; margin: 0 auto 6px; display: block; background: var(--gray-1); }
+  .pokedex-card.locked .pokedex-photo { filter: brightness(0.4) grayscale(1); }
+  .pokedex-card.locked .pokedex-icon { filter: brightness(0.5); }
+  .pokedex-name { font-size: 14px; font-weight: 700; color: var(--dark); }
+  .pokedex-card.locked .pokedex-name { color: var(--gray-4); }
+  .pokedex-sci { font-size: 10px; color: var(--gray-4); font-style: italic; margin-bottom: 4px; }
+  .pokedex-desc { font-size: 11px; color: var(--gray-5); line-height: 1.4; margin-bottom: 6px; }
+  .pokedex-habitat { font-size: 10px; color: var(--teal-dark); background: var(--teal-light); padding: 2px 8px; border-radius: 6px; display: inline-block; margin-bottom: 6px; }
+  .pokedex-pb { font-size: 12px; font-weight: 700; color: var(--orange); }
+  .pokedex-pb .pb-label { font-size: 10px; color: var(--gray-4); font-weight: 400; }
+  .pokedex-lock-icon { font-size: 28px; margin-bottom: 6px; opacity: 0.4; }
+  .pokedex-locked-text { font-size: 11px; color: var(--gray-4); }
+  .pokedex-rarity { position: absolute; top: 6px; right: 6px; font-size: 9px; padding: 1px 6px; border-radius: 4px; font-weight: 600; }
+  .rarity-common { background: #e0f2fe; color: #0369a1; }
+  .rarity-uncommon { background: #fef3c7; color: #b45309; }
+  .rarity-rare { background: #fce7f3; color: #be185d; }
+  .pokedex-custom-tag { font-size: 9px; background: var(--orange); color: white; padding: 1px 6px; border-radius: 4px; font-weight: 600; position: absolute; top: 6px; left: 6px; }
+  .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(0,0,0,0.8); color: white; padding: 10px 24px; border-radius: 24px; font-size: 14px; z-index: 999; opacity: 0; transition: all 0.3s; pointer-events: none; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .filter-row { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+  .filter-chip { white-space: nowrap; padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--gray-2); background: var(--white); font-size: 13px; font-weight: 600; color: var(--gray-5); cursor: pointer; font-family: inherit; }
+  .filter-chip.active { border-color: var(--teal); color: var(--teal-dark); background: var(--teal-light); }
+  .success-screen { text-align: center; padding: 30px 20px; }
+  .success-circle { width: 72px; height: 72px; border-radius: 50%; background: var(--green); color: white; display: flex; align-items: center; justify-content: center; font-size: 36px; margin: 0 auto 16px; animation: popIn 0.3s ease; }
+  @keyframes popIn { from { transform: scale(0); } 60% { transform: scale(1.1); } to { transform: scale(1); } }
+  .success-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .success-sub { font-size: 14px; color: var(--gray-4); }
+  .mt-2 { margin-top: 8px; }
+
+  /* ===== GPS Location Button ===== */
+  .gps-section { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--teal-light); border-radius: var(--radius); margin-top: 8px; font-size: 13px; }
+  .gps-btn { background: var(--white); border: 1.5px solid var(--teal); color: var(--teal-dark); padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 4px; transition: all 0.2s; }
+  .gps-btn:hover { background: var(--teal); color: white; }
+  .gps-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .gps-btn.loading { background: var(--gray-1); color: var(--gray-4); }
+  .gps-status { font-size: 12px; color: var(--gray-5); flex: 1; }
+  .gps-status.success { color: var(--teal-dark); font-weight: 600; }
+  .gps-status.error { color: #dc2626; }
+  .gps-accuracy { font-size: 11px; color: var(--gray-4); margin-top: 2px; }
+
+  /* ===== Map View ===== */
+  .map-container { position: relative; height: calc(100vh - 200px); min-height: 360px; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+  #map-canvas { width: 100%; height: 100%; background: #e8f0e8; }
+  .map-overlay { position: absolute; top: 10px; left: 10px; right: 10px; background: rgba(255,255,255,0.95); border-radius: 10px; padding: 10px 12px; z-index: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .map-overlay-title { font-size: 13px; font-weight: 700; color: var(--dark); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+  .map-overlay-close { cursor: pointer; color: var(--gray-4); font-size: 18px; line-height: 1; }
+  .map-stats { font-size: 11px; color: var(--gray-5); display: flex; gap: 12px; }
+  .map-stat-value { font-weight: 700; color: var(--orange); }
+  .map-legend { position: absolute; bottom: 10px; left: 10px; background: rgba(255,255,255,0.95); border-radius: 8px; padding: 8px 10px; z-index: 500; font-size: 11px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .map-legend-item { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
+  .map-legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .leaflet-popup-content-wrapper { border-radius: 10px; }
+  .leaflet-popup-content { margin: 10px 14px; font-family: inherit; min-width: 180px; }
+  .map-popup-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .map-popup-meta { font-size: 12px; color: var(--gray-5); line-height: 1.5; }
+  .map-popup-weight { font-size: 16px; color: var(--orange); font-weight: 700; margin: 4px 0; }
+  .map-empty { text-align: center; padding: 60px 20px; color: var(--gray-4); }
+  .map-empty-icon { font-size: 48px; margin-bottom: 12px; }
+  </style>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+</head>
+<body>
+
+<div id="app">
+  <div id="login-screen"></div>
+  <header id="header">
+    <div class="header-title" id="header-title">🎣 香港釣魚數據平台</div>
+    <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
+  </header>
+  <main id="main">
+    <div id="view-record" class="view"></div>
+    <div id="view-my" class="view active"></div>
+    <div id="view-leaderboard" class="view"></div>
+    <div id="view-encyclopedia" class="view"></div>
+    <div id="view-map" class="view"></div>
+  </main>
+  <nav id="bottom-nav">
+    <button class="nav-item active" data-view="my">
+      <span class="nav-icon">📋</span><span class="nav-label">我的</span>
+    </button>
+    <button class="nav-item" data-view="record">
+      <span class="nav-icon">🎣</span><span class="nav-label">記錄</span>
+    </button>
+    <button class="nav-item" data-view="leaderboard">
+      <span class="nav-icon">🏆</span><span class="nav-label">排行榜</span>
+    </button>
+    <button class="nav-item" data-view="map">
+      <span class="nav-icon">🗺️</span><span class="nav-label">地圖</span>
+    </button>
+    <button class="nav-item" data-view="encyclopedia">
+      <span class="nav-icon">📖</span><span class="nav-label">圖鑑</span>
+    </button>
+  </nav>
+
+  <!-- 改名字 Modal -->
+  <div class="modal-overlay" id="name-modal">
+    <div class="modal-sheet" style="position:relative;">
+      <span class="modal-close" onclick="closeNameDialog()">✕</span>
+      <div class="modal-title">設置你的釣友名稱</div>
+      <input type="text" class="modal-input" id="name-input" placeholder="輸入你的名稱" maxlength="12">
+      <div class="modal-btns">
+        <button class="btn btn-outline" onclick="closeNameDialog()">取消</button>
+        <button class="btn btn-primary" onclick="saveName()">保存</button>
+      </div>
+      <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
+        <button class="btn btn-outline" style="width:100%;color:#dc2626;border-color:#dc2626;" onclick="confirmClearAll()">🗑️ 清除所有記錄</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分享面板 Modal -->
+  <div class="modal-overlay" id="share-modal">
+    <div class="modal-sheet" style="position:relative;">
+      <span class="modal-close" onclick="closeShareModal()">✕</span>
+      <div class="modal-title">分享魚獲</div>
+      <div id="share-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- 朋友分享的魚獲 Modal -->
+  <div class="modal-overlay" id="import-modal" style="align-items:center;">
+    <div class="modal-sheet" style="position:relative;border-radius:16px;max-height:90vh;overflow-y:auto;">
+      <span class="modal-close" onclick="closeImportModal()">✕</span>
+      <div id="import-modal-body"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== Supabase 配置 ===== */
+// 填入你的 Supabase 專案 URL 和 anon key 來啟用雲端同步（多裝置共享）
+// 留空 / 不填 = 保持原本 localStorage 單機模式
+//
+// [2026-09-27] 切換到新項目 lucizjohiycxdynrkjus：
+//   原 zvybccpmaxmvfskdrbjxp 已被永久暫停（DNS 解析失敗）。
+//   新項目：香港釣魚數據同步 v2，已加 GitHub Actions 保活。
+const SB_URL  = 'https://lucizjohiycxdynrkjus.supabase.co';
+const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1Y2l6am9oaXljeGR5bnJranVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0NTA2MjgsImV4cCI6MjEwNjAyNjYyOH0.O_fpj_TK9d1zDHHc5SciYaQkB_-meuFfpbrIQbsJboU';
+const SB_ENABLED = SB_URL.startsWith('https://') && SB_KEY.length > 20;
+const sb = SB_ENABLED ? window.supabase.createClient(SB_URL, SB_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, storage: window.localStorage }
+}) : null;
+
+/* ===== 預載數據 ===== */
+const FISH_SPECIES = [
+  { name: '泥鯭', icon: '🐡', photo: 'photos/泥鯭.jpg', sci: 'Siganus fuscescens', habitat: '淺水礁區·碼頭', desc: '群居，碼頭樁柱旁常見，背鰭有毒刺', rarity: 'common' },
+  { name: '黑沙鱲', icon: '🐟', photo: 'photos/黑沙鱲.jpg', sci: 'Acanthopagrus schlegelii', habitat: '礁石區', desc: '力大善搏，礁石區磯釣常見', rarity: 'common' },
+  { name: '黃腳鱲', icon: '🐠', photo: 'photos/黃腳鱲.jpg', sci: 'Acanthopagrus latus', habitat: '灣口·淺水', desc: '雜食性，香港磯釣主力目標魚', rarity: 'common' },
+  { name: '牛屎鱲', icon: '🐟', photo: 'photos/牛屎鱲.jpg', sci: 'Rhabdosargus sarba', habitat: '淺水·泥灘', desc: '小型魚，淺灘常見，入門魚種', rarity: 'common' },
+  { name: '白鱲', icon: '🐟', photo: 'photos/白鱲.jpg', sci: 'Acanthopagrus berda', habitat: '礁石區·沙底', desc: '底棲魚，礁石與沙底交界處', rarity: 'common' },
+  { name: '石狗公', icon: '🐡', photo: 'photos/石狗公.jpg', sci: 'Sebasticus', habitat: '礁石·海底', desc: '底棲伏擊型，背鰭有毒刺', rarity: 'common' },
+  { name: '烏頭', icon: '🐟', photo: 'photos/烏頭.jpg', sci: 'Mugil cephalus', habitat: '河口·蠔排', desc: '雜食性，流浮山蠔排主力魚', rarity: 'common' },
+  { name: '沙鑽', icon: '🐟', photo: 'photos/沙鑽.jpg', sci: 'Sillago japonica', habitat: '沙底·淺灘', desc: '吻尖體長，沙底群居', rarity: 'common' },
+  { name: '牛鰍', icon: '🐟', photo: 'photos/牛鰍.jpg', sci: 'Platycephalus indicus', habitat: '沙泥底·淺海', desc: '底棲伏擊型，沙泥底常見', rarity: 'common' },
+  { name: '紅衫', icon: '🐠', photo: 'photos/紅衫.jpg', sci: 'Nemipterus virgatus', habitat: '淺海·沙泥底', desc: '底棲魚，淺海沙泥底常見，體色偏紅', rarity: 'common' },
+  { name: '丁公', icon: '🐟', photo: 'photos/丁公.jpg', sci: 'Terapon jarbua', habitat: '淺水礁區·河口', desc: '條紋雞魚，背鰭尾鰭有黑斑條紋', rarity: 'common' },
+  { name: '火點', icon: '🐠', photo: 'photos/火點.jpg', sci: 'Lutjanus fulvus', habitat: '珊瑚礁·夜行', desc: '夜間活躍，珊瑚礁邊緣伏擊', rarity: 'uncommon' },
+  { name: '沙鯭', icon: '🐡', photo: 'photos/沙鯭.jpg', sci: 'Sillago sihama', habitat: '沙底·淺灘', desc: '沙底群居，灘釣常見', rarity: 'common' },
+  { name: '金鯧', icon: '🐠', photo: 'photos/金鯧.jpg', sci: 'Trachinotus blochii', habitat: '淺海·岩礁', desc: '銀身黃尾，淺海岩礁常見，肉質細嫩', rarity: 'common' },
+  { name: '金鼓', icon: '🐡', photo: 'photos/金鼓.jpg', sci: 'Scatophagus argus', habitat: '河口·半鹹淡', desc: '半鹹淡水棲，背鰭有毒刺', rarity: 'uncommon' },
+  { name: '其他', icon: '🐟', custom: true },
+];
+const FISHING_SPOTS = [
+  { name: '魚排' },
+  { name: '碼頭' },
+  { name: '離島' },
+  { name: '馬灣' },
+  { name: '大澳' },
+  { name: '石澳' },
+  { name: '大美督' },
+  { name: '港珠橋墩' },
+  { name: '流浮山蠔排' },
+  { name: '其他', custom: true },
+];
+const FISHING_METHODS = ['手絲','手竿','投竿','筏竿','岸釣','磯釣','前打','路亞','沉底','放流','船釣筏釣','其他'];
+const BAIT_TYPES = ['南極蝦','青蟲','紅蟲','蝦仁','生蝦','生蠔','麵包','練餌','其他'];
+const SAMPLE_USERS = ['釣魚佬阿明','西貢老黃','長洲船家威','磯釣狂人阿傑','海岸線','大尾李','夜釣王','白沙洲釣客','青龍頭阿輝','流浮山阿珍'];
+
+/* ===== Supabase Auth & DB（只有 SB_ENABLED=true 時才執行）===== */
+async function hashPin(username, salt, pin) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(pin), { name: 'PBKDF2' }, false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: enc.encode('hk-fishing-' + username + '-' + salt), iterations: 10000, hash: 'SHA-256' }, keyMaterial, 256);
+  return btoa(String.fromCharCode(...new Uint8Array(bits)));
+}
+function generateSalt() { const arr = new Uint8Array(16); crypto.getRandomValues(arr); return btoa(String.fromCharCode(...arr)); }
+
+async function sbRegister(username, pin, avatar, displayName) {
+  if (!sb) throw new Error('雲端未啟用');
+  const clean = username.trim();
+  if (!clean || clean.length < 2) throw new Error('用戶名至少 2 個字');
+  if (!/^\d{4}$/.test(pin)) throw new Error('PIN 必須是 4 位數字');
+  const { data: existing } = await sb.from('users').select('id').eq('username', clean).maybeSingle();
+  if (existing) throw new Error('用戶名已被使用');
+  const salt = generateSalt();
+  const pinHash = await hashPin(clean, salt, pin);
+  const { data, error } = await sb.from('users').insert({ username: clean, pin_hash: pinHash, pin_salt: salt, avatar: avatar || '🎣', display_name: (displayName || clean).slice(0, 12) }).select().single();
+  if (error) throw error;
+  state.user = data;
+  localStorage.setItem('hk_fishing_user_id', data.id);
+  return data;
+}
+
+async function sbLogin(username, pin) {
+  if (!sb) throw new Error('雲端未啟用');
+  const clean = username.trim();
+  const { data: user, error } = await sb.from('users').select('*').eq('username', clean).maybeSingle();
+  if (error || !user) throw new Error('用戶名或 PIN 錯誤');
+  const hash = await hashPin(clean, user.pin_salt, pin);
+  if (hash !== user.pin_hash) throw new Error('用戶名或 PIN 錯誤');
+  state.user = user;
+  localStorage.setItem('hk_fishing_user_id', user.id);
+  return user;
+}
+
+function sbLogout() {
+  state.user = null;
+  state.catches = [];
+  localStorage.removeItem('hk_fishing_user_id');
+  renderLoginScreen();
+}
+
+async function dbLoadCatches() {
+  if (!sb || !state.user) return null;
+  const { data, error } = await sb.from('catches').select('*').or(`user_id.eq.${state.user.id},user_id.is.null`).order('date', { ascending: false });
+  if (error) throw error;
+  const userIds = [...new Set((data || []).filter(c => c.user_id).map(c => c.user_id))];
+  let userMap = {};
+  if (userIds.length > 0) {
+    const { data: users } = await sb.from('users').select('id, username, display_name').in('id', userIds);
+    (users || []).forEach(u => userMap[u.id] = u);
+  }
+  return (data || []).map(c => {
+    const isMine = c.user_id === state.user.id;
+    const isDemo = c.user_id === null;
+    const owner = isDemo ? null : userMap[c.user_id];
+    return {
+      id: c.id, user: owner?.display_name || owner?.username || (isDemo ? '示範' : '釣友'),
+      userId: c.user_id, species: c.species, speciesIcon: c.species_icon || '🐟',
+      weight: parseFloat(c.weight), length: c.length ? parseFloat(c.length) : 0,
+      spot: c.spot, spotArea: c.spot_area || '', date: c.date, time: c.time ? c.time.slice(0, 5) : '',
+      method: c.method, bait: c.bait, verified: c.verified, notes: c.notes || '', isMine, isDemo,
+      latitude: c.latitude || null, longitude: c.longitude || null,
+      locationAccuracy: c.location_accuracy || null, locationSource: c.location_source || null,
+    };
+  });
+}
+
+async function uploadCatchPhoto(file) {
+  if (!file || !sb || !state.user) return null;
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const safeExt = ['jpg','jpeg','png','webp'].includes(ext) ? (ext === 'jpeg' ? 'jpg' : ext) : 'jpg';
+  const path = `${state.user.id}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${safeExt}`;
+  const { error } = await sb.storage.from('catch-photos').upload(path, file, {
+    cacheControl: '31536000', upsert: false, contentType: file.type || 'image/jpeg'
+  });
+  if (error) throw error;
+  const { data: pub } = sb.storage.from('catch-photos').getPublicUrl(path);
+  return pub.publicUrl;
+}
+
+async function dbAddCatch(c) {
+  if (!sb || !state.user) return null;
+  // Route E: 上傳照片到 Supabase Storage（先 upload 再 insert row）
+  let photoUrl = null;
+  const fileEl = document.getElementById('catch-photo');
+  if (fileEl && fileEl.files && fileEl.files[0]) {
+    try { photoUrl = await uploadCatchPhoto(fileEl.files[0]); }
+    catch (e) { toast('照片上傳失敗：' + e.message); return null; }
+  }
+  const { data, error } = await sb.from('catches').insert({
+    user_id: state.user.id, species: c.species, species_icon: c.speciesIcon,
+    weight: c.weight, length: c.length || null, spot: c.spot, spot_area: c.spotArea || null,
+    date: c.date, time: c.time || null, method: c.method, bait: c.bait,
+    verified: c.verified || false, notes: c.notes || null,
+    latitude: c.latitude || null, longitude: c.longitude || null,
+    location_accuracy: c.locationAccuracy || null, location_source: c.locationSource || null,
+    photo_url: photoUrl,
+  }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+async function dbDeleteCatch(id) {
+  if (!sb || !state.user) return;
+  await sb.from('catches').delete().eq('id', id).eq('user_id', state.user.id);
+}
+
+async function migrateLocalCatches() {
+  const local = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  if (local.length === 0) return 0;
+  const username = state.user.username;
+  const mine = local.filter(c => c.user === username || c.user === getUserName());
+  if (mine.length === 0) return 0;
+  const rows = mine.map(c => ({
+    user_id: state.user.id, species: c.species, species_icon: c.speciesIcon || '🐟',
+    weight: c.weight, length: c.length || null, spot: c.spot, spot_area: c.spotArea || null,
+    date: c.date, time: c.time || null, method: c.method, bait: c.bait,
+    verified: c.verified || false, notes: c.notes || null,
+  }));
+  const { error } = await sb.from('catches').insert(rows);
+  if (error) throw error;
+  localStorage.setItem(STORAGE_KEY + '_backup', JSON.stringify(local));
+  const remaining = local.filter(c => c.user !== username && c.user !== getUserName());
+  if (remaining.length > 0) localStorage.setItem(STORAGE_KEY, JSON.stringify(remaining));
+  else localStorage.removeItem(STORAGE_KEY);
+  return rows.length;
+}
+
+async function seedDemoDataIfNeeded() {
+  const { data: existing } = await sb.from('catches').select('id').is('user_id', null).limit(1);
+  if (existing && existing.length > 0) return 0;
+  const sample = genSampleCatches();
+  const demos = sample.filter(c => !c.isMine).map(c => ({
+    user_id: null, species: c.species, species_icon: c.speciesIcon || '🐟',
+    weight: c.weight, length: c.length || null, spot: c.spot, spot_area: c.spotArea || null,
+    date: c.date, time: c.time || null, method: c.method, bait: c.bait,
+    verified: c.verified || false, notes: c.notes || null,
+  }));
+  if (demos.length === 0) return 0;
+  const { error } = await sb.from('catches').insert(demos);
+  if (error) throw error;
+  return demos.length;
+}
+
+function genSampleCatches() {
+  const catches = [], now = new Date(), users = [...SAMPLE_USERS, getUserName()];
+  let id = 1;
+  const data = [
+    [0,2,3.2,48,9,5,'17:30',5,1,true,'黃昏流水好，黃腳鱲連竿'],
+    [0,1,1.8,38,5,12,'06:15',5,1,true,'清晨西風，黑沙鱲大咬'],
+    [1,7,0.6,28,2,8,'14:00',10,4,true,'沙鑽連竿'],
+    [2,10,0.8,28,2,15,'19:00',4,3,true,'颱風後長洲西灣，丁公瘋咬'],
+    [3,1,1.2,35,5,18,'06:30',5,1,true,'石澳磯釣，黑沙鱲收穫'],
+    [4,6,2.8,42,1,3,'20:00',4,6,true,'夜釣碼頭，大烏頭'],
+    [5,14,0.8,25,8,7,'18:00',10,5,true,'蠔排金鼓，第一次釣到'],
+    [6,0,2.5,45,1,10,'17:00',5,1,true,'西貢碼頭黃昏中泥鯭'],
+    [7,4,1.5,36,2,20,'16:00',4,2,false,'長洲灘釣白鱲'],
+    [8,11,0.9,28,9,6,'07:00',5,1,false,'青龍頭火點小咬'],
+    [9,12,0.5,22,1,2,'21:00',4,4,false,'屯門碼頭夜釣沙鯭'],
+    [1,2,4.1,52,2,25,'15:00',10,4,true,'白沙洲排釣大黃腳鱲'],
+    [2,7,0.5,26,2,30,'13:00',4,3,true,'長洲沙鑽小咬'],
+    [3,2,2.2,40,5,14,'06:00',5,1,true,'石澳黃腳鱲2.2斤'],
+    [4,8,3.5,50,1,9,'19:30',0,4,true,'將軍澳防波堤牛鰍'],
+    [5,5,0.8,25,2,40,'16:00',5,1,true,'蒲台島磯釣石狗公'],
+    [6,3,0.3,18,6,1,'08:00',4,6,false,'大美督牛屎鱲小咬'],
+    [7,9,0.4,24,2,35,'15:00',4,2,false,'坪洲灘釣沙鑽'],
+    [8,13,1.6,38,1,22,'17:30',5,0,true,'西貢金鯧連中'],
+    [0,2,2.5,41,9,45,'06:30',5,1,true,'青龍頭黃腳鱲2.5斤 PB'],
+    [9,9,1.2,30,8,60,'19:00',10,5,true,'流浮山夜釣紅衫'],
+    [4,6,1.5,35,1,50,'20:00',4,6,false,'屯門碼頭烏頭'],
+    [3,1,3.0,47,9,33,'07:00',5,1,true,'青龍頭黑沙鱲3斤'],
+    [10,2,3.8,49,1,3,'17:30',5,1,true,'西貢碼頭黃昏中黃腳鱲3.8斤'],
+    [10,6,3.2,46,8,8,'20:00',0,5,true,'流浮山夜釣烏頭3.2斤'],
+    [10,3,0.4,20,6,12,'08:00',4,6,false,'大美督牛屎鱲細條'],
+  ];
+  data.forEach(d => {
+    const date = new Date(now); date.setDate(date.getDate() - d[5]);
+    catches.push({
+      id: id++, user: users[d[0]], species: FISH_SPECIES[d[1]].name, speciesIcon: FISH_SPECIES[d[1]].icon,
+      weight: d[2], length: d[3], spot: FISHING_SPOTS[d[4]].name, spotArea: FISHING_SPOTS[d[4]].area,
+      date: date.toISOString().slice(0,10), time: d[6], method: FISHING_METHODS[d[7]], bait: BAIT_TYPES[d[8]],
+      verified: d[9], notes: d[10], isMine: users[d[0]] === getUserName(),
+    });
+  });
+  return catches.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+/* ===== State & Persistence ===== */
+const STORAGE_KEY = 'hk_fishing_catches_v5';
+const USERNAME_KEY = 'hk_fishing_username';
+let state = { view:'my', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{} } };
+function getUserName() { return state.user ? (state.user.display_name || state.user.username) : (localStorage.getItem(USERNAME_KEY) || '我'); }
+function setUserName(name) {
+  if (SB_ENABLED && state.user) return;  // 雲端模式由 display_name 管理
+  name = name.trim() || '我';
+  localStorage.setItem(USERNAME_KEY, name);
+  state.catches.forEach(c => { if (c.isMine) c.user = name; });
+  saveCatches(state.catches);
+}
+async function loadCatches() {
+  if (SB_ENABLED && state.user) {
+    try {
+      const data = await dbLoadCatches();
+      if (data !== null) return data;
+    } catch (e) { console.error('dbLoadCatches failed', e); toast('雲端載入失敗'); }
+  }
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    try {
+      const data = JSON.parse(stored);
+      const uname = getUserName();
+      data.forEach(c => { if (c.isMine) c.user = uname; });
+      return data;
+    } catch(e) {}
+  }
+  const sample = genSampleCatches(); localStorage.setItem(STORAGE_KEY, JSON.stringify(sample)); return sample;
+}
+function saveCatches(c) {
+  if (SB_ENABLED && state.user) return;  // 雲端模式：每次操作直接寫 DB
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(c));
+}
+
+/* ===== Utils ===== */
+function getFishInfo(name) { return FISH_SPECIES.find(f => f.name === name) || { name: name, icon: '🐟' }; }
+function getSpotInfo(name) { return FISHING_SPOTS.find(s => s.name === name) || { name: name, area: '' }; }
+function formatDate(d) { const date = new Date(d); const mm=(date.getMonth()+1).toString().padStart(2,'0'); const dd=date.getDate().toString().padStart(2,'0'); return date.getFullYear()+'/'+mm+'/'+dd; }
+function daysAgo(d) { const date = new Date(d); const now = new Date(); const diff = Math.floor((now-date)/86400000); if(diff===0) return '今天'; if(diff===1) return '昨天'; return diff+'日前'; }
+function toast(msg) { let el = document.getElementById('toast'); if(!el){el=document.createElement('div');el.id='toast';el.className='toast';document.body.appendChild(el);} el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2000); }
+function periodFilter(c, period) {
+  if (period==='all') return true;
+  const d=new Date(c.date), now=new Date();
+  if (period==='month') return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+  if (period==='quarter') return Math.floor(now.getMonth()/3)===Math.floor(d.getMonth()/3) && d.getFullYear()===now.getFullYear();
+  if (period==='year') return d.getFullYear()===now.getFullYear();
+  return true;
+}
+
+/* ===== Record View ===== */
+function renderRecordView() {
+  const view = document.getElementById('view-record');
+  if (state.formSuccess) {
+    view.innerHTML = '<div class="success-screen"><div class="success-circle">✓</div><div class="success-title">魚獲已記錄！</div><div class="success-sub">你嘅紀錄已加入個人歷史同排行榜</div></div><button class="btn btn-share" data-action="share-last">📤 即時分享這條魚獲</button><button class="btn btn-primary mt-2" onclick="resetForm()">記錄下一條</button><button class="btn btn-outline mt-2" onclick="goToView(\'my\')">查看我的魚獲</button><button class="btn btn-outline mt-2" onclick="goToView(\'leaderboard\')">查看排行榜</button>';
+    return;
+  }
+  const now = new Date();
+  const today = now.toISOString().slice(0,10);
+  const nowTime = now.toTimeString().slice(0,5);
+  view.innerHTML = '<div class="card"><div class="section-title">🎣 記錄新魚獲</div>'
+    + '<div class="form-group"><label class="form-label">魚種 <span class="req">*</span></label><div class="species-grid" id="species-grid">'
+    + FISH_SPECIES.map((f,i) => '<div class="species-chip '+(state.selectedSpecies===i?'selected':'')+'" onclick="selectSpecies('+i+')">'
+      + (f.photo
+        ? '<img class="chip-thumb" src="'+f.photo+'" alt="'+f.name+'" loading="lazy" onerror="this.outerHTML=\'<span class=chip-thumb-fallback>'+f.icon+'</span>\'">'
+        : '<span class="chip-thumb-fallback">'+f.icon+'</span>')
+      + f.name+'</div>').join('')
+    + '</div>'
+    + (state.selectedSpecies===FISH_SPECIES.length-1 ? '<input type="text" class="form-input" id="custom-species" placeholder="輸入魚種名稱..." value="'+(state.customSpecies||'')+'" oninput="state.customSpecies=this.value" style="margin-top:10px;">' : '')
+    + '</div></div>'
+    + '<div class="form-row"><div class="form-group"><label class="form-label">重量 <span class="req">*</span></label><div class="input-suffix"><input type="number" class="form-input" id="catch-weight" placeholder="0.0" step="0.1" min="0"><span class="suffix">斤</span></div></div><div class="form-group"><label class="form-label">長度</label><div class="input-suffix"><input type="number" class="form-input" id="catch-length" placeholder="0" step="0.5" min="0"><span class="suffix">cm</span></div></div></div>'
+    + '<div class="form-group"><label class="form-label">釣點 <span class="req">*</span></label><select class="form-select" id="catch-spot" onchange="onSpotChange(this.value)"><option value="">選擇釣點...</option>'
+    + FISHING_SPOTS.map(s => '<option value="'+s.name+'"'+(state.selectedSpot===s.name?' selected':'')+'>'+s.name+'</option>').join('')
+    + '</select><input type="text" class="form-input" id="custom-spot" placeholder="輸入具體位置備註（可選），例如：西貢碼頭北防波堤..." value="'+(state.customSpot||'')+'" oninput="state.customSpot=this.value" style="margin-top:8px;">'
+    + '<div class="gps-section"><button type="button" id="gps-btn" class="gps-btn" onclick="getCurrentLocation()">📍 使用當前位置</button><div class="gps-status" id="gps-status">未取得位置</div></div>'
+    + '<input type="hidden" id="catch-lat" value="'+(state.catchLat||'')+'"><input type="hidden" id="catch-lng" value="'+(state.catchLng||'')+'"><input type="hidden" id="catch-accuracy" value="'+(state.catchAccuracy||'')+'"></div>'
+    + '<div class="form-row"><div class="form-group"><label class="form-label">日期</label><input type="date" class="form-input" id="catch-date" value="'+today+'" max="'+today+'"></div><div class="form-group"><label class="form-label">時間</label><input type="time" class="form-input" id="catch-time" value="'+nowTime+'"></div></div>'
+    + '<div class="form-row"><div class="form-group"><label class="form-label">釣法</label><select class="form-select" id="catch-method" onchange="onMethodChange(this.value)">'+FISHING_METHODS.map(m=>'<option value="'+m+'"'+(state.selectedMethod===m?' selected':'')+'>'+m+'</option>').join('')+'</select><input type="text" class="form-input" id="custom-method" placeholder="輸入釣法名稱..." value="'+(state.customMethod||'')+'" oninput="state.customMethod=this.value" style="margin-top:8px;display:'+(state.selectedMethod==='其他'?'block':'none')+';"></div><div class="form-group"><label class="form-label">釣餌</label><select class="form-select" id="catch-bait" onchange="onBaitChange(this.value)">'+BAIT_TYPES.map(b=>'<option value="'+b+'"'+(state.selectedBait===b?' selected':'')+'>'+b+'</option>').join('')+'</select><input type="text" class="form-input" id="custom-bait" placeholder="輸入釣餌名稱..." value="'+(state.customBait||'')+'" oninput="state.customBait=this.value" style="margin-top:8px;display:'+(state.selectedBait==='其他'?'block':'none')+';"></div></div>'
+    + '<div class="form-group"><label class="form-label">備註</label><textarea class="form-textarea" id="catch-notes" placeholder="例如：黃昏流水好、風向、水溫等..."></textarea></div>'
+    + '<div class="form-group"><label class="form-label">魚獲照片</label><div class="photo-upload" onclick="document.getElementById(\'catch-photo\').click()"><div class="upload-icon">📸</div><div class="upload-text">點擊上傳照片（可增強紀錄可信度）</div></div><input type="file" id="catch-photo" accept="image/*" style="display:none" onchange="previewPhoto(this)"><div id="photo-preview-container"></div></div>'
+    + '<button class="btn btn-primary" onclick="submitCatch()">送出魚獲記錄</button></div>';
+}
+function selectSpecies(idx) { state.selectedSpecies = idx; if (idx !== FISH_SPECIES.length - 1) state.customSpecies = ''; renderRecordView(); }
+function onMethodChange(m) {
+  state.selectedMethod = m;
+  const el = document.getElementById('custom-method');
+  if (el) {
+    if (m === '其他') { el.style.display = 'block'; el.value = state.customMethod || ''; }
+    else { el.style.display = 'none'; el.value = ''; state.customMethod = ''; }
+  }
+}
+function onBaitChange(b) {
+  state.selectedBait = b;
+  const el = document.getElementById('custom-bait');
+  if (el) {
+    if (b === '其他') { el.style.display = 'block'; el.value = state.customBait || ''; }
+    else { el.style.display = 'none'; el.value = ''; state.customBait = ''; }
+  }
+}
+function onSpotChange(s) { state.selectedSpot = s; }
+
+// ===== GPS Location =====
+function getCurrentLocation() {
+  const btn = document.getElementById('gps-btn');
+  const status = document.getElementById('gps-status');
+  if (!navigator.geolocation) {
+    status.textContent = '瀏覽器不支援定位';
+    status.className = 'gps-status error';
+    return;
+  }
+  btn.disabled = true;
+  btn.classList.add('loading');
+  btn.textContent = '⏳ 定位中...';
+  status.textContent = '正在取得位置...';
+  status.className = 'gps-status';
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      // 預設模糊化到 3 位小數 ≈ 110 公尺（保護隱私）
+      const rawLat = pos.coords.latitude;
+      const rawLng = pos.coords.longitude;
+      const accuracy = Math.round(pos.coords.accuracy);
+      const fuzzedLat = Math.round(rawLat * 1000) / 1000;
+      const fuzzedLng = Math.round(rawLng * 1000) / 1000;
+      state.catchLat = fuzzedLat;
+      state.catchLng = fuzzedLng;
+      state.catchAccuracy = accuracy;
+      document.getElementById('catch-lat').value = fuzzedLat;
+      document.getElementById('catch-lng').value = fuzzedLng;
+      document.getElementById('catch-accuracy').value = accuracy;
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      btn.textContent = '✓ 已取得位置';
+      status.className = 'gps-status success';
+      status.innerHTML = '✓ 已記錄 <span class="gps-accuracy">（精度 ±' + accuracy + ' 公尺，已模糊化至約 110m）</span>';
+    },
+    (err) => {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      btn.textContent = '📍 使用當前位置';
+      let msg = '無法取得位置';
+      if (err.code === 1) msg = '已拒絕位置權限';
+      else if (err.code === 2) msg = '位置不可用';
+      else if (err.code === 3) msg = '取得位置逾時';
+      status.textContent = msg;
+      status.className = 'gps-status error';
+      toast(msg);
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+function previewPhoto(input) {
+  const c = document.getElementById('photo-preview-container');
+  if (input.files && input.files[0]) { const r = new FileReader(); r.onload = e => { c.innerHTML = '<img class="photo-preview" src="'+e.target.result+'" alt="preview">'; }; r.readAsDataURL(input.files[0]); }
+}
+function submitCatch() {
+  if (state.selectedSpecies === null) { toast('請選擇魚種'); return; }
+  const weight = parseFloat(document.getElementById('catch-weight').value);
+  if (!weight || weight <= 0) { toast('請輸入重量'); return; }
+  const spotRaw = document.getElementById('catch-spot').value;
+  if (!spotRaw) { toast('請選擇釣點'); return; }
+  const spotDetail = (state.customSpot || '').trim();
+  let spot;
+  if (spotRaw === '其他') {
+    if (!spotDetail) { toast('請輸入釣點名稱'); return; }
+    spot = spotDetail;
+  } else {
+    spot = spotDetail ? (spotRaw + '（' + spotDetail + '）') : spotRaw;
+  }
+  const fish = FISH_SPECIES[state.selectedSpecies];
+  let speciesName = fish.name, speciesIcon = fish.icon;
+  if (fish.custom) {
+    speciesName = (state.customSpecies || '').trim();
+    if (!speciesName) { toast('請輸入魚種名稱'); return; }
+    speciesIcon = '🐠';
+  }
+  const methodRaw = document.getElementById('catch-method').value;
+  const method = methodRaw === '其他' ? (state.customMethod || '').trim() : methodRaw;
+  if (!method) { toast('請輸入釣法'); return; }
+  const baitRaw = document.getElementById('catch-bait').value;
+  const bait = baitRaw === '其他' ? (state.customBait || '').trim() : baitRaw;
+  if (!bait) { toast('請輸入釣餌'); return; }
+  const catchItem = {
+    id: SB_ENABLED && state.user ? 'temp-' + Date.now() : Date.now(),
+    user: getUserName(), species: speciesName, speciesIcon: speciesIcon,
+    weight: weight, length: parseFloat(document.getElementById('catch-length').value) || 0,
+    spot: spot, spotArea: getSpotInfo(spotRaw).area,
+    date: document.getElementById('catch-date').value, time: document.getElementById('catch-time').value,
+    method: method, bait: bait,
+    verified: false, notes: document.getElementById('catch-notes').value || '', isMine: true,
+    latitude: state.catchLat || null, longitude: state.catchLng || null,
+    locationAccuracy: state.catchAccuracy || null, locationSource: state.catchLat ? 'gps' : null,
+  };
+  state.catches.unshift(catchItem);
+  state.catches.sort((a,b) => b.date.localeCompare(a.date));
+  if (SB_ENABLED && state.user) {
+    dbAddCatch(catchItem).then(saved => {
+      if (saved) {
+        // Fix: 因為 catchItem 同 state.catches[i] by reference，
+        // 改 catchItem.id = saved.id 之後，state.catches 嗰個 element 都會自動更新
+        // (唔需要再 findIndex 改 — 之前嘅 code 因為 callback 入面先 findIndex，永遠搵唔到)
+        catchItem.id = saved.id;
+        catchItem.photoUrl = saved.photo_url;  // Route E: 同步 photo_url 到本地快取
+        // 更新 lastCatchId 配合 success 畫面（避免 race condition）
+        state.lastCatchId = saved.id;
+        renderRecordView();
+      }
+    }).catch(e => { toast('雲端寫入失敗：' + e.message); });
+  } else {
+    saveCatches(state.catches);
+  }
+  state.formSuccess = true; state.selectedSpecies = null; state.customSpecies = ''; state.selectedMethod = ''; state.customMethod = ''; state.selectedBait = ''; state.customBait = ''; state.selectedSpot = ''; state.customSpot = ''; state.lastCatchId = catchItem.id;
+  // Route E: 清空照片 input 與預覽，避免下次開表單殘留舊圖
+  const photoEl = document.getElementById('catch-photo');
+  if (photoEl) photoEl.value = '';
+  const previewEl = document.getElementById('photo-preview-container');
+  if (previewEl) previewEl.innerHTML = '';
+  // 解鎖偵測：如果這是用戶第一次釣到這個魚種，慶祝
+  const prevCatches = state.catches.filter(c => c.isMine && c.species === speciesName && c.id !== catchItem.id);
+  if (prevCatches.length === 0) {
+    setTimeout(() => showToast('🎉 解鎖新魚種：'+speciesName+'！'), 400);
+  }
+  renderRecordView();
+}
+function resetForm() { state.formSuccess = false; state.selectedSpecies = null; state.customSpecies = ''; state.selectedMethod = ''; state.customMethod = ''; state.selectedBait = ''; state.customBait = ''; state.selectedSpot = ''; state.customSpot = ''; renderRecordView(); }
+
+/* ===== My Catches View ===== */
+function getMyCatchRankings() {
+  const rankings = {};
+  const filtered = state.catches;
+  const qualify = c => c.verified || c.isMine || c.imported;
+  // 最大魚：按用戶最大魚獲排名
+  const userBiggest = {};
+  filtered.forEach(c => { if (qualify(c)) { if (!userBiggest[c.user] || c.weight > userBiggest[c.user].weight) userBiggest[c.user] = c; } });
+  Object.values(userBiggest).sort((a,b) => b.weight - a.weight).forEach((item, idx) => {
+    if (item.isMine) { (rankings[item.id] = rankings[item.id] || []).push({lb:'最大魚', rank: idx+1}); }
+  });
+  // 魚種王：按用戶不同魚種數量排名（徽章標記在最大魚獲上）
+  const userSpecies = {};
+  filtered.forEach(c => { if (qualify(c)) { userSpecies[c.user] = userSpecies[c.user] || {user:c.user, species:new Set(), catches:[]}; userSpecies[c.user].species.add(c.species); userSpecies[c.user].catches.push(c); } });
+  Object.values(userSpecies).sort((a,b) => b.species.size - a.species.size).forEach((item, idx) => {
+    const mine = item.catches.filter(c => c.isMine);
+    if (mine.length) {
+      const biggest = mine.slice().sort((a,b) => b.weight - a.weight)[0];
+      (rankings[biggest.id] = rankings[biggest.id] || []).push({lb:'魚種王', rank: idx+1});
+    }
+  });
+  // 最多魚獲：按用戶總數排名（標記在最新一條）
+  const userCounts = {};
+  filtered.forEach(c => { if (qualify(c)) { if (!userCounts[c.user]) userCounts[c.user] = {user:c.user, count:0, catches:[]}; userCounts[c.user].count++; userCounts[c.user].catches.push(c); } });
+  Object.values(userCounts).sort((a,b) => b.count - a.count).forEach((item, idx) => {
+    const mine = item.catches.filter(c => c.isMine);
+    if (mine.length) {
+      const latest = mine.sort((a,b) => (b.date+b.time).localeCompare(a.date+a.time))[0];
+      (rankings[latest.id] = rankings[latest.id] || []).push({lb:'最多魚獲', rank: idx+1});
+    }
+  });
+  return rankings;
+}
+function renderMyView() {
+  const view = document.getElementById('view-my');
+  let myCatches = state.catches.filter(c => c.isMine);
+  const totalCatches = myCatches.length;
+  const biggest = myCatches.reduce((max, c) => c.weight > (max?.weight||0) ? c : max, null);
+  const speciesCount = new Set(myCatches.map(c => c.species)).size;
+  const myRankings = getMyCatchRankings();
+  // 各魚種數量（基於未過濾的全部記錄）
+  const allMap = {};
+  state.catches.filter(c => c.isMine).forEach(c => { allMap[c.species] = (allMap[c.species]||0)+1; });
+  const allBreakdown = Object.entries(allMap).sort((a,b)=>b[1]-a[1]);
+  // 各魚種的 catch-card（基於未過濾的全部記錄）
+  const catchesBySpecies = {};
+  state.catches.filter(c => c.isMine).forEach(c => {
+    if (!catchesBySpecies[c.species]) catchesBySpecies[c.species] = [];
+    catchesBySpecies[c.species].push(c);
+  });
+  // 過濾後的列表（用於「全部記錄」section）
+  let filtered = myCatches;
+  if (state.myFilter === 'month') filtered = myCatches.filter(c => periodFilter(c, 'month'));
+  else if (state.myFilter === 'quarter') filtered = myCatches.filter(c => periodFilter(c, 'quarter'));
+  // 最大魚詳細卡
+  let biggestHtml = '';
+  if (biggest) {
+    const bi = getFishInfo(biggest.species);
+    const biIcon = bi && bi.photo
+      ? '<img class="catch-thumb" src="'+bi.photo+'" alt="'+biggest.species+'" loading="lazy" onerror="this.outerHTML=\''+(biggest.speciesIcon||'🐟')+'\'">'
+      : (biggest.speciesIcon || (bi ? bi.icon : '🐟'));
+    biggestHtml = '<div class="biggest-card"><div class="biggest-card-header"><span class="biggest-badge">👑 最大魚紀錄</span></div><div class="biggest-card-body"><div class="catch-fish-icon">'+biIcon+'</div><div class="biggest-info"><div class="biggest-species">'+biggest.species+'</div><div class="biggest-weight">'+biggest.weight+' <span>斤</span></div><div class="biggest-meta">'+(biggest.length?biggest.length+'cm · ':'')+biggest.spot+' · '+formatDate(biggest.date)+' '+biggest.time+'</div></div></div></div>';
+  }
+  // 各魚種數量（摺疊）
+  let speciesGroupHtml = '';
+  if (allBreakdown.length > 0) {
+    const secKey = 'speciesGroup';
+    const isExpanded = !!state.ui.expandedSections[secKey];
+    let rows = '';
+    allBreakdown.forEach(([sp, n]) => {
+      const f = getFishInfo(sp);
+      const thumb = f && f.photo
+        ? '<img src="'+f.photo+'" alt="'+sp+'" loading="lazy" onerror="this.outerHTML=\''+(f.icon||'🐟')+'\'">'
+        : (f ? f.icon : '🐟');
+      const spKey = secKey+'_'+sp;
+      const spExpanded = !!state.ui.expandedSpecies[spKey];
+      let catchesHtml = '';
+      if (spExpanded) {
+        catchesHtml = '<div class="species-catches-list">' + (catchesBySpecies[sp]||[]).map(c => renderCatchCard(c, myRankings)).join('') + '</div>';
+      }
+      rows += '<div class="species-row" onclick="toggleSpecies(\''+spKey+'\')"><div class="species-row-thumb">'+thumb+'</div><div class="species-row-name">'+sp+'</div><div class="species-row-count">'+n+' 條</div><span class="species-row-arrow">'+(spExpanded?'▼':'▶')+'</span></div>' + catchesHtml;
+    });
+    speciesGroupHtml = '<div class="collapsible '+(isExpanded?'expanded':'')+'">'
+      + '<div class="collapsible-header" onclick="toggleSection(\''+secKey+'\')"><span class="collapsible-title">📊 各魚種數量（'+allBreakdown.length+' 種 · '+totalCatches+' 條）</span><span class="collapsible-arrow">▶</span></div>'
+      + '<div class="collapsible-content">' + rows + '</div>'
+      + '</div>';
+  }
+  // 全部記錄（摺疊）
+  let allRecordsHtml = '';
+  const recKey = 'allRecords';
+  const recExpanded = !!state.ui.expandedSections[recKey];
+  let listHtml = '';
+  if (filtered.length === 0) {
+    listHtml = '<div class="empty-state" style="padding:20px"><div class="empty-text">呢個時段未有魚獲</div></div>';
+  } else {
+    listHtml = filtered.map(c => renderCatchCard(c, myRankings)).join('');
+  }
+  allRecordsHtml = '<div class="collapsible '+(recExpanded?'expanded':'')+'">'
+    + '<div class="collapsible-header" onclick="toggleSection(\''+recKey+'\')"><span class="collapsible-title">📋 全部記錄（'+filtered.length+' 條）</span><span class="collapsible-arrow">▶</span></div>'
+    + '<div class="collapsible-content">' + listHtml + '</div>'
+    + '</div>';
+  view.innerHTML = '<div class="stats-row"><div class="stat-card"><div class="stat-value">'+totalCatches+'</div><div class="stat-label">總魚獲</div></div><div class="stat-card"><div class="stat-value">'+(biggest?biggest.weight:0)+'<span style="font-size:13px">斤</span></div><div class="stat-label">最大魚'+(biggest?' ('+biggest.species+')':'')+'</div></div><div class="stat-card"><div class="stat-value">'+speciesCount+'</div><div class="stat-label">魚種數</div></div></div>'
+    + biggestHtml
+    + '<div class="filter-row"><button class="filter-chip '+(state.myFilter==='all'?'active':'')+'" onclick="setMyFilter(\'all\')">全部</button><button class="filter-chip '+(state.myFilter==='month'?'active':'')+'" onclick="setMyFilter(\'month\')">本月</button><button class="filter-chip '+(state.myFilter==='quarter'?'active':'')+'" onclick="setMyFilter(\'quarter\')">本季</button></div>'
+    + speciesGroupHtml
+    + allRecordsHtml;
+}
+function setMyFilter(f) { state.myFilter = f; renderMyView(); }
+function toggleSection(key) { state.ui.expandedSections[key] = !state.ui.expandedSections[key]; renderMyView(); }
+function toggleSpecies(key) { state.ui.expandedSpecies[key] = !state.ui.expandedSpecies[key]; renderMyView(); }
+function renderCatchCard(c, rankings) {
+  let rankBadges = '';
+  if (rankings && rankings[c.id]) {
+    rankBadges = rankings[c.id].map(r => '<span class="rank-badge">🏆 '+r.lb+' #'+r.rank+'</span>').join('');
+  }
+  const fishInfo = getFishInfo(c.species);
+  const iconHtml = fishInfo.photo
+    ? '<img class="catch-thumb" src="'+fishInfo.photo+'" alt="'+c.species+'" loading="lazy" onerror="this.outerHTML=\''+(c.speciesIcon||'🐟')+'\'">'
+    : (c.speciesIcon || '🐟');
+  return '<div class="catch-card"><div class="catch-card-top"><div class="catch-fish-icon">'+iconHtml+'</div><div class="catch-info"><div class="catch-species">'+c.species+'</div><div class="catch-meta">'+c.spot+' · '+formatDate(c.date)+' '+c.time+'</div></div><div class="catch-weight-badge"><div class="catch-weight">'+c.weight+'</div><div class="catch-weight-unit">斤</div></div></div><div class="catch-card-bottom">'+rankBadges+(c.length?'<span class="catch-tag">'+c.length+'cm</span>':'')+'<span class="catch-tag">🎣 '+c.method+'</span><span class="catch-tag">🪱 '+c.bait+'</span>'+(c.verified?'<span class="verified-badge">✓ 有效紀錄</span>':'')+'<span class="catch-tag share-btn" data-share-id="'+c.id+'">📤 分享</span></div>'+(c.notes?'<div style="padding:6px 14px 10px;font-size:13px;color:var(--gray-5);border-top:1px solid var(--gray-1);">'+c.notes+'</div>':'')+'</div>';
+}
+/* ===== 名稱管理 ===== */
+function openNameDialog() {
+  document.getElementById('name-input').value = getUserName();
+  document.getElementById('name-modal').classList.add('show');
+  setTimeout(() => document.getElementById('name-input').focus(), 300);
+}
+function closeNameDialog() { document.getElementById('name-modal').classList.remove('show'); }
+function saveName() {
+  const name = document.getElementById('name-input').value.trim() || '我';
+  setUserName(name);
+  document.getElementById('header-username').textContent = name;
+  closeNameDialog();
+  renderAll();
+  showToast('名稱已更新為「' + name + '」');
+}
+function confirmClearAll() {
+  if (!confirm('確定要清除所有記錄嗎？\n\n包括：你嘅魚獲、收藏嘅朋友魚獲、排行榜數據\n（你嘅名稱會保留）\n\n此操作不可撤銷！')) return;
+  clearAllRecords();
+}
+async function clearAllRecords() {
+  const name = getUserName();
+  if (SB_ENABLED && state.user) {
+    try {
+      await sb.from('catches').delete().eq('user_id', state.user.id);
+    } catch (e) { showToast('雲端清除失敗：' + e.message); return; }
+  }
+  localStorage.removeItem(STORAGE_KEY);
+  state.catches = [];
+  state.view = 'record';
+  state.selectedSpecies = null;
+  state.customSpecies = '';
+  state.selectedMethod = '';
+  state.customMethod = '';
+  state.selectedBait = '';
+  state.customBait = '';
+  state.formSuccess = false;
+  state.lastCatchId = null;
+  closeNameDialog();
+  renderAll();
+  showToast('✓ 已清除所有記錄');
+}
+
+/* ===== 輕量分享（路徑一） ===== */
+function shareCatch(id) {
+  try {
+  const c = state.catches.find(x => x.id === id);
+  if (!c) return;
+  const myRankings = getMyCatchRankings();
+  const catchRanks = (myRankings[c.id] || []);
+  const rankText = catchRanks.map(r => r.lb+' #'+r.rank).join('、');
+  const data = btoa(unescape(encodeURIComponent(JSON.stringify({
+    s: c.species, i: c.speciesIcon || '🐟', w: c.weight, l: c.length || 0,
+    p: c.spot, d: c.date, t: c.time, m: c.method, b: c.bait, n: c.notes || '', u: c.user,
+    r: catchRanks
+  }))));
+  const base = location.origin + location.pathname;
+  const shareUrl = base + '?share=' + data;
+  let text = '🎣 '+c.user+' 喺【香港釣魚數據平台】記錄咗一條魚獲：\n'+(c.speciesIcon||'🐟')+' '+c.species+' '+c.weight+'斤\n📍 '+c.spot+' · '+formatDate(c.date);
+  if (rankText) text += '\n🏆 排行榜名次：'+rankText;
+  text += '\n快嚟挑戰排行榜！';
+  const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=' + encodeURIComponent(shareUrl);
+  const body = document.getElementById('share-modal-body');
+  body.innerHTML =
+    '<div style="text-align:center;margin-bottom:16px;">'
+    + '<div style="font-size:32px;margin-bottom:6px;">'+(c.speciesIcon||'🐟')+'</div>'
+    + '<div style="font-size:16px;font-weight:700;">'+c.species+' '+c.weight+'斤</div>'
+    + '<div style="font-size:13px;color:var(--gray-4);">'+c.spot+' · '+formatDate(c.date)+'</div>'
+    + '</div>'
+    + (catchRanks.length ? '<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:10px;padding:10px 14px;margin-bottom:16px;text-align:center;">'
+      + '<div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:6px;">🏆 排行榜名次</div>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">'
+      + catchRanks.map(r => '<span style="background:#fff;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;color:#92400e;border:1px solid #fcd34d;">'+r.lb+' #'+r.rank+'</span>').join('')
+      + '</div></div>' : '')
+    + '<div style="text-align:center;margin-bottom:16px;">'
+    + '<img src="'+qrUrl+'" style="width:200px;height:200px;border-radius:12px;border:1px solid var(--gray-2);" alt="QR">'
+    + '<div style="font-size:12px;color:var(--gray-4);margin-top:8px;">朋友掃碼即可查看同收藏</div>'
+    + '</div>'
+    + '<div class="modal-btns" style="flex-direction:column;">'
+    + '<button class="btn btn-primary" data-action="native-share" data-data="'+data+'">📤 用系統分享（WhatsApp/微信）</button>'
+    + '<button class="btn btn-outline" data-action="copy-share" data-data="'+data+'">📋 複製分享連結</button>'
+    + '</div>';
+  document.getElementById('share-modal').classList.add('show');
+  } catch (e) {
+    console.error('[shareCatch] error:', e);
+    alert('分享功能出錯：' + e.message + '\n\n請截圖畀我');
+  }
+}
+function nativeShare(data) {
+  const base = location.origin + location.pathname;
+  const url = base + '?share=' + data;
+  const d = JSON.parse(decodeURIComponent(escape(atob(data))));
+  let text = '🎣 嚟【香港釣魚數據平台】睇下'+d.u+'嘅魚獲！\n'+(d.i||'🐟')+' '+d.s+' '+d.w+'斤\n📍 '+d.p+' · '+formatDate(d.d);
+  if (d.r && d.r.length) text += '\n🏆 排行榜名次：'+d.r.map(r => r.lb+' #'+r.rank).join('、');
+  if (navigator.share) {
+    navigator.share({ title: '香港釣魚數據平台', text: text, url: url }).catch(()=>{});
+  } else {
+    navigator.clipboard.writeText(text + '\n' + url).then(() => showToast('已複製，可貼到 WhatsApp / 微信')).catch(()=>{});
+  }
+}
+function copyShareLink(data) {
+  const base = location.origin + location.pathname;
+  const url = base + '?share=' + data;
+  navigator.clipboard.writeText(url).then(() => showToast('連結已複製')).catch(() => {
+    const ta = document.createElement('textarea'); ta.value = url; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showToast('連結已複製'); } catch(e) { showToast('複製失敗，請手動複製'); }
+    document.body.removeChild(ta);
+  });
+}
+function closeShareModal() { document.getElementById('share-modal').classList.remove('show'); }
+
+/* ===== 收藏朋友分享的魚獲 ===== */
+function checkSharedCatch() {
+  const params = new URLSearchParams(location.search);
+  const shareData = params.get('share');
+  if (!shareData) return;
+  try {
+    const d = JSON.parse(decodeURIComponent(escape(atob(shareData))));
+    const body = document.getElementById('import-modal-body');
+    const has = state.catches.some(c => c.imported && c.shareKey === shareData);
+    body.innerHTML =
+      '<div style="text-align:center;padding:8px 0 16px;">'
+      + '<div style="font-size:13px;color:var(--gray-4);margin-bottom:12px;">🎣 朋友分享的魚獲</div>'
+      + '<div style="font-size:48px;">'+(d.i||'🐟')+'</div>'
+      + '<div style="font-size:20px;font-weight:700;margin:8px 0;">'+d.s+' '+d.w+'斤</div>'
+      + '<div style="font-size:14px;color:var(--gray-5);">'+d.p+' · '+formatDate(d.d)+' '+d.t+'</div>'
+      + (d.l ? '<div style="font-size:13px;color:var(--gray-4);margin-top:4px;">長度 '+d.l+'cm</div>' : '')
+      + '</div>'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;justify-content:center;">'
+      + '<span class="catch-tag">🎣 '+(d.m||'')+'</span>'
+      + '<span class="catch-tag">🪱 '+(d.b||'')+'</span>'
+      + '<span class="catch-tag">👤 '+d.u+'</span>'
+      + '</div>'
+      + (d.r && d.r.length ? '<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:10px;padding:10px 14px;margin-bottom:16px;text-align:center;">'
+        + '<div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:6px;">🏆 排行榜名次</div>'
+        + '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">'
+        + d.r.map(r => '<span style="background:#fff;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;color:#92400e;border:1px solid #fcd34d;">'+r.lb+' #'+r.rank+'</span>').join('')
+        + '</div></div>' : '')
+      + (d.n ? '<div style="padding:10px 14px;font-size:14px;color:var(--gray-5);background:var(--gray-1);border-radius:8px;margin-bottom:16px;">'+d.n+'</div>' : '')
+      + (has
+        ? '<div style="text-align:center;color:var(--green);font-weight:600;padding:12px;">✓ 已收藏到你嘅記錄</div>'
+        + '<button class="btn btn-outline" style="width:100%;" onclick="closeImportModal();clearShareParam();">打開 App</button>'
+        : '<div class="modal-btns">'
+        + '<button class="btn btn-primary" onclick="importCatch(\''+shareData.replace(/'/g,"\\'")+'\')">📥 收藏到我手機</button>'
+        + '<button class="btn btn-outline" onclick="closeImportModal();clearShareParam();">稍後再講</button>'
+        + '</div>'
+      );
+    document.getElementById('import-modal').classList.add('show');
+  } catch(e) { console.warn('share parse error', e); }
+}
+function importCatch(shareData) {
+  try {
+    const d = JSON.parse(decodeURIComponent(escape(atob(shareData))));
+    const fishInfo = FISH_SPECIES.find(f => f.name === d.s);
+    const catchItem = {
+      id: SB_ENABLED && state.user ? 'temp-' + Date.now() : Date.now(),
+      user: d.u || '朋友', species: d.s, speciesIcon: d.i || fishInfo?.icon || '🐟',
+      weight: d.w, length: d.l || 0, spot: d.p, spotArea: getSpotInfo(d.p)?.area || '',
+      date: d.d, time: d.t, method: d.m || '', bait: d.b || '',
+      verified: false, notes: d.n || '', isMine: false, imported: true, shareKey: shareData
+    };
+    state.catches.unshift(catchItem);
+    state.catches.sort((a,b) => b.date.localeCompare(a.date));
+    if (SB_ENABLED && state.user) {
+      // 雲端模式：插到自己的 user_id 下
+      dbAddCatch({ ...catchItem, isMine: true, imported: false }).then(saved => {
+        if (saved) catchItem.id = saved.id;
+      }).catch(e => showToast('雲端寫入失敗：' + e.message));
+    } else {
+      saveCatches(state.catches);
+    }
+    closeImportModal();
+    clearShareParam();
+    switchView('leaderboard');
+    showToast('已收藏！呢條魚獲已加入排行榜');
+  } catch(e) { showToast('收藏失敗，數據有誤'); }
+}
+function clearShareParam() {
+  const url = location.origin + location.pathname;
+  history.replaceState({}, document.title, url);
+}
+function closeImportModal() { document.getElementById('import-modal').classList.remove('show'); }
+
+/* ===== Leaderboard View ===== */
+function renderLeaderboardView() {
+  const view = document.getElementById('view-leaderboard');
+  const filtered = state.catches.filter(c => periodFilter(c, state.lbPeriod));
+  let lbData = [];
+  if (state.lbType === 'biggest') {
+    const m = {};
+    filtered.forEach(c => { if (c.verified || c.isMine || c.imported) { if (!m[c.user] || c.weight > m[c.user].weight) m[c.user] = {...c}; } });
+    lbData = Object.values(m).sort((a,b) => b.weight - a.weight);
+  } else if (state.lbType === 'quantity') {
+    const m = {};
+    filtered.forEach(c => { if (c.verified || c.isMine || c.imported) { m[c.user] = m[c.user] || {user:c.user, count:0, spots:new Set(), species:new Set(), isMine:false}; m[c.user].count++; m[c.user].spots.add(c.spot); m[c.user].species.add(c.species); if (c.isMine) m[c.user].isMine = true; } });
+    lbData = Object.values(m).map(u => ({user:u.user, count:u.count, spotCount:u.spots.size, speciesCount:u.species.size, isMine:u.isMine})).sort((a,b) => b.count - a.count);
+  } else {
+    // 魚種王：統計每個用戶釣到多少種不同魚種，按數量排名
+    const m = {};
+    filtered.forEach(c => { if (c.verified || c.isMine || c.imported) { m[c.user] = m[c.user] || {user:c.user, species:new Set(), catches:[]}; m[c.user].species.add(c.species); m[c.user].catches.push(c); } });
+    lbData = Object.values(m).map(u => {
+      const biggest = u.catches.reduce((mx,c) => c.weight > mx.weight ? c : mx, u.catches[0]);
+      return { user:u.user, speciesCount:u.species.size, speciesList:[...u.species].join('·'), biggestWeight:biggest.weight, isMine:u.catches.some(c=>c.isMine) };
+    }).sort((a,b) => b.speciesCount - a.speciesCount || b.biggestWeight - a.biggestWeight);
+  }
+  let listHtml = '';
+  if (lbData.length === 0) {
+    listHtml = '<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-text">暫無排行榜數據</div></div>';
+  } else {
+    lbData.forEach((item, idx) => {
+      const rank = idx + 1; let rankClass = 'normal';
+      if (rank===1) rankClass='gold'; else if (rank===2) rankClass='silver'; else if (rank===3) rankClass='bronze';
+      let value='', detail='';
+      if (state.lbType==='biggest') { value=item.weight+'<span class="unit">斤</span>'; detail=item.species+' · '+item.spot+' · '+daysAgo(item.date); }
+      else if (state.lbType==='quantity') { value=item.count+'<span class="unit">條</span>'; detail=item.speciesCount+' 種魚 · '+item.spotCount+' 個釣點'; }
+      else { value=item.speciesCount+'<span class="unit">種</span>'; detail=item.speciesList+' · 最大'+item.biggestWeight+'斤'; }
+      listHtml += '<div class="lb-item'+(item.isMine?' mine':'')+'"><div class="lb-rank '+rankClass+'">'+rank+'</div><div class="lb-user"><div class="lb-username">'+item.user+(item.isMine?' <span style="font-size:11px;color:var(--orange)">（我）</span>':'')+'</div><div class="lb-detail">'+detail+'</div></div><div class="lb-value">'+value+'</div></div>';
+    });
+  }
+  view.innerHTML = '<div class="lb-tabs"><button class="lb-tab '+(state.lbType==='biggest'?'active':'')+'" onclick="setLbType(\'biggest\')">最大魚</button><button class="lb-tab '+(state.lbType==='quantity'?'active':'')+'" onclick="setLbType(\'quantity\')">最多魚獲</button><button class="lb-tab '+(state.lbType==='species'?'active':'')+'" onclick="setLbType(\'species\')">魚種王</button></div>'
+    + '<div class="lb-period-row"><button class="lb-period '+(state.lbPeriod==='all'?'active':'')+'" onclick="setLbPeriod(\'all\')">全部</button><button class="lb-period '+(state.lbPeriod==='year'?'active':'')+'" onclick="setLbPeriod(\'year\')">年度</button><button class="lb-period '+(state.lbPeriod==='quarter'?'active':'')+'" onclick="setLbPeriod(\'quarter\')">季度</button><button class="lb-period '+(state.lbPeriod==='month'?'active':'')+'" onclick="setLbPeriod(\'month\')">月度</button></div>'
+    + '<div class="lb-list">'+listHtml+'</div>'
+    + '<div style="font-size:12px;color:var(--gray-4);text-align:center;padding:12px;">排行榜只計有效紀錄（附照片/GPS）<br>規則公開透明，可追溯至原始紀錄</div>';
+}
+function setLbType(t) { state.lbType = t; renderLeaderboardView(); }
+function setLbPeriod(p) { state.lbPeriod = p; renderLeaderboardView(); }
+
+/* ===== Map View ===== */
+let mapInstance = null;
+let mapMarkers = [];
+const DEFAULT_MAPTILER_KEY = 'w5fj5y6QeZAEiZ0a9GOd';  // MapTiler 公開 key，已在 cloud.maptiler.com 設 *.github.io 白名單
+
+function renderMapView() {
+  const view = document.getElementById('view-map');
+  const gpsCatches = (state.catches || []).filter(c => c.latitude && c.longitude);
+  const hasMapTilerKey = (typeof localStorage !== 'undefined' && (localStorage.getItem('maptiler_key') || '').length > 10);
+  view.innerHTML = '<div class="map-container"><div id="map-canvas"></div>'
+    + '<div class="map-overlay"><div class="map-overlay-title">🗺️ 釣點分佈<span class="map-overlay-close" onclick="closeMapOverlay()">×</span></div>'
+    + '<div class="map-stats"><span>📍 已記錄 <span class="map-stat-value">'+gpsCatches.length+'</span> 個 GPS 點</span>'
+    + '<span>🐟 共 <span class="map-stat-value">'+(state.catches||[]).length+'</span> 條魚</span>'
+    + (hasMapTilerKey ? '' : '<button class="btn-mini" onclick="setMapTilerKey()" style="margin-left:auto;background:var(--orange);color:white;border:none;padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;">+ 啟用繁體中文</button>')
+    + '</div></div>'
+    + '<div class="map-legend"><div class="map-legend-item"><div class="map-legend-dot" style="background:#f97316"></div>我的魚獲</div>'
+    + '<div class="map-legend-item"><div class="map-legend-dot" style="background:#0d9488"></div>釣友的魚獲</div>'
+    + '<div class="map-legend-item"><div class="map-legend-dot" style="background:#9ca3af"></div>示範數據</div></div>'
+    + '</div>';
+  if (gpsCatches.length === 0) {
+    view.innerHTML = '<div class="map-empty"><div class="map-empty-icon">🗺️</div>'
+      + '<div style="font-size:16px;font-weight:700;color:var(--dark);margin-bottom:6px;">尚未有 GPS 記錄</div>'
+      + '<div style="font-size:13px;color:var(--gray-4);margin-bottom:16px;">在記錄魚獲時點「📍 使用當前位置」即可在地圖顯示</div>'
+      + '<button class="btn btn-primary" onclick="goToView(\'record\')">去記錄魚獲</button></div>';
+    return;
+  }
+  // 等下一個 tick 才初始化地圖（確保 DOM 已建立）
+  setTimeout(() => initMap(gpsCatches), 50);
+}
+
+function closeMapOverlay() {
+  const o = document.querySelector('.map-overlay');
+  if (o) o.style.display = 'none';
+}
+
+function setMapTilerKey() {
+  const key = prompt('輸入 MapTiler 免費 API key（到 https://maptiler.com 註冊拿 key）：\n\n免費 100,000 tiles/月，繁體中文地圖', localStorage.getItem('maptiler_key') || '');
+  if (key && key.trim()) {
+    localStorage.setItem('maptiler_key', key.trim());
+    toast('已儲存，重新整理地圖即可使用繁體中文');
+    if (typeof renderMapView === 'function') renderMapView();
+  }
+}
+
+function initMap(items) {
+  // 銷毀舊實例（切換分頁時）
+  if (mapInstance) { try { mapInstance.remove(); } catch(e) {} mapInstance = null; }
+  mapMarkers = [];
+  // 計算中心點（取所有 GPS 點的平均，或香港中心）
+  const center = items.length === 1
+    ? [items[0].latitude, items[0].longitude]
+    : [items.reduce((s,c)=>s+c.latitude,0)/items.length, items.reduce((s,c)=>s+c.longitude,0)/items.length];
+
+  // ===== Tile Layers =====
+  // 1. CartoDB Positron（預設，無需 key，簡潔風格）
+  //    Leaflet 直接吃 raster PNG，是最可靠的免費選擇
+  const openFreeMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap contributors © CARTO',
+    subdomains: 'abcd',
+    maxZoom: 19,
+    name: 'CartoDB'
+  });
+
+  // 2. MapTiler 繁體中文（需到 https://maptiler.com 註冊拿免費 key）
+  //    免費額度 100K tile/月，個人使用綽綽有餘
+  //    預設 key 在模組頂層宣告 DEFAULT_MAPTILER_KEY
+  const MAPTILER_KEY = (typeof localStorage !== 'undefined' && localStorage.getItem('maptiler_key')) || DEFAULT_MAPTILER_KEY;
+  const baseLayers = {
+    '🗺️ CartoDB Positron': openFreeMap,
+    '🇭🇰 MapTiler 繁體中文': L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MAPTILER_KEY}&language=zh-Hant`, {
+      attribution: '© MapTiler © OpenStreetMap contributors',
+      maxZoom: 19
+    })
+  };
+  // 預設使用 MapTiler 繁中，fallback CartoDB
+  let defaultLayer = baseLayers['🇭🇰 MapTiler 繁體中文'];
+
+  mapInstance = L.map('map-canvas', { zoomControl: true }).setView(center, 11);
+  defaultLayer.addTo(mapInstance);
+  L.control.layers(baseLayers, null, { position: 'topright', collapsed: false }).addTo(mapInstance);
+
+  items.forEach(c => {
+    const color = c.isMine ? '#f97316' : (c.isDemo ? '#9ca3af' : '#0d9488');
+    const radius = c.isMine ? 9 : 7;
+    const marker = L.circleMarker([c.latitude, c.longitude], {
+      radius, fillColor: color, color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.85
+    }).addTo(mapInstance);
+    const popupHtml = '<div class="map-popup-title">'+(c.speciesIcon||'🐟')+' '+c.species+'</div>'
+      + '<div class="map-popup-weight">'+c.weight+' 斤</div>'
+      + '<div class="map-popup-meta">📍 '+c.spot+'<br>👤 '+c.user+'<br>📅 '+formatDate(c.date)+(c.time?' '+c.time:'')+(c.locationAccuracy?'<br>🎯 GPS ±'+c.locationAccuracy+'m':'')+'</div>';
+    marker.bindPopup(popupHtml);
+    mapMarkers.push(marker);
+  });
+  // 多個點自動調整視野
+  if (items.length > 1) {
+    const bounds = L.latLngBounds(items.map(c => [c.latitude, c.longitude]));
+    mapInstance.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+  }
+}
+
+/* ===== Spots View ===== */
+function renderEncyclopediaView() {
+  const view = document.getElementById('view-encyclopedia');
+  // 我釣過的魚獲（含收藏的）
+  const myCatches = state.catches.filter(c => c.isMine || c.imported);
+  // 計算每個魚種的統計
+  const speciesStats = {};
+  myCatches.forEach(c => {
+    const s = speciesStats[c.species] = speciesStats[c.species] || { count: 0, biggest: 0, lastDate: '' };
+    s.count++;
+    if (c.weight > s.biggest) s.biggest = c.weight;
+    if (c.date > s.lastDate) s.lastDate = c.date;
+  });
+  // 所有魚種（不含「其他」選項）
+  const allSpecies = FISH_SPECIES.filter(f => !f.custom);
+  // 加上用戶自訂的魚種（不在預設清單裡的）
+  Object.keys(speciesStats).forEach(name => {
+    if (!allSpecies.find(f => f.name === name)) {
+      allSpecies.push({ name, icon: '🐟', sci: '自訂', habitat: '', desc: '用戶自訂魚種', rarity: 'common', custom: true });
+    }
+  });
+  const caughtCount = allSpecies.filter(f => speciesStats[f.name]).length;
+  const total = allSpecies.length;
+  const pct = total > 0 ? Math.round(caughtCount / total * 100) : 0;
+  const rarityLabels = { common: '常見', uncommon: '少見', rare: '稀有' };
+  let html = '<div class="pokedex-progress-box">'
+    + '<div class="pokedex-progress-title">📖 魚種圖鑑</div>'
+    + '<div class="pokedex-progress-bar"><div class="pokedex-progress-fill" style="width:'+pct+'%"></div></div>'
+    + '<div class="pokedex-progress-text">已收集 <b>'+caughtCount+'</b> / '+total+' 種 · '+pct+'%</div>'
+    + '</div>'
+    + '<div class="pokedex-grid">';
+  html += allSpecies.map(f => {
+    const stats = speciesStats[f.name];
+    const caught = !!stats;
+    const rarityClass = 'rarity-' + (f.rarity || 'common');
+    if (caught) {
+      return '<div class="pokedex-card unlocked">'
+        + (f.custom ? '<span class="pokedex-custom-tag">自訂</span>' : '')
+        + '<span class="pokedex-rarity '+rarityClass+'">'+rarityLabels[f.rarity||'common']+'</span>'
+        + (f.photo
+          ? '<img class="pokedex-photo" src="'+f.photo+'" alt="'+f.name+'" loading="lazy" onerror="this.outerHTML=\'<div class=pokedex-icon>'+f.icon+'</div>\'">'
+          : '<div class="pokedex-icon">'+f.icon+'</div>')
+        + '<div class="pokedex-name">'+f.name+'</div>'
+        + '<div class="pokedex-sci">'+(f.sci||'')+'</div>'
+        + '<div class="pokedex-habitat">'+(f.habitat||'')+'</div>'
+        + '<div class="pokedex-desc">'+(f.desc||'')+'</div>'
+        + '<div class="pokedex-pb"><span class="pb-label">最大</span> '+stats.biggest+'斤 <span class="pb-label">· '+stats.count+'條</span></div>'
+        + '<div style="font-size:10px;color:var(--gray-4);margin-top:4px;">最近：'+formatDate(stats.lastDate)+'</div>'
+        + '</div>';
+    } else {
+      return '<div class="pokedex-card locked">'
+        + '<span class="pokedex-rarity '+rarityClass+'">'+rarityLabels[f.rarity||'common']+'</span>'
+        + '<div class="pokedex-lock-icon">❓</div>'
+        + '<div class="pokedex-name">'+f.name+'</div>'
+        + '<div class="pokedex-locked-text">未解鎖</div>'
+        + '<div class="pokedex-desc" style="margin-top:4px;">'+(f.habitat||'')+'</div>'
+        + '</div>';
+    }
+  }).join('');
+  html += '</div>';
+  view.innerHTML = html;
+}
+
+/* ===== Navigation ===== */
+function switchView(name) {
+  state.view = name;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const viewEl = document.getElementById('view-'+name);
+  viewEl.classList.add('active', 'fade-in');
+  setTimeout(() => viewEl.classList.remove('fade-in'), 300);
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelector('.nav-item[data-view="'+name+'"]').classList.add('active');
+  const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', leaderboard:'🏆 排行榜', encyclopedia:'📖 魚種圖鑑', map:'🗺️ 釣點地圖' };
+  document.getElementById('header-title').textContent = titles[name];
+  renderView(name);
+}
+function goToView(name) { switchView(name); }
+function renderView(name) {
+  if (name==='record') renderRecordView();
+  else if (name==='my') renderMyView();
+  else if (name==='leaderboard') renderLeaderboardView();
+  else if (name==='encyclopedia') renderEncyclopediaView();
+  else if (name==='map') renderMapView();
+}
+function renderAll() { renderView(state.view); }
+function showToast(msg) {
+  let t = document.getElementById('toast');
+  if (!t) { t = document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t); }
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer); t._timer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+/* ===== Init ===== */
+
+/* ===== 登入畫面 ===== */
+function renderLoginScreen() {
+  const screen = document.getElementById('login-screen');
+  if (!SB_ENABLED) { screen.innerHTML = ''; screen.style.display = 'none'; return; }
+  screen.innerHTML = `
+    <div class="login-screen">
+      <div class="login-card">
+        <div class="login-logo">🎣</div>
+        <div class="login-title">香港釣魚數據平台</div>
+        <div class="login-subtitle">雲端同步 · 多裝置共享</div>
+        <div class="login-tabs">
+          <button class="login-tab active" data-mode="login" onclick="switchAuthMode('login')">登入</button>
+          <button class="login-tab" data-mode="register" onclick="switchAuthMode('register')">註冊</button>
+        </div>
+        <div class="login-field">
+          <label>用戶名</label>
+          <input type="text" class="login-input" id="auth-username" placeholder="2-12 個字" maxlength="12" autocomplete="username">
+        </div>
+        <div class="login-field">
+          <label>4 位數字 PIN</label>
+          <input type="password" class="login-input pin-input" id="auth-pin" placeholder="••••" maxlength="4" pattern="\\d{4}" inputmode="numeric" autocomplete="current-password">
+        </div>
+        <button class="login-btn" id="auth-submit" onclick="handleAuthSubmit()">登入</button>
+        <div class="login-msg" id="auth-msg"></div>
+        <div class="login-footer">PIN 經 PBKDF2 雜湊後儲存 · 請牢記你的 PIN</div>
+        ${SB_ENABLED && state.user ? '<button class="btn btn-outline" style="width:100%;margin-top:12px;color:var(--gray-5);border-color:var(--gray-3);" onclick="sbLogout()">🚪 登出</button>' : ''}
+      </div>
+    </div>
+  `;
+  screen.style.display = 'block';
+  document.getElementById('header').style.display = 'none';
+  document.getElementById('bottom-nav').style.display = 'none';
+  document.getElementById('main').style.display = 'none';
+}
+
+let authMode = 'login';
+window.switchAuthMode = function(mode) {
+  authMode = mode;
+  document.querySelectorAll('.login-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+  document.getElementById('auth-submit').textContent = mode === 'login' ? '登入' : '註冊';
+  document.getElementById('auth-msg').textContent = '';
+};
+
+window.handleAuthSubmit = async function() {
+  const username = document.getElementById('auth-username').value.trim();
+  const pin = document.getElementById('auth-pin').value;
+  const msgEl = document.getElementById('auth-msg');
+  const btn = document.getElementById('auth-submit');
+  if (!username || !pin) { msgEl.textContent = '請填寫用戶名同 PIN'; return; }
+  if (!/^\d{4}$/.test(pin)) { msgEl.textContent = 'PIN 必須是 4 位數字'; return; }
+  btn.disabled = true; msgEl.textContent = authMode === 'login' ? '登入中...' : '註冊中...';
+  try {
+    if (authMode === 'register') await sbRegister(username, pin);
+    else await sbLogin(username, pin);
+    // 成功：執行 migration + 載入數據
+    const migrated = await migrateLocalCatches();
+    if (migrated > 0) console.log('Migrated ' + migrated + ' local records');
+    await seedDemoDataIfNeeded();
+    state.catches = await dbLoadCatches();
+    document.getElementById('login-screen').innerHTML = '';
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('header').style.display = '';
+    document.getElementById('bottom-nav').style.display = '';
+    document.getElementById('main').style.display = '';
+    document.getElementById('header-username').textContent = getUserName();
+    setupGlobalHandlers();
+    checkSharedCatch();
+    switchView('my');
+  } catch (e) {
+    msgEl.textContent = e.message || '發生錯誤';
+  } finally {
+    btn.disabled = false;
+  }
+};
+async function init() {
+  if (SB_ENABLED) {
+    const savedId = localStorage.getItem('hk_fishing_user_id');
+    if (savedId) {
+      const { data: user } = await sb.from('users').select('*').eq('id', savedId).maybeSingle();
+      if (user) state.user = user;
+    }
+    if (!state.user) {
+      // 雲端模式但未登入：顯示登入畫面
+      renderLoginScreen();
+      setupGlobalHandlers();
+      return;
+    }
+    // 已登入：執行 migration + 載入雲端數據
+    try {
+      const migrated = await migrateLocalCatches();
+      if (migrated > 0) toast('已從本地匯入 ' + migrated + ' 條舊記錄');
+      const seeded = await seedDemoDataIfNeeded();
+      if (seeded > 0) console.log('Seeded ' + seeded + ' demo records');
+      state.catches = await dbLoadCatches();
+    } catch (e) {
+      console.error('Init failed', e);
+      toast('雲端載入失敗：' + e.message);
+      renderLoginScreen();
+      return;
+    }
+  } else {
+    state.catches = await loadCatches();  // FIX: await 因為 loadCatches 係 async function
+  }
+  setupGlobalHandlers();
+  document.getElementById('header-username').textContent = getUserName();
+  checkSharedCatch();
+  switchView('my');
+}
+function setupGlobalHandlers() {
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.addEventListener('click', () => switchView(btn.dataset.view));
+  });
+  window.selectSpecies = selectSpecies;
+  window.previewPhoto = previewPhoto;
+  window.submitCatch = submitCatch;
+  window.resetForm = resetForm;
+  window.goToView = goToView;
+  window.setMyFilter = setMyFilter;
+  window.setLbType = setLbType;
+  window.setLbPeriod = setLbPeriod;
+  window.shareCatch = shareCatch;
+  window.openNameDialog = openNameDialog;
+  window.closeNameDialog = closeNameDialog;
+  window.saveName = saveName;
+  window.confirmClearAll = confirmClearAll;
+  window.nativeShare = nativeShare;
+  window.copyShareLink = copyShareLink;
+  window.closeShareModal = closeShareModal;
+  window.importCatch = importCatch;
+  window.closeImportModal = closeImportModal;
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js?v=v8').catch(()=>{});
+  }
+  checkSharedCatch();
+  renderRecordView();
+}
+
+/* ===== Event Delegation（避免 inline onclick 嘅 escape 陷阱）===== */
+// 分享掣統一處理（catch-card + modal 入面兩個掣 + 成功畫面）
+document.addEventListener('click', function(e) {
+  // 0. 成功畫面嘅「即時分享這條魚獲」
+  const shareLastBtn = e.target.closest('[data-action="share-last"]');
+  if (shareLastBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      // 1. 首先試用 state.lastCatchId 對應嘅 catch
+      let id = state.lastCatchId;
+      let found = id ? state.catches.find(x => x.id === id) : null;
+
+      // 2. Fallback: 因為 race condition (dbAddCatch callback 仲未跑完)，
+      //    lastCatchId 仲係 temp-id 而 state.catches[0].id 已經被改做 saved.id
+      //    用最新加入嘅 catch (state.catches[0]，因為 submitCatch 用 unshift)
+      if (!found && state.catches.length > 0) {
+        const latest = state.catches[0];
+        if (latest && (latest.isMine || latest.user === getUserName())) {
+          found = latest;
+          state.lastCatchId = latest.id;  // 同步返 state
+        }
+      }
+
+      if (!found) {
+        showToast('⚠️ 暫時無法分享，請先記錄一條魚獲');
+        return;
+      }
+      shareCatch(found.id);
+    } catch (err) {
+      console.error('[share-last] error:', err);
+      showToast('分享出錯：' + err.message);
+    }
+    return;
+  }
+
+  // 1. 撳 catch card 嘅 📤 分享
+  const shareBtn = e.target.closest('[data-share-id]');
+  if (shareBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      shareCatch(shareBtn.dataset.shareId);
+    } catch (err) {
+      console.error('[share] error:', err);
+      showToast('分享出錯：' + err.message);
+    }
+    return;
+  }
+
+  // 2. 撳 modal 入面嘅「系統分享」
+  const nsBtn = e.target.closest('[data-action="native-share"]');
+  if (nsBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      nativeShare(nsBtn.dataset.data);
+    } catch (err) {
+      console.error('[nativeShare] error:', err);
+      showToast('分享出錯：' + err.message);
+    }
+    return;
+  }
+
+  // 3. 撳 modal 入面嘅「複製連結」
+  const cpBtn = e.target.closest('[data-action="copy-share"]');
+  if (cpBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      copyShareLink(cpBtn.dataset.data);
+    } catch (err) {
+      console.error('[copyShareLink] error:', err);
+      showToast('複製出錯：' + err.message);
+    }
+    return;
+  }
+});
+
+// 強制 unregister 舊 service worker（解決緩存問題）
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(reg => {
+      reg.unregister().then(() => console.log('SW unregistered'));
+    });
+  });
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
