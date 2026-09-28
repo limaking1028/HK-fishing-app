@@ -1,8 +1,6 @@
-const CACHE = 'hk-fishing-v21';  // bump: Route A1 (月相/日出日落 — 純前端)
-const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './lib/astronomy.js',
-  './photos/泥鯭.jpg','./photos/黑沙鱲.jpg','./photos/黃腳鱲.jpg','./photos/牛屎鱲.jpg','./photos/白鱲.jpg',
-  './photos/石狗公.jpg','./photos/烏頭.jpg','./photos/沙鑽.jpg','./photos/牛鰍.jpg','./photos/紅衫.jpg',
-  './photos/丁公.jpg','./photos/火點.jpg','./photos/沙鯭.jpg','./photos/金鯧.jpg','./photos/金鼓.jpg'
+const CACHE = 'hk-fishing-v22';  // bump: Route D (移除 AI 魚照，改 SVG icon)
+const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
+  './lib/astronomy.js', './lib/fish-icons.js'
 ];
 
 self.addEventListener('install', e => {

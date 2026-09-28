@@ -15,6 +15,8 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <!-- Route A1: 月相 + 日出日落（純前端、無 API） -->
   <script src="./lib/astronomy.js"></script>
+  <!-- Route D: 簡筆風魚類 SVG icon（取代 AI 生成 PNG） -->
+  <script src="./lib/fish-icons.js"></script>
   <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -90,6 +92,8 @@
   .input-suffix .suffix { padding: 0 12px; font-size: 14px; color: var(--gray-4); font-weight: 600; background: var(--gray-1); height: 100%; display: flex; align-items: center; }
   .species-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .species-chip { text-align: center; padding: 8px 4px; border: 1.5px solid var(--gray-2); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s; font-size: 12px; background: var(--white); position: relative; }
+  .species-chip > svg { display: block; margin: 0 auto 3px; }
+  .species-chip .chip-name { display: block; }
   .species-chip .chip-thumb { width: 100%; aspect-ratio: 16/9; border-radius: 5px; object-fit: cover; display: block; margin: 0 auto 3px; background: var(--gray-1); }
   .species-chip .chip-thumb-fallback { width: 100%; aspect-ratio: 16/9; font-size: 22px; display: flex; align-items: center; justify-content: center; margin: 0 auto 3px; background: var(--gray-1); border-radius: 5px; }
   .species-chip .chip-icon { font-size: 20px; display: block; margin-bottom: 3px; }
@@ -120,6 +124,7 @@
   .catch-card-top { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
   .catch-fish-icon { width: 100px; aspect-ratio: 16/9; border-radius: 8px; background: var(--teal-light); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; overflow: hidden; }
   .catch-fish-icon .catch-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .catch-fish-icon > svg { display: block; }
   .catch-info { flex: 1; min-width: 0; }
   .catch-species { font-size: 16px; font-weight: 700; color: var(--dark); }
   .catch-meta { font-size: 12px; color: var(--gray-4); margin-top: 2px; }
@@ -152,6 +157,7 @@
   .species-row:active { background: var(--gray-1); }
   .species-row-thumb { width: 50px; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden; background: var(--teal-light); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
   .species-row-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .species-row-thumb > svg { display: block; }
   .species-row-name { flex: 1; font-size: 14px; font-weight: 600; color: var(--dark); }
   .species-row-count { font-size: 13px; color: var(--teal-dark); font-weight: 700; background: var(--teal-light); padding: 3px 10px; border-radius: 10px; flex-shrink: 0; }
   .species-row-arrow { font-size: 11px; color: var(--gray-4); margin-left: 4px; }
@@ -208,7 +214,8 @@
   .pokedex-card.unlocked { border: 2px solid var(--teal); }
   .pokedex-card.unlocked::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--teal), var(--orange)); }
   .pokedex-icon { font-size: 36px; margin-bottom: 6px; }
-  .pokedex-photo { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; margin: 0 auto 6px; display: block; background: var(--gray-1); }
+  .pokedex-photo { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; margin: 0 auto 6px; display: flex; align-items: center; justify-content: center; background: var(--gray-1); }
+  .pokedex-photo > svg { display: block; }
   .pokedex-card.locked .pokedex-photo { filter: brightness(0.4) grayscale(1); }
   .pokedex-card.locked .pokedex-icon { filter: brightness(0.5); }
   .pokedex-name { font-size: 14px; font-weight: 700; color: var(--dark); }
@@ -642,10 +649,8 @@ function renderRecordView() {
   view.innerHTML = '<div class="card"><div class="section-title">🎣 記錄新魚獲</div>'
     + '<div class="form-group"><label class="form-label">魚種 <span class="req">*</span></label><div class="species-grid" id="species-grid">'
     + FISH_SPECIES.map((f,i) => '<div class="species-chip '+(state.selectedSpecies===i?'selected':'')+'" onclick="selectSpecies('+i+')">'
-      + (f.photo
-        ? '<img class="chip-thumb" src="'+f.photo+'" alt="'+f.name+'" loading="lazy" onerror="this.outerHTML=\'<span class=chip-thumb-fallback>'+f.icon+'</span>\'">'
-        : '<span class="chip-thumb-fallback">'+f.icon+'</span>')
-      + f.name+'</div>').join('')
+      + (window.fishIconSvg ? window.fishIconSvg(f.name, 36) : '<span class="chip-thumb-fallback">'+f.icon+'</span>')
+      + '<div class="chip-name">'+f.name+'</div></div>').join('')
     + '</div>'
     + (state.selectedSpecies===FISH_SPECIES.length-1 ? '<input type="text" class="form-input" id="custom-species" placeholder="輸入魚種名稱..." value="'+(state.customSpecies||'')+'" oninput="state.customSpecies=this.value" style="margin-top:10px;">' : '')
     + '</div></div>'
@@ -901,12 +906,10 @@ function renderMyView() {
   let biggestHtml = '';
   if (biggest) {
     const bi = getFishInfo(biggest.species);
-    // Route E: 優先顯示用戶上傳照片，否則 fallback 到魚種代表圖
+    // Route D: 用戶上傳照片優先，否則用 SVG icon（避免 AI 生成圖）
     const biIcon = biggest.photoUrl
-      ? '<img class="catch-thumb" src="'+biggest.photoUrl+'" alt="'+biggest.species+'" loading="lazy" onerror="this.outerHTML=\''+(biggest.speciesIcon||'🐟')+'\'">'
-      : (bi && bi.photo
-        ? '<img class="catch-thumb" src="'+bi.photo+'" alt="'+biggest.species+'" loading="lazy" onerror="this.outerHTML=\''+(biggest.speciesIcon||'🐟')+'\'">'
-        : (biggest.speciesIcon || (bi ? bi.icon : '🐟')));
+      ? '<img class="catch-thumb" src="'+biggest.photoUrl+'" alt="'+biggest.species+'" loading="lazy" onerror="this.outerHTML=\''+(window.fishIconSvg?window.fishIconSvg(biggest.species,80):(biggest.speciesIcon||'🐟'))+'\'">'
+      : (window.fishIconSvg ? window.fishIconSvg(biggest.species, 80) : (biggest.speciesIcon || (bi ? bi.icon : '🐟')));
     biggestHtml = '<div class="biggest-card"><div class="biggest-card-header"><span class="biggest-badge">👑 最大魚紀錄</span></div><div class="biggest-card-body"><div class="catch-fish-icon">'+biIcon+'</div><div class="biggest-info"><div class="biggest-species">'+biggest.species+'</div><div class="biggest-weight">'+biggest.weight+' <span>斤</span></div><div class="biggest-meta">'+(biggest.length?biggest.length+'cm · ':'')+biggest.spot+' · '+formatDate(biggest.date)+' '+biggest.time+'</div></div></div></div>';
   }
   // 各魚種數量（摺疊）
@@ -917,9 +920,8 @@ function renderMyView() {
     let rows = '';
     allBreakdown.forEach(([sp, n]) => {
       const f = getFishInfo(sp);
-      const thumb = f && f.photo
-        ? '<img src="'+f.photo+'" alt="'+sp+'" loading="lazy" onerror="this.outerHTML=\''+(f.icon||'🐟')+'\'">'
-        : (f ? f.icon : '🐟');
+      // Route D: 用 SVG icon 取代 AI 生成魚照
+      const thumb = window.fishIconSvg ? window.fishIconSvg(sp, 40) : (f ? f.icon : '🐟');
       const spKey = secKey+'_'+sp;
       const spExpanded = !!state.ui.expandedSpecies[spKey];
       let catchesHtml = '';
@@ -962,12 +964,10 @@ function renderCatchCard(c, rankings) {
     rankBadges = rankings[c.id].map(r => '<span class="rank-badge">🏆 '+r.lb+' #'+r.rank+'</span>').join('');
   }
   const fishInfo = getFishInfo(c.species);
-  // Route E: 優先顯示用戶上傳照片，否則 fallback 到魚種代表圖
+  // Route D: 用戶上傳照片優先，否則用 SVG icon（避免 AI 生成圖）
   const iconHtml = c.photoUrl
-    ? '<img class="catch-thumb" src="'+c.photoUrl+'" alt="'+c.species+'" loading="lazy" onerror="this.outerHTML=\''+(c.speciesIcon||'🐟')+'\'">'
-    : (fishInfo.photo
-      ? '<img class="catch-thumb" src="'+fishInfo.photo+'" alt="'+c.species+'" loading="lazy" onerror="this.outerHTML=\''+(c.speciesIcon||'🐟')+'\'">'
-      : (c.speciesIcon || '🐟'));
+    ? '<img class="catch-thumb" src="'+c.photoUrl+'" alt="'+c.species+'" loading="lazy" onerror="this.outerHTML=\''+(window.fishIconSvg?window.fishIconSvg(c.species,80):(c.speciesIcon||'🐟'))+'\'">'
+    : (window.fishIconSvg ? window.fishIconSvg(c.species, 80) : (c.speciesIcon || '🐟'));
   return '<div class="catch-card"><div class="catch-card-top"><div class="catch-fish-icon">'+iconHtml+'</div><div class="catch-info"><div class="catch-species">'+c.species+'</div><div class="catch-meta">'+c.spot+' · '+formatDate(c.date)+' '+c.time+'</div></div><div class="catch-weight-badge"><div class="catch-weight">'+c.weight+'</div><div class="catch-weight-unit">斤</div></div></div><div class="catch-card-bottom">'+rankBadges+(c.length?'<span class="catch-tag">'+c.length+'cm</span>':'')+'<span class="catch-tag">🎣 '+c.method+'</span><span class="catch-tag">🪱 '+c.bait+'</span>'+(c.verified?'<span class="verified-badge">✓ 有效紀錄</span>':'')+'<span class="catch-tag share-btn" data-share-id="'+c.id+'">📤 分享</span></div>'+(c.notes?'<div style="padding:6px 14px 10px;font-size:13px;color:var(--gray-5);border-top:1px solid var(--gray-1);">'+c.notes+'</div>':'')+'</div>';
 }
 /* ===== 名稱管理 ===== */
@@ -1335,9 +1335,7 @@ function renderEncyclopediaView() {
       return '<div class="pokedex-card unlocked">'
         + (f.custom ? '<span class="pokedex-custom-tag">自訂</span>' : '')
         + '<span class="pokedex-rarity '+rarityClass+'">'+rarityLabels[f.rarity||'common']+'</span>'
-        + (f.photo
-          ? '<img class="pokedex-photo" src="'+f.photo+'" alt="'+f.name+'" loading="lazy" onerror="this.outerHTML=\'<div class=pokedex-icon>'+f.icon+'</div>\'">'
-          : '<div class="pokedex-icon">'+f.icon+'</div>')
+        + (window.fishIconSvg ? '<div class="pokedex-photo">'+window.fishIconSvg(f.name, 96)+'</div>' : '<div class="pokedex-icon">'+f.icon+'</div>')
         + '<div class="pokedex-name">'+f.name+'</div>'
         + '<div class="pokedex-sci">'+(f.sci||'')+'</div>'
         + '<div class="pokedex-habitat">'+(f.habitat||'')+'</div>'
