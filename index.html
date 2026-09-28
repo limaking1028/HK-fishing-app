@@ -446,6 +446,7 @@ async function dbLoadCatches() {
       method: c.method, bait: c.bait, verified: c.verified, notes: c.notes || '', isMine, isDemo,
       latitude: c.latitude || null, longitude: c.longitude || null,
       locationAccuracy: c.location_accuracy || null, locationSource: c.location_source || null,
+      photoUrl: c.photo_url || null,  // Route E: 用戶上傳的照片
     };
   });
 }
@@ -854,9 +855,12 @@ function renderMyView() {
   let biggestHtml = '';
   if (biggest) {
     const bi = getFishInfo(biggest.species);
-    const biIcon = bi && bi.photo
-      ? '<img class="catch-thumb" src="'+bi.photo+'" alt="'+biggest.species+'" loading="lazy" onerror="this.outerHTML=\''+(biggest.speciesIcon||'🐟')+'\'">'
-      : (biggest.speciesIcon || (bi ? bi.icon : '🐟'));
+    // Route E: 優先顯示用戶上傳照片，否則 fallback 到魚種代表圖
+    const biIcon = biggest.photoUrl
+      ? '<img class="catch-thumb" src="'+biggest.photoUrl+'" alt="'+biggest.species+'" loading="lazy" onerror="this.outerHTML=\''+(biggest.speciesIcon||'🐟')+'\'">'
+      : (bi && bi.photo
+        ? '<img class="catch-thumb" src="'+bi.photo+'" alt="'+biggest.species+'" loading="lazy" onerror="this.outerHTML=\''+(biggest.speciesIcon||'🐟')+'\'">'
+        : (biggest.speciesIcon || (bi ? bi.icon : '🐟')));
     biggestHtml = '<div class="biggest-card"><div class="biggest-card-header"><span class="biggest-badge">👑 最大魚紀錄</span></div><div class="biggest-card-body"><div class="catch-fish-icon">'+biIcon+'</div><div class="biggest-info"><div class="biggest-species">'+biggest.species+'</div><div class="biggest-weight">'+biggest.weight+' <span>斤</span></div><div class="biggest-meta">'+(biggest.length?biggest.length+'cm · ':'')+biggest.spot+' · '+formatDate(biggest.date)+' '+biggest.time+'</div></div></div></div>';
   }
   // 各魚種數量（摺疊）
@@ -912,9 +916,12 @@ function renderCatchCard(c, rankings) {
     rankBadges = rankings[c.id].map(r => '<span class="rank-badge">🏆 '+r.lb+' #'+r.rank+'</span>').join('');
   }
   const fishInfo = getFishInfo(c.species);
-  const iconHtml = fishInfo.photo
-    ? '<img class="catch-thumb" src="'+fishInfo.photo+'" alt="'+c.species+'" loading="lazy" onerror="this.outerHTML=\''+(c.speciesIcon||'🐟')+'\'">'
-    : (c.speciesIcon || '🐟');
+  // Route E: 優先顯示用戶上傳照片，否則 fallback 到魚種代表圖
+  const iconHtml = c.photoUrl
+    ? '<img class="catch-thumb" src="'+c.photoUrl+'" alt="'+c.species+'" loading="lazy" onerror="this.outerHTML=\''+(c.speciesIcon||'🐟')+'\'">'
+    : (fishInfo.photo
+      ? '<img class="catch-thumb" src="'+fishInfo.photo+'" alt="'+c.species+'" loading="lazy" onerror="this.outerHTML=\''+(c.speciesIcon||'🐟')+'\'">'
+      : (c.speciesIcon || '🐟'));
   return '<div class="catch-card"><div class="catch-card-top"><div class="catch-fish-icon">'+iconHtml+'</div><div class="catch-info"><div class="catch-species">'+c.species+'</div><div class="catch-meta">'+c.spot+' · '+formatDate(c.date)+' '+c.time+'</div></div><div class="catch-weight-badge"><div class="catch-weight">'+c.weight+'</div><div class="catch-weight-unit">斤</div></div></div><div class="catch-card-bottom">'+rankBadges+(c.length?'<span class="catch-tag">'+c.length+'cm</span>':'')+'<span class="catch-tag">🎣 '+c.method+'</span><span class="catch-tag">🪱 '+c.bait+'</span>'+(c.verified?'<span class="verified-badge">✓ 有效紀錄</span>':'')+'<span class="catch-tag share-btn" data-share-id="'+c.id+'">📤 分享</span></div>'+(c.notes?'<div style="padding:6px 14px 10px;font-size:13px;color:var(--gray-5);border-top:1px solid var(--gray-1);">'+c.notes+'</div>':'')+'</div>';
 }
 /* ===== 名稱管理 ===== */

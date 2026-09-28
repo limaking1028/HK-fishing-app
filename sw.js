@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v19';  // bump: Route E (刪 app.js + photos/ + weight CHECK + 照片上傳)
+const CACHE = 'hk-fishing-v20';  // bump: Route E patch (catch card 顯示用戶照片 + dbLoad 讀 photo_url)
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './photos/泥鯭.jpg','./photos/黑沙鱲.jpg','./photos/黃腳鱲.jpg','./photos/牛屎鱲.jpg','./photos/白鱲.jpg',
   './photos/石狗公.jpg','./photos/烏頭.jpg','./photos/沙鑽.jpg','./photos/牛鰍.jpg','./photos/紅衫.jpg',
