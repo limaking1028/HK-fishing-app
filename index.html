@@ -13,6 +13,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- Route A1: 月相 + 日出日落（純前端、無 API） -->
+  <script src="./lib/astronomy.js"></script>
   <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -98,6 +100,12 @@
   .photo-upload .upload-icon { font-size: 36px; }
   .photo-upload .upload-text { font-size: 13px; color: var(--gray-4); margin-top: 6px; }
   .photo-preview { width: 100%; max-height: 240px; border-radius: var(--radius-sm); margin-top: 10px; }
+  /* Route A1: 月相/日出日落 資訊卡 */
+  .astro-card { background: linear-gradient(135deg, #1a1a2e, #16213e); color: #e0f5f8; border-radius: var(--radius-sm); padding: 10px 14px; margin: 8px 0 14px; font-size: 13px; line-height: 1.7; box-shadow: 0 2px 8px rgba(10, 30, 50, 0.15); }
+  .astro-card:empty { display: none; }
+  .astro-row { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+  .astro-item { display: inline-flex; align-items: center; gap: 4px; }
+  .astro-tip { margin-top: 6px; font-size: 12px; color: #ffd699; padding-top: 6px; border-top: 1px solid rgba(224, 245, 248, 0.15); }
   .btn { width: 100%; padding: 14px; border: none; border-radius: var(--radius-sm); font-size: 16px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; font-family: inherit; }
   .btn:active { opacity: 0.85; }
   .btn-primary { background: linear-gradient(135deg, var(--teal-dark), var(--teal)); color: white; }
@@ -647,13 +655,51 @@ function renderRecordView() {
     + '</select><input type="text" class="form-input" id="custom-spot" placeholder="輸入具體位置備註（可選），例如：西貢碼頭北防波堤..." value="'+(state.customSpot||'')+'" oninput="state.customSpot=this.value" style="margin-top:8px;">'
     + '<div class="gps-section"><button type="button" id="gps-btn" class="gps-btn" onclick="getCurrentLocation()">📍 使用當前位置</button><div class="gps-status" id="gps-status">未取得位置</div></div>'
     + '<input type="hidden" id="catch-lat" value="'+(state.catchLat||'')+'"><input type="hidden" id="catch-lng" value="'+(state.catchLng||'')+'"><input type="hidden" id="catch-accuracy" value="'+(state.catchAccuracy||'')+'"></div>'
-    + '<div class="form-row"><div class="form-group"><label class="form-label">日期</label><input type="date" class="form-input" id="catch-date" value="'+today+'" max="'+today+'"></div><div class="form-group"><label class="form-label">時間</label><input type="time" class="form-input" id="catch-time" value="'+nowTime+'"></div></div>'
+    + '<div class="form-row"><div class="form-group"><label class="form-label">日期</label><input type="date" class="form-input" id="catch-date" value="'+today+'" max="'+today+'" onchange="onDateChange()"></div><div class="form-group"><label class="form-label">時間</label><input type="time" class="form-input" id="catch-time" value="'+nowTime+'" onchange="onDateChange()"></div></div>'
+    + '<div id="astro-info" class="astro-card"></div>'
     + '<div class="form-row"><div class="form-group"><label class="form-label">釣法</label><select class="form-select" id="catch-method" onchange="onMethodChange(this.value)">'+FISHING_METHODS.map(m=>'<option value="'+m+'"'+(state.selectedMethod===m?' selected':'')+'>'+m+'</option>').join('')+'</select><input type="text" class="form-input" id="custom-method" placeholder="輸入釣法名稱..." value="'+(state.customMethod||'')+'" oninput="state.customMethod=this.value" style="margin-top:8px;display:'+(state.selectedMethod==='其他'?'block':'none')+';"></div><div class="form-group"><label class="form-label">釣餌</label><select class="form-select" id="catch-bait" onchange="onBaitChange(this.value)">'+BAIT_TYPES.map(b=>'<option value="'+b+'"'+(state.selectedBait===b?' selected':'')+'>'+b+'</option>').join('')+'</select><input type="text" class="form-input" id="custom-bait" placeholder="輸入釣餌名稱..." value="'+(state.customBait||'')+'" oninput="state.customBait=this.value" style="margin-top:8px;display:'+(state.selectedBait==='其他'?'block':'none')+';"></div></div>'
     + '<div class="form-group"><label class="form-label">備註</label><textarea class="form-textarea" id="catch-notes" placeholder="例如：黃昏流水好、風向、水溫等..."></textarea></div>'
     + '<div class="form-group"><label class="form-label">魚獲照片</label><div class="photo-upload" onclick="document.getElementById(\'catch-photo\').click()"><div class="upload-icon">📸</div><div class="upload-text">點擊上傳照片（可增強紀錄可信度）</div></div><input type="file" id="catch-photo" accept="image/*" style="display:none" onchange="previewPhoto(this)"><div id="photo-preview-container"></div></div>'
     + '<button class="btn btn-primary" onclick="submitCatch()">送出魚獲記錄</button></div>';
+  // Route A1: 表單渲染後初始化 astro 顯示（用預設日期時間）
+  setTimeout(() => { try { onDateChange(); } catch(e) { console.warn('astro init failed', e); } }, 0);
 }
 function selectSpecies(idx) { state.selectedSpecies = idx; if (idx !== FISH_SPECIES.length - 1) state.customSpecies = ''; renderRecordView(); }
+
+/* ===== Route A1: 月相 / 日出日落資訊 ===== */
+function onDateChange() {
+  const dateEl = document.getElementById('catch-date');
+  const timeEl = document.getElementById('catch-time');
+  const target = document.getElementById('astro-info');
+  if (!dateEl || !target) return;
+  const dateStr = dateEl.value;
+  if (!dateStr) { target.innerHTML = ''; return; }
+  const timeStr = (timeEl && timeEl.value) || '12:00';
+
+  // 用釣魚時間 + 釣魚座標（state.catchLat/Lng）算，
+  // 冇 GPS 時 fallback 香港中心
+  const d = new Date(dateStr + 'T' + timeStr + ':00+08:00');
+  if (isNaN(d.getTime())) { target.innerHTML = ''; return; }
+
+  const lat = (state.catchLat && state.catchLng) ? state.catchLat : window.Astro.HK_LAT;
+  const lng = (state.catchLat && state.catchLng) ? state.catchLng : window.Astro.HK_LNG;
+
+  const moon = window.Astro.getMoonPhase(d);
+  const sun = window.Astro.getSunTimes(d, lat, lng);
+  const tip = window.Astro.getFishingTip(moon, sun);
+
+  let html = '<div class="astro-row">';
+  html += '<span class="astro-item">' + moon.emoji + ' <strong>' + moon.name + '</strong> (' + moon.illumination + '%)</span>';
+  if (sun) {
+    html += '<span class="astro-item">☀️ ' + sun.sunrise + ' → ' + sun.sunset + '</span>';
+  } else {
+    html += '<span class="astro-item">☀️ 日出/日落 N/A</span>';
+  }
+  html += '</div>';
+  html += '<div class="astro-tip">💡 ' + tip + '</div>';
+  target.innerHTML = html;
+}
+
 function onMethodChange(m) {
   state.selectedMethod = m;
   const el = document.getElementById('custom-method');
