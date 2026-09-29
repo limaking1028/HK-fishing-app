@@ -225,6 +225,22 @@
   .pokedex-habitat { font-size: 10px; color: var(--teal-dark); background: var(--teal-light); padding: 2px 8px; border-radius: 6px; display: inline-block; margin-bottom: 6px; }
   .pokedex-pb { font-size: 12px; font-weight: 700; color: var(--orange); }
   .pokedex-pb .pb-label { font-size: 10px; color: var(--gray-4); font-weight: 400; }
+  .pokedex-meta-row { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; gap: 6px; }
+  .pokedex-recent { font-size: 10px; color: var(--gray-4); }
+  .pokedex-expand-btn { background: var(--teal-light); color: var(--teal-dark); border: 1px solid var(--teal); border-radius: 12px; padding: 3px 10px; font-size: 11px; cursor: pointer; font-family: inherit; font-weight: 600; transition: all 0.15s; }
+  .pokedex-expand-btn:hover { background: var(--teal); color: white; }
+  .pokedex-card.expanded { border: 1.5px solid var(--teal); box-shadow: 0 2px 12px rgba(13,138,153,0.18); }
+  .pokedex-catches-list { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--gray-2); display: flex; flex-direction: column; gap: 6px; text-align: left; }
+  .pokedex-catch-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--gray-1); border-radius: 8px; }
+  .pokedex-catch-thumb { width: 48px; height: 30px; border-radius: 4px; overflow: hidden; background: var(--teal-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .pokedex-catch-thumb img, .pokedex-catch-thumb svg { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .pokedex-catch-info { flex: 1; min-width: 0; }
+  .pokedex-catch-weight { font-size: 15px; font-weight: 700; color: var(--teal-dark); line-height: 1.2; }
+  .pokedex-catch-weight span { font-size: 11px; color: var(--gray-4); margin-left: 2px; font-weight: 500; }
+  .pokedex-catch-length { margin-left: 6px; color: var(--gray-5); font-weight: 500; }
+  .pokedex-catch-meta { font-size: 11px; color: var(--gray-5); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pokedex-catch-date { font-size: 10px; color: var(--gray-4); margin-top: 2px; }
+  .pokedex-verified { color: var(--green); font-weight: 600; }
   .pokedex-lock-icon { font-size: 28px; margin-bottom: 6px; opacity: 0.4; }
   .pokedex-locked-text { font-size: 11px; color: var(--gray-4); }
   .pokedex-rarity { position: absolute; top: 6px; right: 6px; font-size: 9px; padding: 1px 6px; border-radius: 4px; font-weight: 600; }
@@ -591,7 +607,7 @@ function genSampleCatches() {
 /* ===== State & Persistence ===== */
 const STORAGE_KEY = 'hk_fishing_catches_v5';
 const USERNAME_KEY = 'hk_fishing_username';
-let state = { view:'my', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{} } };
+let state = { view:'my', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{}, expandedPokedex:{} } };
 function getUserName() { return state.user ? (state.user.display_name || state.user.username) : (localStorage.getItem(USERNAME_KEY) || '我'); }
 function setUserName(name) {
   if (SB_ENABLED && state.user) return;  // 雲端模式由 display_name 管理
@@ -1313,13 +1329,14 @@ function initMap(items) {
 function getPokedexHTML() {
   // 我釣過的魚獲（含收藏的）
   const myCatches = state.catches.filter(c => c.isMine || c.imported);
-  // 計算每個魚種的統計
+  // 計算每個魚種的統計（含完整魚獲清單供展開用）
   const speciesStats = {};
   myCatches.forEach(c => {
-    const s = speciesStats[c.species] = speciesStats[c.species] || { count: 0, biggest: 0, lastDate: '' };
+    const s = speciesStats[c.species] = speciesStats[c.species] || { count: 0, biggest: 0, lastDate: '', catches: [] };
     s.count++;
     if (c.weight > s.biggest) s.biggest = c.weight;
     if (c.date > s.lastDate) s.lastDate = c.date;
+    s.catches.push(c);
   });
   // 所有魚種（不含「其他」選項）
   const allSpecies = FISH_SPECIES.filter(f => !f.custom);
@@ -1343,17 +1360,36 @@ function getPokedexHTML() {
     const stats = speciesStats[f.name];
     const caught = !!stats;
     const rarityClass = 'rarity-' + (f.rarity || 'common');
+    // Route G: 已解鎖卡片支援展開魚獲列表
+    const expKey = 'pokedex_' + f.name;
+    const isExpanded = caught && state.ui.expandedPokedex[expKey];
     if (caught) {
-      return '<div class="pokedex-card unlocked">'
+      let catchesHtml = '';
+      if (isExpanded) {
+        // 按日期新到舊排序
+        const sortedCatches = [...stats.catches].sort((a, b) =>
+          (b.date + ' ' + (b.time || '')).localeCompare(a.date + ' ' + (a.time || ''))
+        );
+        catchesHtml = '<div class="pokedex-catches-list">'
+          + sortedCatches.map(c => renderPokedexCatchCard(c)).join('')
+          + '</div>';
+      }
+      return '<div class="pokedex-card unlocked' + (isExpanded ? ' expanded' : '') + '">'
         + (f.custom ? '<span class="pokedex-custom-tag">自訂</span>' : '')
-        + '<span class="pokedex-rarity '+rarityClass+'">'+rarityLabels[f.rarity||'common']+'</span>'
-        + (window.fishIconSvg ? '<div class="pokedex-photo">'+window.fishIconSvg(f.name, 96)+'</div>' : '<div class="pokedex-icon">'+f.icon+'</div>')
-        + '<div class="pokedex-name">'+f.name+'</div>'
-        + '<div class="pokedex-sci">'+(f.sci||'')+'</div>'
-        + '<div class="pokedex-habitat">'+(f.habitat||'')+'</div>'
-        + '<div class="pokedex-desc">'+(f.desc||'')+'</div>'
-        + '<div class="pokedex-pb"><span class="pb-label">最大</span> '+stats.biggest+'斤 <span class="pb-label">· '+stats.count+'條</span></div>'
-        + '<div style="font-size:10px;color:var(--gray-4);margin-top:4px;">最近：'+formatDate(stats.lastDate)+'</div>'
+        + '<span class="pokedex-rarity ' + rarityClass + '">' + rarityLabels[f.rarity||'common'] + '</span>'
+        + '<div class="pokedex-photo">' + (window.fishIconSvg ? window.fishIconSvg(f.name, 96) : '🐟') + '</div>'
+        + '<div class="pokedex-name">' + f.name + '</div>'
+        + '<div class="pokedex-sci">' + (f.sci||'') + '</div>'
+        + '<div class="pokedex-habitat">' + (f.habitat||'') + '</div>'
+        + '<div class="pokedex-desc">' + (f.desc||'') + '</div>'
+        + '<div class="pokedex-pb"><span class="pb-label">最大</span> ' + stats.biggest + '斤 <span class="pb-label">· ' + stats.count + '條</span></div>'
+        + '<div class="pokedex-meta-row">'
+        +   '<span class="pokedex-recent">最近：' + formatDate(stats.lastDate) + '</span>'
+        +   '<button class="pokedex-expand-btn" onclick="togglePokedexSpecies(\'' + f.name.replace(/'/g, "\\'") + '\')">'
+        +     (isExpanded ? '收起 ▲' : '展開 ' + stats.count + ' 筆 ▼')
+        +   '</button>'
+        + '</div>'
+        + catchesHtml
         + '</div>';
     } else {
       return '<div class="pokedex-card locked">'
@@ -1367,6 +1403,29 @@ function getPokedexHTML() {
   }).join('');
   html += '</div>';
   return html;
+}
+
+// Route G: 圖鑑展開用的簡化版 catch card
+function renderPokedexCatchCard(c) {
+  const thumb = c.photoUrl
+    ? '<img src="' + c.photoUrl + '" alt="" loading="lazy" onerror="this.outerHTML=\'' + (window.fishIconSvg ? window.fishIconSvg(c.species, 40) : '🐟') + '\'">'
+    : (window.fishIconSvg ? window.fishIconSvg(c.species, 40) : '🐟');
+  return '<div class="pokedex-catch-row">'
+    + '<div class="pokedex-catch-thumb">' + thumb + '</div>'
+    + '<div class="pokedex-catch-info">'
+    +   '<div class="pokedex-catch-weight">' + c.weight + '<span>斤</span>'
+    +     (c.length ? '<span class="pokedex-catch-length">' + c.length + 'cm</span>' : '')
+    +   '</div>'
+    +   '<div class="pokedex-catch-meta">' + c.spot + (c.method ? ' · 🎣 ' + c.method : '') + '</div>'
+    +   '<div class="pokedex-catch-date">📅 ' + formatDate(c.date) + ' ' + (c.time || '') + (c.verified ? ' <span class="pokedex-verified">✓ 有效</span>' : '') + '</div>'
+    + '</div>'
+    + '</div>';
+}
+
+function togglePokedexSpecies(name) {
+  const expKey = 'pokedex_' + name;
+  state.ui.expandedPokedex[expKey] = !state.ui.expandedPokedex[expKey];
+  renderMyView();  // 圖鑑在 view-my 內，要 rerender 我的頁
 }
 
 function renderEncyclopediaView() {
