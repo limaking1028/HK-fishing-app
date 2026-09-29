@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v26';  // bump: Route H fix (行程歷史欄位命名 + debug log)
+const CACHE = 'hk-fishing-v27';  // bump: 修 initApp 不載 trips 的 bug
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js'
 ];

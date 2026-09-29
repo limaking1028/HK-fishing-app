@@ -1862,7 +1862,12 @@ function goToView(name) { switchView(name); }
 function renderView(name) {
   if (name==='record') renderRecordView();
   else if (name==='my') renderMyView();
-  else if (name==='trips') renderTripsView();  // Route H
+  else if (name==='trips') {  // Route H
+    // 進入 trips view 時若 trips 還沒載過，重新拉
+    if (SB_ENABLED && state.user && (!state.trips || state.trips.length === 0)) {
+      dbLoadTrips().then(trips => { state.trips = trips; renderTripsView(); });
+    } else renderTripsView();
+  }
   else if (name==='leaderboard') renderLeaderboardView();
   else if (name==='encyclopedia') renderEncyclopediaView();
   else if (name==='map') renderMapView();
@@ -1982,8 +1987,9 @@ async function init() {
   }
   setupGlobalHandlers();
   document.getElementById('header-username').textContent = getUserName();
-  // Route H: 還原進行中行程
+  // Route H: 載入歷史行程（必做，否則重整後看不到歷史）
   if (SB_ENABLED && state.user) {
+    try { state.trips = await dbLoadTrips(); } catch(e) { console.warn('dbLoadTrips init failed', e); }
     try { await resumeActiveTrip(); } catch(e) { console.warn('resumeActiveTrip failed', e); }
   }
   checkSharedCatch();
