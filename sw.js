@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v22';  // bump: Route D (移除 AI 魚照，改 SVG icon)
+const CACHE = 'hk-fishing-v23';  // bump: Route F (圖鑑併入「我的」頁，子 tab 切換)
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js'
 ];

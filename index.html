@@ -237,6 +237,11 @@
   .filter-row { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
   .filter-chip { white-space: nowrap; padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--gray-2); background: var(--white); font-size: 13px; font-weight: 600; color: var(--gray-5); cursor: pointer; font-family: inherit; }
   .filter-chip.active { border-color: var(--teal); color: var(--teal-dark); background: var(--teal-light); }
+  /* Route F: 我的頁面頂部子 tab */
+  .my-sub-tabs { display: flex; gap: 6px; padding: 0 16px 14px; }
+  .my-sub-tab { flex: 1; padding: 10px 8px; border: 1.5px solid var(--gray-2); border-radius: var(--radius-sm); background: var(--white); color: var(--gray-5); cursor: pointer; font-size: 14px; font-weight: 600; font-family: inherit; transition: all 0.2s; }
+  .my-sub-tab.active { background: var(--teal-dark); color: white; border-color: var(--teal-dark); }
+  .my-sub-tab:not(.active):hover { border-color: var(--teal); color: var(--teal-dark); }
   .success-screen { text-align: center; padding: 30px 20px; }
   .success-circle { width: 72px; height: 72px; border-radius: 50%; background: var(--green); color: white; display: flex; align-items: center; justify-content: center; font-size: 36px; margin: 0 auto 16px; animation: popIn 0.3s ease; }
   @keyframes popIn { from { transform: scale(0); } 60% { transform: scale(1.1); } to { transform: scale(1); } }
@@ -305,9 +310,6 @@
     </button>
     <button class="nav-item" data-view="map">
       <span class="nav-icon">🗺️</span><span class="nav-label">地圖</span>
-    </button>
-    <button class="nav-item" data-view="encyclopedia">
-      <span class="nav-icon">📖</span><span class="nav-label">圖鑑</span>
     </button>
   </nav>
 
@@ -589,7 +591,7 @@ function genSampleCatches() {
 /* ===== State & Persistence ===== */
 const STORAGE_KEY = 'hk_fishing_catches_v5';
 const USERNAME_KEY = 'hk_fishing_username';
-let state = { view:'my', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{} } };
+let state = { view:'my', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{} } };
 function getUserName() { return state.user ? (state.user.display_name || state.user.username) : (localStorage.getItem(USERNAME_KEY) || '我'); }
 function setUserName(name) {
   if (SB_ENABLED && state.user) return;  // 雲端模式由 display_name 管理
@@ -883,6 +885,15 @@ function getMyCatchRankings() {
 }
 function renderMyView() {
   const view = document.getElementById('view-my');
+  // Route F: 子 tab 切換（魚獲記錄 / 魚種圖鑑）
+  const subTabsHtml = '<div class="my-sub-tabs">'
+    + '<button class="my-sub-tab '+(state.mySubTab==='log'?'active':'')+'" onclick="setMySubTab(\'log\')">📋 魚獲記錄</button>'
+    + '<button class="my-sub-tab '+(state.mySubTab==='pokedex'?'active':'')+'" onclick="setMySubTab(\'pokedex\')">📖 魚種圖鑑</button>'
+    + '</div>';
+  if (state.mySubTab === 'pokedex') {
+    view.innerHTML = subTabsHtml + getPokedexHTML();
+    return;
+  }
   let myCatches = state.catches.filter(c => c.isMine);
   const totalCatches = myCatches.length;
   const biggest = myCatches.reduce((max, c) => c.weight > (max?.weight||0) ? c : max, null);
@@ -949,12 +960,14 @@ function renderMyView() {
     + '<div class="collapsible-header" onclick="toggleSection(\''+recKey+'\')"><span class="collapsible-title">📋 全部記錄（'+filtered.length+' 條）</span><span class="collapsible-arrow">▶</span></div>'
     + '<div class="collapsible-content">' + listHtml + '</div>'
     + '</div>';
-  view.innerHTML = '<div class="stats-row"><div class="stat-card"><div class="stat-value">'+totalCatches+'</div><div class="stat-label">總魚獲</div></div><div class="stat-card"><div class="stat-value">'+(biggest?biggest.weight:0)+'<span style="font-size:13px">斤</span></div><div class="stat-label">最大魚'+(biggest?' ('+biggest.species+')':'')+'</div></div><div class="stat-card"><div class="stat-value">'+speciesCount+'</div><div class="stat-label">魚種數</div></div></div>'
+  view.innerHTML = subTabsHtml
+    + '<div class="stats-row"><div class="stat-card"><div class="stat-value">'+totalCatches+'</div><div class="stat-label">總魚獲</div></div><div class="stat-card"><div class="stat-value">'+(biggest?biggest.weight:0)+'<span style="font-size:13px">斤</span></div><div class="stat-label">最大魚'+(biggest?' ('+biggest.species+')':'')+'</div></div><div class="stat-card"><div class="stat-value">'+speciesCount+'</div><div class="stat-label">魚種數</div></div></div>'
     + biggestHtml
     + '<div class="filter-row"><button class="filter-chip '+(state.myFilter==='all'?'active':'')+'" onclick="setMyFilter(\'all\')">全部</button><button class="filter-chip '+(state.myFilter==='month'?'active':'')+'" onclick="setMyFilter(\'month\')">本月</button><button class="filter-chip '+(state.myFilter==='quarter'?'active':'')+'" onclick="setMyFilter(\'quarter\')">本季</button></div>'
     + speciesGroupHtml
     + allRecordsHtml;
 }
+function setMySubTab(t) { state.mySubTab = t; renderMyView(); }
 function setMyFilter(f) { state.myFilter = f; renderMyView(); }
 function toggleSection(key) { state.ui.expandedSections[key] = !state.ui.expandedSections[key]; renderMyView(); }
 function toggleSpecies(key) { state.ui.expandedSpecies[key] = !state.ui.expandedSpecies[key]; renderMyView(); }
@@ -1297,8 +1310,7 @@ function initMap(items) {
 }
 
 /* ===== Spots View ===== */
-function renderEncyclopediaView() {
-  const view = document.getElementById('view-encyclopedia');
+function getPokedexHTML() {
   // 我釣過的魚獲（含收藏的）
   const myCatches = state.catches.filter(c => c.isMine || c.imported);
   // 計算每個魚種的統計
@@ -1354,7 +1366,11 @@ function renderEncyclopediaView() {
     }
   }).join('');
   html += '</div>';
-  view.innerHTML = html;
+  return html;
+}
+
+function renderEncyclopediaView() {
+  document.getElementById('view-encyclopedia').innerHTML = getPokedexHTML();
 }
 
 /* ===== Navigation ===== */
