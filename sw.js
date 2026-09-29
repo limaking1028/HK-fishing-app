@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v29';  // bump: fix escapeHtml undefined
+const CACHE = 'hk-fishing-v30';  // bump: Route H++ (picker 加 method/bait + 中途編輯)
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js'
 ];
