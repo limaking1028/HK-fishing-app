@@ -1,6 +1,6 @@
-const CACHE = 'hk-fishing-v24';  // bump: Route G (圖鑑卡片展開魚獲列表)
+const CACHE = 'hk-fishing-v25';  // bump: Route H (釣魚行程 Trip + 計時 banner)
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
-  './lib/astronomy.js', './lib/fish-icons.js'
+  './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js'
 ];
 
 self.addEventListener('install', e => {

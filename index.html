@@ -15,9 +15,11 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <!-- Route A1: 月相 + 日出日落（純前端、無 API） -->
   <script src="./lib/astronomy.js"></script>
-  <!-- Route D: 簡筆風魚類 SVG icon（取代 AI 生成 PNG） -->
+<!-- Route D: 簡筆風魚類 SVG icon（取代 AI 生成 PNG） -->
   <script src="./lib/fish-icons.js"></script>
-  <style>
+  <!-- Route H: 行程計時器 / 格式化 -->
+  <script src="./lib/trips.js"></script>
+<style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
     --teal-dark: #0a6e7a; --teal: #0d8a99; --teal-light: #e0f5f8; --teal-pale: #f0fafb;
@@ -68,6 +70,93 @@
   .modal-btns .btn { flex: 1; }
   .modal-close { position: absolute; top: 12px; right: 16px; font-size: 22px; color: var(--gray-4); cursor: pointer; }
   #main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 70px; }
+  /* ===== Route H: 進行中行程 banner ===== */
+  .active-trip-banner {
+    background: linear-gradient(135deg, var(--orange), #ff8c5a);
+    color: white;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 8px rgba(255,107,53,0.3);
+    cursor: pointer;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .active-trip-banner:hover { filter: brightness(1.05); }
+  .atb-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: white; box-shadow: 0 0 0 0 rgba(255,255,255,0.7);
+    animation: atb-pulse 1.6s infinite; flex-shrink: 0;
+  }
+  @keyframes atb-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(255,255,255,0.7); }
+    70%  { box-shadow: 0 0 0 8px rgba(255,255,255,0); }
+    100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  }
+  .atb-info { flex: 1; min-width: 0; }
+  .atb-title { font-size: 13px; font-weight: 700; line-height: 1.2; }
+  .atb-timer { font-size: 18px; font-weight: 700; font-family: 'SF Mono', Menlo, Consolas, monospace; letter-spacing: 0.5px; line-height: 1.1; }
+  .atb-meta { font-size: 11px; opacity: 0.9; line-height: 1.2; }
+  .atb-btn {
+    background: white; color: var(--orange); border: none; border-radius: 8px;
+    padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer;
+    flex-shrink: 0;
+  }
+  .atb-btn:active { transform: scale(0.95); }
+  .atb-end {
+    background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 8px; padding: 6px 8px; font-size: 11px; font-weight: 600;
+    cursor: pointer; flex-shrink: 0;
+  }
+  /* ===== 行程列表/詳情 ===== */
+  .trip-card {
+    background: white; border-radius: var(--radius); padding: 14px;
+    box-shadow: var(--shadow); margin-bottom: 10px; cursor: pointer;
+    border-left: 4px solid var(--orange);
+    transition: transform 0.1s;
+  }
+  .trip-card:active { transform: scale(0.98); }
+  .trip-card.ended { border-left-color: var(--gray-3); opacity: 0.85; }
+  .trip-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .trip-card-title { font-size: 15px; font-weight: 700; color: var(--dark); }
+  .trip-card-time { font-size: 11px; color: var(--gray-4); }
+  .trip-card-stats { display: flex; gap: 12px; font-size: 12px; color: var(--gray-5); margin-top: 4px; }
+  .trip-card-stats span { display: inline-flex; align-items: center; gap: 3px; }
+  .trip-empty {
+    text-align: center; padding: 60px 20px; color: var(--gray-4);
+  }
+  .trip-empty-icon { font-size: 64px; margin-bottom: 16px; opacity: 0.5; }
+  .trip-empty-text { font-size: 15px; margin-bottom: 24px; }
+  .start-trip-btn {
+    background: var(--orange); color: white; border: none;
+    border-radius: 12px; padding: 16px 32px; font-size: 16px;
+    font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(255,107,53,0.3);
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .start-trip-btn:active { transform: scale(0.97); }
+  .trip-detail-header { background: white; padding: 18px 16px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 12px; }
+  .trip-detail-title { font-size: 18px; font-weight: 700; color: var(--dark); margin-bottom: 6px; }
+  .trip-detail-meta { font-size: 12px; color: var(--gray-5); margin-bottom: 12px; }
+  .trip-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .trip-stat-box {
+    background: var(--gray-1); border-radius: 10px; padding: 10px 6px; text-align: center;
+  }
+  .trip-stat-num { font-size: 22px; font-weight: 700; color: var(--teal-dark); line-height: 1.1; }
+  .trip-stat-label { font-size: 11px; color: var(--gray-5); margin-top: 4px; }
+  .trip-catch-mini {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    background: white; border-radius: 10px; margin-bottom: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .trip-catch-mini-icon { width: 36px; height: 36px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .trip-catch-mini-info { flex: 1; min-width: 0; }
+  .trip-catch-mini-species { font-size: 14px; font-weight: 600; color: var(--dark); }
+  .trip-catch-mini-meta { font-size: 11px; color: var(--gray-5); }
+  .trip-catch-mini-weight { font-size: 14px; font-weight: 700; color: var(--orange); }
+  .trip-actions { display: flex; gap: 8px; margin-top: 14px; }
+  .trip-actions .btn { flex: 1; }
   .view { display: none; padding: 16px 14px 20px; }
   .view.active { display: block; }
   .view.fade-in { animation: fadeIn 0.25s ease; }
@@ -308,8 +397,11 @@
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
+    <!-- Route H: 進行中行程 banner（無行程時隱藏） — 永遠黏在 main 頂部，跨所有 view 顯示 -->
+    <div id="active-trip-banner" style="display:none;"></div>
     <div id="view-record" class="view"></div>
     <div id="view-my" class="view active"></div>
+    <div id="view-trips" class="view"></div>
     <div id="view-leaderboard" class="view"></div>
     <div id="view-encyclopedia" class="view"></div>
     <div id="view-map" class="view"></div>
@@ -318,11 +410,15 @@
     <button class="nav-item active" data-view="my">
       <span class="nav-icon">📋</span><span class="nav-label">我的</span>
     </button>
+    <!-- Route H: 行程 tab（我的右邊） -->
+    <button class="nav-item" data-view="trips">
+      <span class="nav-icon">⏱️</span><span class="nav-label">行程</span>
+    </button>
     <button class="nav-item" data-view="record">
       <span class="nav-icon">🎣</span><span class="nav-label">記錄</span>
     </button>
     <button class="nav-item" data-view="leaderboard">
-      <span class="nav-icon">🏆</span><span class="nav-label">排行榜</span>
+      <span class="nav-icon">🏆</span><span class="nav-label">排行</span>
     </button>
     <button class="nav-item" data-view="map">
       <span class="nav-icon">🗺️</span><span class="nav-label">地圖</span>
@@ -480,6 +576,7 @@ async function dbLoadCatches() {
       latitude: c.latitude || null, longitude: c.longitude || null,
       locationAccuracy: c.location_accuracy || null, locationSource: c.location_source || null,
       photoUrl: c.photo_url || null,  // Route E: 用戶上傳的照片
+      tripId: c.trip_id || null,      // Route H: 行程關聯
     };
   });
 }
@@ -513,6 +610,7 @@ async function dbAddCatch(c) {
     verified: c.verified || false, notes: c.notes || null,
     latitude: c.latitude || null, longitude: c.longitude || null,
     location_accuracy: c.locationAccuracy || null, location_source: c.locationSource || null,
+    trip_id: c.trip_id || null,  // Route H: 行程關聯（nullable，向後相容）
     photo_url: photoUrl,
   }).select().single();
   if (error) throw error;
@@ -607,7 +705,7 @@ function genSampleCatches() {
 /* ===== State & Persistence ===== */
 const STORAGE_KEY = 'hk_fishing_catches_v5';
 const USERNAME_KEY = 'hk_fishing_username';
-let state = { view:'my', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{}, expandedPokedex:{} } };
+let state = { view:'my', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{}, expandedPokedex:{} }, trips:[], activeTrip:null, tripDetailId:null, tripTickHandle:null };
 function getUserName() { return state.user ? (state.user.display_name || state.user.username) : (localStorage.getItem(USERNAME_KEY) || '我'); }
 function setUserName(name) {
   if (SB_ENABLED && state.user) return;  // 雲端模式由 display_name 管理
@@ -664,7 +762,12 @@ function renderRecordView() {
   const now = new Date();
   const today = now.toISOString().slice(0,10);
   const nowTime = now.toTimeString().slice(0,5);
+  // Route H: 若有進行中行程，在表單頂部提示這條魚會歸入該行程
+  const tripBadge = state.activeTrip
+    ? '<div style="background:var(--orange-light);border:1px solid var(--orange);border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">⏱️</span><div style="flex:1;font-size:12px;color:var(--gray-6);line-height:1.4;"><b style="color:var(--orange);">進行中行程</b><br>這條魚獲會自動加入當前行程</div><button type="button" class="atb-end" onclick="event.stopPropagation();endTrip(true);">結束行程</button></div>'
+    : '';
   view.innerHTML = '<div class="card"><div class="section-title">🎣 記錄新魚獲</div>'
+    + tripBadge
     + '<div class="form-group"><label class="form-label">魚種 <span class="req">*</span></label><div class="species-grid" id="species-grid">'
     + FISH_SPECIES.map((f,i) => '<div class="species-chip '+(state.selectedSpecies===i?'selected':'')+'" onclick="selectSpecies('+i+')">'
       + (window.fishIconSvg ? window.fishIconSvg(f.name, 36) : '<span class="chip-thumb-fallback">'+f.icon+'</span>')
@@ -832,6 +935,7 @@ function submitCatch() {
     verified: false, notes: document.getElementById('catch-notes').value || '', isMine: true,
     latitude: state.catchLat || null, longitude: state.catchLng || null,
     locationAccuracy: state.catchAccuracy || null, locationSource: state.catchLat ? 'gps' : null,
+    trip_id: state.activeTrip ? state.activeTrip.id : null,  // Route H: 帶入當前行程
   };
   state.catches.unshift(catchItem);
   state.catches.sort((a,b) => b.date.localeCompare(a.date));
@@ -862,9 +966,313 @@ function submitCatch() {
   if (prevCatches.length === 0) {
     setTimeout(() => showToast('🎉 解鎖新魚種：'+speciesName+'！'), 400);
   }
+  // Route H: 若有進行中行程，更新 banner 統計
+  if (state.activeTrip) {
+    renderActiveTripBanner();
+    if (state.view === 'trips') renderTripsView();
+  }
   renderRecordView();
 }
 function resetForm() { state.formSuccess = false; state.selectedSpecies = null; state.customSpecies = ''; state.selectedMethod = ''; state.customMethod = ''; state.selectedBait = ''; state.customBait = ''; state.selectedSpot = ''; state.customSpot = ''; renderRecordView(); }
+
+/* ============================================================
+ *  Route H: 釣魚行程 (Fishing Trip)
+ *  - 行程 tab UI、進行中 banner、開始/結束行程、行程詳情
+ *  - activeTrip 跨 reload 持久化（localStorage）
+ * ============================================================ */
+
+// ===== DB 層 =====
+async function dbLoadTrips() {
+  if (!sb || !state.user) return [];
+  const { data, error } = await sb.from('fishing_trips')
+    .select('*')
+    .or(`user_id.eq.${state.user.id},user_id.is.null`)
+    .order('started_at', { ascending: false });
+  if (error) { console.warn('dbLoadTrips failed', error); return []; }
+  return (data || []).map(t => ({
+    id: t.id, userId: t.user_id,
+    startedAt: t.started_at, endedAt: t.ended_at,
+    spot: t.spot || '', spotArea: t.spot_area || '',
+    latitude: t.latitude ? parseFloat(t.latitude) : null,
+    longitude: t.longitude ? parseFloat(t.longitude) : null,
+    notes: t.notes || '',
+    catchCount: t.catch_count || 0,
+    totalWeight: t.total_weight ? parseFloat(t.total_weight) : 0,
+    isDemo: t.user_id === null
+  }));
+}
+
+async function dbAddTrip(tripData) {
+  if (!sb || !state.user) return null;
+  const { data, error } = await sb.from('fishing_trips').insert({
+    user_id: state.user.id,
+    started_at: tripData.started_at || new Date().toISOString(),
+    spot: tripData.spot || null,
+    spot_area: tripData.spot_area || null,
+    latitude: tripData.latitude || null,
+    longitude: tripData.longitude || null
+  }).select().single();
+  if (error) { console.error('dbAddTrip failed', error); toast('建立行程失敗：' + error.message); return null; }
+  return data;
+}
+
+async function dbEndTrip(tripId, endedAt, stats) {
+  if (!sb || !state.user) return false;
+  const { error } = await sb.from('fishing_trips').update({
+    ended_at: endedAt,
+    catch_count: stats.count || 0,
+    total_weight: stats.totalWeight || 0
+  }).eq('id', tripId).eq('user_id', state.user.id);
+  if (error) { console.error('dbEndTrip failed', error); toast('結束行程失敗：' + error.message); return false; }
+  return true;
+}
+
+// ===== Banner =====
+function renderActiveTripBanner() {
+  const el = document.getElementById('active-trip-banner');
+  if (!state.activeTrip) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  const t = state.activeTrip;
+  const sec = window.tripsLib.tripDurationSec(t);
+  const summary = window.tripsLib.summarizeTripCatches(t, state.catches);
+  el.style.display = 'block';
+  el.innerHTML =
+    '<div class="active-trip-banner" onclick="goToView(\'trips\');">'
+      + '<span class="atb-dot"></span>'
+      + '<div class="atb-info">'
+        + '<div class="atb-title">⏱️ 行程進行中' + (t.spot ? ' · ' + escapeHtml(t.spot) : '') + '</div>'
+        + '<div class="atb-timer" id="atb-timer">' + window.tripsLib.formatTimerDisplay(sec) + '</div>'
+        + '<div class="atb-meta">' + summary.count + ' 條魚 · ' + summary.totalWeight.toFixed(2) + ' 斤</div>'
+      + '</div>'
+      + '<button class="atb-btn" onclick="event.stopPropagation();addCatchInTrip();">➕ 加魚</button>'
+      + '<button class="atb-end" onclick="event.stopPropagation();endTrip(false);">結束</button>'
+    + '</div>';
+}
+
+function tickActiveTripBanner() {
+  if (!state.activeTrip) return;
+  const sec = window.tripsLib.tripDurationSec(state.activeTrip);
+  const timerEl = document.getElementById('atb-timer');
+  if (timerEl) timerEl.textContent = window.tripsLib.formatTimerDisplay(sec);
+}
+
+// ===== 開始 / 結束行程 =====
+async function startTrip() {
+  if (!sb || !state.user) { toast('請先登入'); return; }
+  const trip = await dbAddTrip({ started_at: new Date().toISOString() });
+  if (!trip) return;
+  state.activeTrip = {
+    id: trip.id, started_at: trip.started_at, ended_at: null,
+    spot: '', spotArea: '', latitude: null, longitude: null, notes: ''
+  };
+  window.tripsLib.saveActiveTrip(state.activeTrip);
+  window.tripsLib.startTimer(tickActiveTripBanner, 1000);
+  renderActiveTripBanner();
+  toast('🎣 行程已開始，祝好運！');
+  // 重新載入 trips 並跳到記錄 tab 讓用戶加第一條魚
+  state.trips = await dbLoadTrips();
+  renderTripsView();
+  switchView('record');
+  renderRecordView();
+}
+
+async function endTrip(skipConfirm) {
+  if (!state.activeTrip) return;
+  if (!skipConfirm) {
+    const summary = window.tripsLib.summarizeTripCatches(state.activeTrip, state.catches);
+    if (!confirm('結束當前行程？\n\n已記錄 ' + summary.count + ' 條魚，共 ' + summary.totalWeight.toFixed(2) + ' 斤')) return;
+  }
+  const endedAt = new Date().toISOString();
+  const stats = window.tripsLib.summarizeTripCatches(state.activeTrip, state.catches);
+  const ok = await dbEndTrip(state.activeTrip.id, endedAt, {
+    count: stats.count, totalWeight: stats.totalWeight
+  });
+  if (!ok) return;
+  window.tripsLib.stopTimer();
+  window.tripsLib.clearActiveTrip();
+  state.activeTrip = null;
+  state.trips = await dbLoadTrips();
+  renderActiveTripBanner();
+  renderTripsView();
+  if (state.view === 'record') renderRecordView();
+  toast('✅ 行程已結束');
+}
+
+async function addCatchInTrip() {
+  // 從 banner 快捷加魚：切到 record tab，自動預填行程（trip_id 由 activeTrip 自動帶入）
+  if (!state.activeTrip) return;
+  switchView('record');
+  renderRecordView();
+  toast('填寫這次釣到的魚，會自動加入當前行程');
+}
+
+// ===== Trips View =====
+function renderTripsView() {
+  const view = document.getElementById('view-trips');
+  if (!view) return;
+  // 若正在檢視詳情
+  if (state.tripDetailId) {
+    renderTripDetailView(state.tripDetailId);
+    return;
+  }
+  const active = state.activeTrip;
+  const trips = (state.trips || []).filter(t => !t.isDemo && t.endedAt);  // 歷史 = 已結束的
+  let html = '<div class="section-title">⏱️ 釣魚行程</div>';
+  // 進行中區塊（強調）
+  if (active) {
+    const sec = window.tripsLib.tripDurationSec(active);
+    const summary = window.tripsLib.summarizeTripCatches(active, state.catches);
+    html += '<div class="card" style="background:linear-gradient(135deg,var(--orange),#ff8c5a);color:white;cursor:pointer;" onclick="renderTripsView();">'
+      + '<div style="display:flex;align-items:center;gap:12px;">'
+        + '<span class="atb-dot"></span>'
+        + '<div style="flex:1;">'
+          + '<div style="font-size:13px;opacity:0.95;font-weight:600;">行程進行中</div>'
+          + '<div id="trips-active-timer" style="font-size:24px;font-weight:700;font-family:monospace;letter-spacing:1px;">' + window.tripsLib.formatTimerDisplay(sec) + '</div>'
+          + '<div style="font-size:12px;opacity:0.9;">' + summary.count + ' 條魚 · ' + summary.totalWeight.toFixed(2) + ' 斤</div>'
+        + '</div>'
+        + '<button class="atb-btn" onclick="event.stopPropagation();addCatchInTrip();">➕ 加魚</button>'
+      + '</div>'
+      + '<div style="margin-top:12px;display:flex;gap:8px;">'
+        + '<button class="atb-end" style="flex:1;background:rgba(255,255,255,0.25);color:white;border-color:rgba(255,255,255,0.4);" onclick="event.stopPropagation();endTrip(false);">🛑 結束行程</button>'
+      + '</div>'
+    + '</div>';
+    // 給當前 timer 也加 tick
+    setTimeout(tickTripsActiveTimer, 0);
+  } else {
+    html += '<div class="card" style="text-align:center;padding:24px 16px;">'
+      + '<div style="font-size:48px;margin-bottom:12px;">🎣</div>'
+      + '<div style="font-size:15px;color:var(--gray-6);margin-bottom:6px;font-weight:600;">準備好去釣魚？</div>'
+      + '<div style="font-size:13px;color:var(--gray-5);margin-bottom:18px;">開始行程後會自動計時，<br>釣到的魚會歸入這個行程</div>'
+      + '<button class="start-trip-btn" onclick="startTrip();">▶ 開始行程</button>'
+    + '</div>';
+  }
+  // 歷史行程
+  if (trips.length > 0) {
+    html += '<div class="section-title" style="margin-top:18px;">📜 歷史行程（' + trips.length + '）</div>';
+    trips.forEach(t => {
+      const sec = window.tripsLib.tripDurationSec(t);
+      html += renderTripCard(t, sec);
+    });
+  } else if (!active) {
+    html += '<div style="text-align:center;color:var(--gray-4);font-size:13px;padding:20px 0;">還沒有歷史行程</div>';
+  }
+  view.innerHTML = html;
+  view.classList.add('active');
+}
+
+function tickTripsActiveTimer() {
+  if (!state.activeTrip) return;
+  const el = document.getElementById('trips-active-timer');
+  if (el) {
+    const sec = window.tripsLib.tripDurationSec(state.activeTrip);
+    el.textContent = window.tripsLib.formatTimerDisplay(sec);
+  }
+}
+
+function renderTripCard(trip, durationSec) {
+  const d = new Date(trip.startedAt);
+  const dateStr = d.toLocaleDateString('zh-HK', { month:'numeric', day:'numeric' });
+  const timeStr = d.toTimeString().slice(0,5);
+  const statusText = window.tripsLib.tripStatusText(trip);
+  const isActive = !trip.endedAt;
+  return '<div class="trip-card ' + (isActive ? '' : 'ended') + '" onclick="openTripDetail(\'' + trip.id + '\')">'
+    + '<div class="trip-card-header">'
+      + '<div class="trip-card-title">' + (trip.spot ? escapeHtml(trip.spot) : '未命名行程') + '</div>'
+      + '<div class="trip-card-time">' + statusText + '</div>'
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--gray-4);margin-bottom:6px;">' + dateStr + ' ' + timeStr + ' · 時長 ' + window.tripsLib.formatDuration(durationSec) + '</div>'
+    + '<div class="trip-card-stats">'
+      + '<span>🐟 ' + (trip.catchCount || 0) + ' 條</span>'
+      + '<span>⚖️ ' + (trip.totalWeight || 0).toFixed(2) + ' 斤</span>'
+    + '</div>'
+  + '</div>';
+}
+
+function openTripDetail(id) {
+  state.tripDetailId = id;
+  renderTripsView();
+}
+
+function closeTripDetail() {
+  state.tripDetailId = null;
+  renderTripsView();
+}
+
+function renderTripDetailView(id) {
+  const view = document.getElementById('view-trips');
+  const trip = (state.trips || []).find(t => t.id === id);
+  if (!trip) { state.tripDetailId = null; renderTripsView(); return; }
+  const dStart = new Date(trip.startedAt);
+  const dateStr = dStart.toLocaleDateString('zh-HK', { year:'numeric', month:'long', day:'numeric' });
+  const timeStr = dStart.toTimeString().slice(0,5);
+  const durationSec = window.tripsLib.tripDurationSec(trip);
+  const summary = window.tripsLib.summarizeTripCatches(trip, state.catches);
+  const isActive = !trip.endedAt;
+  let html = '<button class="btn btn-outline" style="margin-bottom:12px;" onclick="closeTripDetail();">← 返回行程列表</button>';
+  html += '<div class="trip-detail-header">'
+    + '<div class="trip-detail-title">' + (trip.spot ? escapeHtml(trip.spot) : '未命名行程') + (isActive ? ' <span style="font-size:12px;color:var(--orange);">（進行中）</span>' : '') + '</div>'
+    + '<div class="trip-detail-meta">📅 ' + dateStr + ' ' + timeStr + (trip.endedAt ? ' · 結束 ' + new Date(trip.endedAt).toTimeString().slice(0,5) : '') + '</div>'
+    + '<div class="trip-stats-grid">'
+      + '<div class="trip-stat-box"><div class="trip-stat-num">' + window.tripsLib.formatDuration(durationSec) + '</div><div class="trip-stat-label">總時長</div></div>'
+      + '<div class="trip-stat-box"><div class="trip-stat-num">' + summary.count + '</div><div class="trip-stat-label">魚獲</div></div>'
+      + '<div class="trip-stat-box"><div class="trip-stat-num">' + summary.totalWeight.toFixed(2) + '</div><div class="trip-stat-label">斤</div></div>'
+    + '</div>'
+    + '<div style="font-size:12px;color:var(--gray-5);margin-top:10px;text-align:center;">共 ' + summary.speciesCount + ' 個魚種</div>'
+  + '</div>';
+  if (isActive) {
+    html += '<div class="trip-actions">'
+      + '<button class="btn btn-primary" onclick="addCatchInTrip();">➕ 加魚獲</button>'
+      + '<button class="btn btn-outline" style="color:var(--orange);border-color:var(--orange);" onclick="endTrip(false);">🛑 結束行程</button>'
+    + '</div>';
+  }
+  // 魚獲清單
+  if (summary.catches.length > 0) {
+    html += '<div class="section-title" style="margin-top:16px;">🐟 魚獲清單</div>';
+    summary.catches.sort((a,b) => (b.time || '').localeCompare(a.time || ''));
+    summary.catches.forEach(c => {
+      const iconHtml = c.photoUrl
+        ? '<img src="' + c.photoUrl + '" style="width:36px;height:36px;border-radius:8px;object-fit:cover;" onerror="this.outerHTML=\'' + (window.fishIconSvg ? window.fishIconSvg(c.species, 36) : c.speciesIcon || '🐟') + '\'">'
+        : (window.fishIconSvg ? window.fishIconSvg(c.species, 36) : (c.speciesIcon || '🐟'));
+      html += '<div class="trip-catch-mini">'
+        + '<div class="trip-catch-mini-icon">' + iconHtml + '</div>'
+        + '<div class="trip-catch-mini-info">'
+          + '<div class="trip-catch-mini-species">' + escapeHtml(c.species) + '</div>'
+          + '<div class="trip-catch-mini-meta">' + (c.time || c.date) + (c.spot ? ' · ' + escapeHtml(c.spot) : '') + '</div>'
+        + '</div>'
+        + '<div class="trip-catch-mini-weight">' + c.weight.toFixed(2) + ' 斤</div>'
+      + '</div>';
+    });
+  } else {
+    html += '<div style="text-align:center;color:var(--gray-4);font-size:13px;padding:24px 0;">這次行程還沒有魚獲</div>';
+  }
+  view.innerHTML = html;
+}
+
+// ===== Boot: 還原進行中行程 =====
+async function resumeActiveTrip() {
+  const saved = window.tripsLib.loadActiveTrip();
+  if (!saved) return;
+  // 從 trips 找對應的還在進行的 trip
+  state.trips = await dbLoadTrips();
+  const t = state.trips.find(x => x.id === saved.id && !x.endedAt);
+  if (t) {
+    state.activeTrip = t;
+    window.tripsLib.startTimer(tickActiveTripBanner, 1000);
+    renderActiveTripBanner();
+    // trips view 如果當前頁也要更新
+    if (state.view === 'trips') renderTripsView();
+    console.log('Resumed active trip:', t.id);
+  } else {
+    // 行程已被結束（可能被其他裝置結束）→ 清除 localStorage
+    window.tripsLib.clearActiveTrip();
+  }
+}
+
+// 匯出 trips 相關函式到 window（HTML onclick 需要）
+window.startTrip = startTrip;
+window.endTrip = endTrip;
+window.addCatchInTrip = addCatchInTrip;
+window.openTripDetail = openTripDetail;
+window.closeTripDetail = closeTripDetail;
 
 /* ===== My Catches View ===== */
 function getMyCatchRankings() {
@@ -1441,7 +1849,7 @@ function switchView(name) {
   setTimeout(() => viewEl.classList.remove('fade-in'), 300);
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelector('.nav-item[data-view="'+name+'"]').classList.add('active');
-  const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', leaderboard:'🏆 排行榜', encyclopedia:'📖 魚種圖鑑', map:'🗺️ 釣點地圖' };
+  const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', encyclopedia:'📖 魚種圖鑑', map:'🗺️ 釣點地圖' };
   document.getElementById('header-title').textContent = titles[name];
   renderView(name);
 }
@@ -1449,6 +1857,7 @@ function goToView(name) { switchView(name); }
 function renderView(name) {
   if (name==='record') renderRecordView();
   else if (name==='my') renderMyView();
+  else if (name==='trips') renderTripsView();  // Route H
   else if (name==='leaderboard') renderLeaderboardView();
   else if (name==='encyclopedia') renderEncyclopediaView();
   else if (name==='map') renderMapView();
@@ -1568,6 +1977,10 @@ async function init() {
   }
   setupGlobalHandlers();
   document.getElementById('header-username').textContent = getUserName();
+  // Route H: 還原進行中行程
+  if (SB_ENABLED && state.user) {
+    try { await resumeActiveTrip(); } catch(e) { console.warn('resumeActiveTrip failed', e); }
+  }
   checkSharedCatch();
   switchView('my');
 }
