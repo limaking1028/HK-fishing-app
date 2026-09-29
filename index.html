@@ -209,7 +209,8 @@
   .btn-outline { background: var(--white); border: 1.5px solid var(--teal); color: var(--teal-dark); }
   .btn-share { background: linear-gradient(135deg, #ff6b35, #ff8c5a); color: white; font-size: 16px; font-weight: 700; box-shadow: 0 4px 12px rgba(255,107,53,0.3); }
   .btn-share:active { transform: scale(0.98); }
-  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stats-row .stat-card .stat-sub { font-size: 10px; color: var(--gray-4); margin-top: 1px; opacity: 0.75; }
   .stat-card { background: var(--white); border-radius: var(--radius); padding: 14px 8px; text-align: center; box-shadow: var(--shadow); }
   .stat-value { font-size: 24px; font-weight: 800; color: var(--teal-dark); }
   .stat-label { font-size: 11px; color: var(--gray-4); margin-top: 2px; }
@@ -1598,6 +1599,17 @@ function renderMyView() {
   const totalCatches = myCatches.length;
   const biggest = myCatches.reduce((max, c) => c.weight > (max?.weight||0) ? c : max, null);
   const speciesCount = new Set(myCatches.map(c => c.species)).size;
+  // Route H+: 總釣魚時間（已完成行程 + 進行中行程的當前時長）
+  const totalTripSec = (state.trips || []).reduce((sum, t) =>
+    sum + (window.tripsLib ? window.tripsLib.tripDurationSec(t) : 0), 0);
+  let totalTripValue, totalTripSub;
+  if (totalTripSec < 60) {
+    totalTripValue = '0'; totalTripSub = '分鐘';
+  } else if (totalTripSec < 3600) {
+    totalTripValue = String(Math.floor(totalTripSec / 60)); totalTripSub = '分鐘';
+  } else {
+    totalTripValue = (Math.round(totalTripSec / 360) / 10).toFixed(1); totalTripSub = '小時';
+  }
   const myRankings = getMyCatchRankings();
   // 各魚種數量（基於未過濾的全部記錄）
   const allMap = {};
@@ -1661,11 +1673,35 @@ function renderMyView() {
     + '<div class="collapsible-content">' + listHtml + '</div>'
     + '</div>';
   view.innerHTML = subTabsHtml
-    + '<div class="stats-row"><div class="stat-card"><div class="stat-value">'+totalCatches+'</div><div class="stat-label">總魚獲</div></div><div class="stat-card"><div class="stat-value">'+(biggest?biggest.weight:0)+'<span style="font-size:13px">斤</span></div><div class="stat-label">重量王者'+(biggest?' ('+biggest.species+')':'')+'</div></div><div class="stat-card"><div class="stat-value">'+speciesCount+'</div><div class="stat-label">魚種數</div></div></div>'
+    + '<div class="stats-row">'
+    + '<div class="stat-card"><div class="stat-value">'+totalCatches+'</div><div class="stat-label">總魚獲</div></div>'
+    + '<div class="stat-card"><div class="stat-value">'+(biggest?biggest.weight:0)+'<span style="font-size:13px">斤</span></div><div class="stat-label">重量王者'+(biggest?' ('+biggest.species+')':'')+'</div></div>'
+    + '<div class="stat-card"><div class="stat-value">'+speciesCount+'</div><div class="stat-label">魚種數</div></div>'
+    + '<div class="stat-card" id="stat-total-time"><div class="stat-value">'+totalTripValue+'<span style="font-size:13px">'+totalTripSub+'</span></div><div class="stat-label">總釣魚時間</div>'+(state.activeTrip?'<div class="stat-sub">⏱ 行程進行中</div>':'')+'</div>'
+    + '</div>'
     + biggestHtml
     + '<div class="filter-row"><button class="filter-chip '+(state.myFilter==='all'?'active':'')+'" onclick="setMyFilter(\'all\')">全部</button><button class="filter-chip '+(state.myFilter==='month'?'active':'')+'" onclick="setMyFilter(\'month\')">本月</button><button class="filter-chip '+(state.myFilter==='quarter'?'active':'')+'" onclick="setMyFilter(\'quarter\')">本季</button></div>'
     + speciesGroupHtml
     + allRecordsHtml;
+  // Route H+: 進行中行程時，每分鐘更新總釣魚時間（避免每秒重繪整頁）
+  if (state._myTimeTick) clearInterval(state._myTimeTick);
+  if (state.activeTrip) {
+    state._myTimeTick = setInterval(() => {
+      const el = document.getElementById('stat-total-time');
+      if (!el || state.view !== 'my' || state.mySubTab !== 'log') {
+        clearInterval(state._myTimeTick); state._myTimeTick = null; return;
+      }
+      const sec = (state.trips || []).reduce((s, t) =>
+        s + (window.tripsLib ? window.tripsLib.tripDurationSec(t) : 0), 0);
+      let v, u;
+      if (sec < 60) { v = '0'; u = '分鐘'; }
+      else if (sec < 3600) { v = String(Math.floor(sec / 60)); u = '分鐘'; }
+      else { v = (Math.round(sec / 360) / 10).toFixed(1); u = '小時'; }
+      el.innerHTML = '<div class="stat-value">'+v+'<span style="font-size:13px">'+u+'</span></div><div class="stat-label">總釣魚時間</div><div class="stat-sub">⏱ 行程進行中</div>';
+    }, 60000);  // 每分鐘更新一次
+  } else {
+    state._myTimeTick = null;
+  }
 }
 function setMySubTab(t) { state.mySubTab = t; renderMyView(); }
 function setMyFilter(f) { state.myFilter = f; renderMyView(); }
