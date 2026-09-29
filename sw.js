@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v25';  // bump: Route H (釣魚行程 Trip + 計時 banner)
+const CACHE = 'hk-fishing-v26';  // bump: Route H fix (行程歷史欄位命名 + debug log)
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js'
 ];
