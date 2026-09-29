@@ -1206,6 +1206,7 @@ async function addCatchInTrip() {
 
 // ===== Trips View =====
 function renderTripsView() {
+  try {
   const view = document.getElementById('view-trips');
   if (!view) return;
   // 若正在檢視詳情
@@ -1278,6 +1279,11 @@ function renderTripsView() {
   }
   view.innerHTML = html;
   view.classList.add('active');
+  } catch(e) {
+    console.error('renderTripsView error:', e);
+    const view = document.getElementById('view-trips');
+    if (view) view.innerHTML = '<div style="background:#fee;color:#c00;padding:16px;border-radius:8px;font-size:12px;margin:12px;">⚠️ 行程頁面錯誤<br><br>' + (e.message || e) + '<br><br>請截圖傳給我</div>';
+  }
 }
 
 function tickTripsActiveTimer() {
