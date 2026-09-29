@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v30';  // bump: Route H++ (picker 加 method/bait + 中途編輯)
+const CACHE = 'hk-fishing-v31';  // bump: 排行榜名稱改為王者系列
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js'
 ];

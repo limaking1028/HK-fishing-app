@@ -1555,30 +1555,30 @@ function getMyCatchRankings() {
   const rankings = {};
   const filtered = state.catches;
   const qualify = c => c.verified || c.isMine || c.imported;
-  // 最大魚：按用戶最大魚獲排名
+  // 重量王者：按用戶最大魚獲排名
   const userBiggest = {};
   filtered.forEach(c => { if (qualify(c)) { if (!userBiggest[c.user] || c.weight > userBiggest[c.user].weight) userBiggest[c.user] = c; } });
   Object.values(userBiggest).sort((a,b) => b.weight - a.weight).forEach((item, idx) => {
-    if (item.isMine) { (rankings[item.id] = rankings[item.id] || []).push({lb:'最大魚', rank: idx+1}); }
+    if (item.isMine) { (rankings[item.id] = rankings[item.id] || []).push({lb:'重量王者', rank: idx+1}); }
   });
-  // 魚種王：按用戶不同魚種數量排名（徽章標記在最大魚獲上）
+  // 品種王者：按用戶不同魚種數量排名（徽章標記在重量王者上）
   const userSpecies = {};
   filtered.forEach(c => { if (qualify(c)) { userSpecies[c.user] = userSpecies[c.user] || {user:c.user, species:new Set(), catches:[]}; userSpecies[c.user].species.add(c.species); userSpecies[c.user].catches.push(c); } });
   Object.values(userSpecies).sort((a,b) => b.species.size - a.species.size).forEach((item, idx) => {
     const mine = item.catches.filter(c => c.isMine);
     if (mine.length) {
       const biggest = mine.slice().sort((a,b) => b.weight - a.weight)[0];
-      (rankings[biggest.id] = rankings[biggest.id] || []).push({lb:'魚種王', rank: idx+1});
+      (rankings[biggest.id] = rankings[biggest.id] || []).push({lb:'品種王者', rank: idx+1});
     }
   });
-  // 最多魚獲：按用戶總數排名（標記在最新一條）
+  // 數量王者：按用戶總數排名（標記在最新一條）
   const userCounts = {};
   filtered.forEach(c => { if (qualify(c)) { if (!userCounts[c.user]) userCounts[c.user] = {user:c.user, count:0, catches:[]}; userCounts[c.user].count++; userCounts[c.user].catches.push(c); } });
   Object.values(userCounts).sort((a,b) => b.count - a.count).forEach((item, idx) => {
     const mine = item.catches.filter(c => c.isMine);
     if (mine.length) {
       const latest = mine.sort((a,b) => (b.date+b.time).localeCompare(a.date+a.time))[0];
-      (rankings[latest.id] = rankings[latest.id] || []).push({lb:'最多魚獲', rank: idx+1});
+      (rankings[latest.id] = rankings[latest.id] || []).push({lb:'數量王者', rank: idx+1});
     }
   });
   return rankings;
@@ -1613,7 +1613,7 @@ function renderMyView() {
   let filtered = myCatches;
   if (state.myFilter === 'month') filtered = myCatches.filter(c => periodFilter(c, 'month'));
   else if (state.myFilter === 'quarter') filtered = myCatches.filter(c => periodFilter(c, 'quarter'));
-  // 最大魚詳細卡
+  // 重量王者詳細卡
   let biggestHtml = '';
   if (biggest) {
     const bi = getFishInfo(biggest.species);
@@ -1621,7 +1621,7 @@ function renderMyView() {
     const biIcon = biggest.photoUrl
       ? '<img class="catch-thumb" src="'+biggest.photoUrl+'" alt="'+biggest.species+'" loading="lazy" onerror="this.outerHTML=\''+(window.fishIconSvg?window.fishIconSvg(biggest.species,80):(biggest.speciesIcon||'🐟'))+'\'">'
       : (window.fishIconSvg ? window.fishIconSvg(biggest.species, 80) : (biggest.speciesIcon || (bi ? bi.icon : '🐟')));
-    biggestHtml = '<div class="biggest-card"><div class="biggest-card-header"><span class="biggest-badge">👑 最大魚紀錄</span></div><div class="biggest-card-body"><div class="catch-fish-icon">'+biIcon+'</div><div class="biggest-info"><div class="biggest-species">'+biggest.species+'</div><div class="biggest-weight">'+biggest.weight+' <span>斤</span></div><div class="biggest-meta">'+(biggest.length?biggest.length+'cm · ':'')+biggest.spot+' · '+formatDate(biggest.date)+' '+biggest.time+'</div></div></div></div>';
+    biggestHtml = '<div class="biggest-card"><div class="biggest-card-header"><span class="biggest-badge">👑 重量王者紀錄</span></div><div class="biggest-card-body"><div class="catch-fish-icon">'+biIcon+'</div><div class="biggest-info"><div class="biggest-species">'+biggest.species+'</div><div class="biggest-weight">'+biggest.weight+' <span>斤</span></div><div class="biggest-meta">'+(biggest.length?biggest.length+'cm · ':'')+biggest.spot+' · '+formatDate(biggest.date)+' '+biggest.time+'</div></div></div></div>';
   }
   // 各魚種數量（摺疊）
   let speciesGroupHtml = '';
@@ -1661,7 +1661,7 @@ function renderMyView() {
     + '<div class="collapsible-content">' + listHtml + '</div>'
     + '</div>';
   view.innerHTML = subTabsHtml
-    + '<div class="stats-row"><div class="stat-card"><div class="stat-value">'+totalCatches+'</div><div class="stat-label">總魚獲</div></div><div class="stat-card"><div class="stat-value">'+(biggest?biggest.weight:0)+'<span style="font-size:13px">斤</span></div><div class="stat-label">最大魚'+(biggest?' ('+biggest.species+')':'')+'</div></div><div class="stat-card"><div class="stat-value">'+speciesCount+'</div><div class="stat-label">魚種數</div></div></div>'
+    + '<div class="stats-row"><div class="stat-card"><div class="stat-value">'+totalCatches+'</div><div class="stat-label">總魚獲</div></div><div class="stat-card"><div class="stat-value">'+(biggest?biggest.weight:0)+'<span style="font-size:13px">斤</span></div><div class="stat-label">重量王者'+(biggest?' ('+biggest.species+')':'')+'</div></div><div class="stat-card"><div class="stat-value">'+speciesCount+'</div><div class="stat-label">魚種數</div></div></div>'
     + biggestHtml
     + '<div class="filter-row"><button class="filter-chip '+(state.myFilter==='all'?'active':'')+'" onclick="setMyFilter(\'all\')">全部</button><button class="filter-chip '+(state.myFilter==='month'?'active':'')+'" onclick="setMyFilter(\'month\')">本月</button><button class="filter-chip '+(state.myFilter==='quarter'?'active':'')+'" onclick="setMyFilter(\'quarter\')">本季</button></div>'
     + speciesGroupHtml
@@ -1879,7 +1879,7 @@ function renderLeaderboardView() {
     filtered.forEach(c => { if (c.verified || c.isMine || c.imported) { m[c.user] = m[c.user] || {user:c.user, count:0, spots:new Set(), species:new Set(), isMine:false}; m[c.user].count++; m[c.user].spots.add(c.spot); m[c.user].species.add(c.species); if (c.isMine) m[c.user].isMine = true; } });
     lbData = Object.values(m).map(u => ({user:u.user, count:u.count, spotCount:u.spots.size, speciesCount:u.species.size, isMine:u.isMine})).sort((a,b) => b.count - a.count);
   } else {
-    // 魚種王：統計每個用戶釣到多少種不同魚種，按數量排名
+    // 品種王者：統計每個用戶釣到多少種不同魚種，按數量排名
     const m = {};
     filtered.forEach(c => { if (c.verified || c.isMine || c.imported) { m[c.user] = m[c.user] || {user:c.user, species:new Set(), catches:[]}; m[c.user].species.add(c.species); m[c.user].catches.push(c); } });
     lbData = Object.values(m).map(u => {
@@ -1901,7 +1901,7 @@ function renderLeaderboardView() {
       listHtml += '<div class="lb-item'+(item.isMine?' mine':'')+'"><div class="lb-rank '+rankClass+'">'+rank+'</div><div class="lb-user"><div class="lb-username">'+item.user+(item.isMine?' <span style="font-size:11px;color:var(--orange)">（我）</span>':'')+'</div><div class="lb-detail">'+detail+'</div></div><div class="lb-value">'+value+'</div></div>';
     });
   }
-  view.innerHTML = '<div class="lb-tabs"><button class="lb-tab '+(state.lbType==='biggest'?'active':'')+'" onclick="setLbType(\'biggest\')">最大魚</button><button class="lb-tab '+(state.lbType==='quantity'?'active':'')+'" onclick="setLbType(\'quantity\')">最多魚獲</button><button class="lb-tab '+(state.lbType==='species'?'active':'')+'" onclick="setLbType(\'species\')">魚種王</button></div>'
+  view.innerHTML = '<div class="lb-tabs"><button class="lb-tab '+(state.lbType==='biggest'?'active':'')+'" onclick="setLbType(\'biggest\')">重量王者</button><button class="lb-tab '+(state.lbType==='quantity'?'active':'')+'" onclick="setLbType(\'quantity\')">數量王者</button><button class="lb-tab '+(state.lbType==='species'?'active':'')+'" onclick="setLbType(\'species\')">品種王者</button></div>'
     + '<div class="lb-period-row"><button class="lb-period '+(state.lbPeriod==='all'?'active':'')+'" onclick="setLbPeriod(\'all\')">全部</button><button class="lb-period '+(state.lbPeriod==='year'?'active':'')+'" onclick="setLbPeriod(\'year\')">年度</button><button class="lb-period '+(state.lbPeriod==='quarter'?'active':'')+'" onclick="setLbPeriod(\'quarter\')">季度</button><button class="lb-period '+(state.lbPeriod==='month'?'active':'')+'" onclick="setLbPeriod(\'month\')">月度</button></div>'
     + '<div class="lb-list">'+listHtml+'</div>'
     + '<div style="font-size:12px;color:var(--gray-4);text-align:center;padding:12px;">排行榜只計有效紀錄（附照片/GPS）<br>規則公開透明，可追溯至原始紀錄</div>';
