@@ -705,7 +705,7 @@ function genSampleCatches() {
 /* ===== State & Persistence ===== */
 const STORAGE_KEY = 'hk_fishing_catches_v5';
 const USERNAME_KEY = 'hk_fishing_username';
-let state = { view:'my', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{}, expandedPokedex:{} }, trips:[], activeTrip:null, tripDetailId:null, tripTickHandle:null };
+let state = { view:'my', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{}, expandedPokedex:{} }, trips:[], activeTrip:null, tripDetailId:null, tripTickHandle:null, tripPicking:false, tripPickingSpot:'', tripPickingCustom:'', tripPickingLat:null, tripPickingLng:null, tripPickingAccuracy:null };
 function getUserName() { return state.user ? (state.user.display_name || state.user.username) : (localStorage.getItem(USERNAME_KEY) || '我'); }
 function setUserName(name) {
   if (SB_ENABLED && state.user) return;  // 雲端模式由 display_name 管理
@@ -776,7 +776,10 @@ function renderRecordView() {
     + (state.selectedSpecies===FISH_SPECIES.length-1 ? '<input type="text" class="form-input" id="custom-species" placeholder="輸入魚種名稱..." value="'+(state.customSpecies||'')+'" oninput="state.customSpecies=this.value" style="margin-top:10px;">' : '')
     + '</div></div>'
     + '<div class="form-row"><div class="form-group"><label class="form-label">重量 <span class="req">*</span></label><div class="input-suffix"><input type="number" class="form-input" id="catch-weight" placeholder="0.0" step="0.1" min="0"><span class="suffix">斤</span></div></div><div class="form-group"><label class="form-label">長度</label><div class="input-suffix"><input type="number" class="form-input" id="catch-length" placeholder="0" step="0.5" min="0"><span class="suffix">cm</span></div></div></div>'
-    + '<div class="form-group"><label class="form-label">釣點 <span class="req">*</span></label><select class="form-select" id="catch-spot" onchange="onSpotChange(this.value)"><option value="">選擇釣點...</option>'
+    + '<div class="form-group"><label class="form-label">釣點 <span class="req">*</span></label>'
+    + (state.activeTrip && state.activeTrip.spot && !state.selectedSpot ? '<div style="background:var(--orange-light);color:var(--orange-dark);padding:8px 10px;border-radius:6px;font-size:12px;margin-bottom:8px;">📍 行程釣點已自動帶入：<b>'+state.activeTrip.spot+'</b>（可改）</div>' : '')
+    + '<select class="form-select" id="catch-spot" onchange="onSpotChange(this.value)"><option value="">選擇釣點...</option>'
+    + (state.activeTrip && state.activeTrip.spot && !state.selectedSpot ? '<option value="'+state.activeTrip.spot+'" selected>'+state.activeTrip.spot+'</option>' : '')
     + FISHING_SPOTS.map(s => '<option value="'+s.name+'"'+(state.selectedSpot===s.name?' selected':'')+'>'+s.name+'</option>').join('')
     + '</select><input type="text" class="form-input" id="custom-spot" placeholder="輸入具體位置備註（可選），例如：西貢碼頭北防波堤..." value="'+(state.customSpot||'')+'" oninput="state.customSpot=this.value" style="margin-top:8px;">'
     + '<div class="gps-section"><button type="button" id="gps-btn" class="gps-btn" onclick="getCurrentLocation()">📍 使用當前位置</button><div class="gps-status" id="gps-status">未取得位置</div></div>'
@@ -842,7 +845,16 @@ function onBaitChange(b) {
     else { el.style.display = 'none'; el.value = ''; state.customBait = ''; }
   }
 }
-function onSpotChange(s) { state.selectedSpot = s; }
+function onSpotChange(s) {
+  state.selectedSpot = s;
+  // Route H+: 行程中改 spot → 同步到 activeTrip，後續沿用新 spot
+  if (state.activeTrip && s) {
+    const custom = (document.getElementById('custom-spot')?.value || '').trim();
+    state.activeTrip.spot = custom ? s + '（' + custom + '）' : s;
+    state.activeTrip.spotArea = getSpotInfo(s).area || '';
+    window.tripsLib.saveActiveTrip(state.activeTrip);
+  }
+}
 
 // ===== GPS Location =====
 function getCurrentLocation() {
@@ -902,6 +914,12 @@ function submitCatch() {
   if (state.selectedSpecies === null) { toast('請選擇魚種'); return; }
   const weight = parseFloat(document.getElementById('catch-weight').value);
   if (!weight || weight <= 0) { toast('請輸入重量'); return; }
+  // Route H+: 行程中自動帶入 activeTrip.spot（用戶未填時）
+  if (state.activeTrip && state.activeTrip.spot && !state.selectedSpot) {
+    state.selectedSpot = state.activeTrip.spot;
+    const sel = document.getElementById('catch-spot');
+    if (sel) sel.value = state.activeTrip.spot;
+  }
   const spotRaw = document.getElementById('catch-spot').value;
   if (!spotRaw) { toast('請選擇釣點'); return; }
   const spotDetail = (state.customSpot || '').trim();
@@ -1061,18 +1079,94 @@ function tickActiveTripBanner() {
 }
 
 // ===== 開始 / 結束行程 =====
-async function startTrip() {
+function startTrip() {
   if (!sb || !state.user) { toast('請先登入'); return; }
-  const trip = await dbAddTrip({ started_at: new Date().toISOString() });
+  // Route H+: 進入 spot picker 模式
+  state.tripPicking = true;
+  state.tripPickingSpot = '';
+  state.tripPickingCustom = '';
+  state.tripPickingLat = null;
+  state.tripPickingLng = null;
+  state.tripPickingAccuracy = null;
+  renderTripsView();
+}
+
+function cancelTripPick() {
+  state.tripPicking = false;
+  state.tripPickingSpot = '';
+  state.tripPickingCustom = '';
+  renderTripsView();
+}
+
+function onTripSpotChange(s) { state.tripPickingSpot = s; }
+
+function tripGetGPS() {
+  const btn = document.getElementById('trip-gps-btn');
+  const status = document.getElementById('trip-gps-status');
+  if (!navigator.geolocation) { status.textContent = '瀏覽器不支援定位'; status.className = 'gps-status error'; return; }
+  btn.disabled = true; btn.classList.add('loading'); btn.textContent = '⏳ 定位中...';
+  status.textContent = '正在取得位置...'; status.className = 'gps-status';
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const lat = Math.round(pos.coords.latitude * 1000) / 1000;
+      const lng = Math.round(pos.coords.longitude * 1000) / 1000;
+      const acc = Math.round(pos.coords.accuracy);
+      state.tripPickingLat = lat; state.tripPickingLng = lng; state.tripPickingAccuracy = acc;
+      document.getElementById('trip-lat').value = lat;
+      document.getElementById('trip-lng').value = lng;
+      document.getElementById('trip-accuracy').value = acc;
+      btn.disabled = false; btn.classList.remove('loading');
+      btn.textContent = '✓ 已取得位置';
+      status.className = 'gps-status success';
+      status.innerHTML = '✓ 已記錄 <span class="gps-accuracy">（精度 ±' + acc + 'm，已模糊化）</span>';
+    },
+    (err) => {
+      btn.disabled = false; btn.classList.remove('loading'); btn.textContent = '📍 使用當前 GPS';
+      status.className = 'gps-status error';
+      status.textContent = '✗ 定位失敗：' + (err.message || err.code);
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+  );
+}
+
+// 從使用者歷史魚獲抓最常用 spot（用於 picker 選單）
+function getRecentSpots(limit) {
+  const counts = {};
+  (state.catches || []).filter(c => c.isMine && c.spot).forEach(c => {
+    counts[c.spot] = (counts[c.spot] || 0) + 1;
+  });
+  return Object.keys(counts)
+    .filter(name => !FISHING_SPOTS.find(s => s.name === name))  // 排除已在預設清單的
+    .sort((a, b) => counts[b] - counts[a])
+    .slice(0, limit);
+}
+
+async function confirmStartTrip() {
+  const spot = state.tripPickingSpot;
+  if (!spot) { toast('請選擇釣點'); return; }
+  const custom = (state.tripPickingCustom || '').trim();
+  const fullSpot = custom ? spot + '（' + custom + '）' : spot;
+  const trip = await dbAddTrip({
+    started_at: new Date().toISOString(),
+    spot: fullSpot,
+    spot_area: getSpotInfo(spot).area || null,
+    latitude: state.tripPickingLat,
+    longitude: state.tripPickingLng
+  });
   if (!trip) return;
   state.activeTrip = {
     id: trip.id, startedAt: trip.started_at, endedAt: null,
-    spot: '', spotArea: '', latitude: null, longitude: null, notes: ''
+    spot: fullSpot, spotArea: getSpotInfo(spot).area || '',
+    latitude: state.tripPickingLat, longitude: state.tripPickingLng, notes: ''
   };
+  // 清掉 picker 狀態
+  state.tripPicking = false;
+  state.tripPickingSpot = ''; state.tripPickingCustom = '';
+  state.tripPickingLat = null; state.tripPickingLng = null;
   window.tripsLib.saveActiveTrip(state.activeTrip);
   window.tripsLib.startTimer(tickActiveTripBanner, 1000);
   renderActiveTripBanner();
-  toast('🎣 行程已開始，祝好運！');
+  toast('🎣 行程已開始：' + fullSpot);
   // 重新載入 trips 並跳到記錄 tab 讓用戶加第一條魚
   state.trips = await dbLoadTrips();
   renderTripsView();
@@ -1143,12 +1237,34 @@ function renderTripsView() {
     // 給當前 timer 也加 tick
     setTimeout(tickTripsActiveTimer, 0);
   } else {
-    html += '<div class="card" style="text-align:center;padding:24px 16px;">'
-      + '<div style="font-size:48px;margin-bottom:12px;">🎣</div>'
-      + '<div style="font-size:15px;color:var(--gray-6);margin-bottom:6px;font-weight:600;">準備好去釣魚？</div>'
-      + '<div style="font-size:13px;color:var(--gray-5);margin-bottom:18px;">開始行程後會自動計時，<br>釣到的魚會歸入這個行程</div>'
-      + '<button class="start-trip-btn" onclick="startTrip();">▶ 開始行程</button>'
-    + '</div>';
+    // 沒有進行中行程 → 顯示開始行程 + spot picker
+    if (state.tripPicking) {
+      // 內嵌 spot picker
+      const recentSpots = getRecentSpots(5);
+      html += '<div class="card" style="padding:20px 16px;">'
+        + '<div style="text-align:center;"><div style="font-size:36px;margin-bottom:8px;">📍</div>'
+        + '<div style="font-size:15px;color:var(--gray-6);font-weight:600;margin-bottom:4px;">選擇這次行程的釣點</div>'
+        + '<div style="font-size:12px;color:var(--gray-4);margin-bottom:14px;">填一次，後續加魚會自動沿用</div></div>'
+        + '<div class="form-group"><label class="form-label">釣點 <span class="req">*</span></label><select class="form-select" id="trip-spot-select" onchange="onTripSpotChange(this.value)"><option value="">選擇釣點...</option>'
+        + FISHING_SPOTS.map(s => '<option value="'+s.name+'"'+(state.tripPickingSpot===s.name?' selected':'')+'>'+s.name+'</option>').join('')
+        + (recentSpots.length ? '<optgroup label="━━ 最近釣點 ━━">'+recentSpots.map(s => '<option value="'+s+'"'+(state.tripPickingSpot===s?' selected':'')+'>'+s+'</option>').join('')+'</optgroup>' : '')
+        + '</select>'
+        + '<input type="text" class="form-input" id="trip-spot-custom" placeholder="具體位置備註（可選）..." value="'+(state.tripPickingCustom||'')+'" oninput="state.tripPickingCustom=this.value" style="margin-top:8px;">'
+        + '<div class="gps-section" style="margin-top:10px;"><button type="button" id="trip-gps-btn" class="gps-btn" onclick="tripGetGPS()">📍 使用當前 GPS</button><div class="gps-status" id="trip-gps-status">未取得位置</div></div>'
+        + '<input type="hidden" id="trip-lat" value="'+(state.tripPickingLat||'')+'"><input type="hidden" id="trip-lng" value="'+(state.tripPickingLng||'')+'"><input type="hidden" id="trip-accuracy" value="'+(state.tripPickingAccuracy||'')+'">'
+        + '</div>'
+        + '<div style="display:flex;gap:8px;margin-top:16px;">'
+          + '<button class="btn" style="flex:1;background:var(--gray-2);color:var(--gray-6);" onclick="cancelTripPick();">取消</button>'
+          + '<button class="btn btn-primary" style="flex:2;" onclick="confirmStartTrip();">▶ 開始行程</button>'
+        + '</div></div>';
+    } else {
+      html += '<div class="card" style="text-align:center;padding:24px 16px;">'
+        + '<div style="font-size:48px;margin-bottom:12px;">🎣</div>'
+        + '<div style="font-size:15px;color:var(--gray-6);margin-bottom:6px;font-weight:600;">準備好去釣魚？</div>'
+        + '<div style="font-size:13px;color:var(--gray-5);margin-bottom:18px;">開始行程後會自動計時，<br>釣到的魚會歸入這個行程</div>'
+        + '<button class="start-trip-btn" onclick="startTrip();">▶ 開始行程</button>'
+      + '</div>';
+    }
   }
   // 歷史行程
   if (trips.length > 0) {

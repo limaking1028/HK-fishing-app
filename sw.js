@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v27';  // bump: 修 initApp 不載 trips 的 bug
+const CACHE = 'hk-fishing-v28';  // bump: 行程開始填 spot + 加魚自動沿用 (A+B)
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js'
 ];
