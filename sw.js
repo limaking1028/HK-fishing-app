@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v36';  // bump: 潮汐曲線加時間軸 + 高度刻度 + 現在/高低潮 markers
+const CACHE = 'hk-fishing-v37';  // bump: 潮汐曲線中文化（時間軸/NOW/米）+ 大高低潮 marker + label chip
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js'
 ];
