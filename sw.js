@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v35';  // bump: 地圖頁 sub-tab（地圖 / 潮汐）+ 6 站卡片列表
+const CACHE = 'hk-fishing-v36';  // bump: 潮汐曲線加時間軸 + 高度刻度 + 現在/高低潮 markers
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js'
 ];

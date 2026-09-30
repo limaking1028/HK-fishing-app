@@ -2176,6 +2176,17 @@ function renderMapTideList(view) {
     const cur = window.tidesLib.getCurrentTide(st.code, now);
     const curve = window.tidesLib.getTideCurve24h(st.code, now);
     const advice = window.tidesLib.getFishingAdvice(st.code, now);
+    // 24h 內高低潮 events（用於 SVG markers）
+    const eventsRaw = window.tidesLib.getEventsAround(st.code, now);
+    const baseMs = curve[0] ? curve[0].ms : now;
+    const endMs = baseMs + 24 * 3600000;
+    const events24h = eventsRaw
+      .filter(e => e.ms >= baseMs - 3600000 && e.ms <= endMs)
+      .map((e, i, arr) => {
+        const prev = arr[i - 1], next = arr[i + 1];
+        const isHigh = (!prev || e.height > prev.height) && (!next || e.height > next.height);
+        return { ms: e.ms, height: e.height, type: isHigh ? 'high' : 'low' };
+      });
     const curH = cur.height === null ? '—' : cur.height.toFixed(2);
     const trendClass = cur.trend || 'unknown';
     const trendText = cur.trend === 'rising' ? '↗ 漲中' : cur.trend === 'falling' ? '↘ 退中' : '→ 平';
@@ -2195,7 +2206,10 @@ function renderMapTideList(view) {
         🔼 下一個高潮：<b>${nextHigh}</b><br>
         🔽 下一個低潮：<b>${nextLow}</b>
       </div>
-      <div class="tide-card-curve">${window.tidesLib.curveSvg(curve, 260, 60)}</div>
+      <div class="tide-card-curve">${window.tidesLib.curveSvg(curve, 280, 86, { nowMs: now, events: events24h })}</div>
+      <div class="tide-card-legend" style="font-size:10px;color:var(--gray-5);text-align:center;margin:-4px 0 6px;">
+        <span style="color:#f97316;">▲ 高潮</span> · <span style="color:#0d9488;">▼ 低潮</span> · <span style="color:#ef4444;">● 現在</span>
+      </div>
       <div class="tide-card-advice">${adviceHtml}</div>
       <button class="tide-card-action" onclick="startTripAtStation('${st.code}')">🎯 以此站為起點開始行程</button>
     </div>`;
