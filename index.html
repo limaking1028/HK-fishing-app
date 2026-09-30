@@ -392,6 +392,71 @@
   .map-popup-weight { font-size: 16px; color: var(--orange); font-weight: 700; margin: 4px 0; }
   .map-empty { text-align: center; padding: 60px 20px; color: var(--gray-4); }
   .map-empty-icon { font-size: 48px; margin-bottom: 12px; }
+
+  /* ===== Route I+: 地圖潮汐站 marker ===== */
+  .tide-marker {
+    display: flex; flex-direction: column; align-items: center; cursor: pointer;
+    transform: translateY(0); transition: transform 0.15s;
+  }
+  .tide-marker:hover { transform: translateY(-2px); }
+  .tide-marker-icon {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: white; border: 3px solid var(--badge, #0d9488);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  }
+  .tide-marker-info {
+    margin-top: 2px; padding: 2px 6px; border-radius: 4px;
+    background: rgba(255,255,255,0.95); white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2); font-size: 10px; line-height: 1.1;
+  }
+  .tide-marker-name { font-weight: 700; color: var(--dark); }
+  .tide-marker-val { color: var(--badge, #0d9488); font-weight: 700; }
+
+  /* 地圖潮汐 popup */
+  .tide-popup { min-width: 240px; max-width: 280px; font-family: inherit; }
+  .tide-popup-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid #eee; }
+  .tide-popup-name { font-weight: 700; font-size: 15px; color: var(--dark); }
+  .tide-popup-area { font-size: 11px; color: var(--gray-4); }
+  .tide-popup-now { display: flex; align-items: baseline; gap: 8px; margin: 6px 0; }
+  .tide-popup-now-h { font-size: 24px; font-weight: 800; color: var(--orange); }
+  .tide-popup-now-trend { font-size: 12px; color: var(--gray-5); }
+  .tide-popup-next { font-size: 11px; color: var(--gray-5); margin: 4px 0; line-height: 1.6; }
+  .tide-popup-curve { background: #f7fafa; border-radius: 6px; padding: 4px; margin: 6px 0; }
+  .tide-popup-list { font-size: 11px; color: var(--gray-5); line-height: 1.7; }
+  .tide-popup-list b { color: var(--dark); }
+  .tide-popup-advice { margin-top: 6px; padding: 6px 8px; background: #fff8ed; border-radius: 6px; font-size: 11px; line-height: 1.6; }
+  .tide-popup-advice div { margin: 2px 0; color: var(--gray-6, #444); }
+  .tide-popup-action { margin-top: 8px; width: 100%; padding: 6px; background: var(--orange); color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+  /* 地圖頂部潮汐 bar */
+  .tide-bar {
+    position: absolute; top: 75px; left: 10px; right: 10px;
+    background: rgba(255,255,255,0.96); border-radius: 10px; padding: 8px 10px;
+    z-index: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    display: flex; align-items: center; gap: 6px; overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tide-bar-title { font-size: 11px; font-weight: 700; color: var(--dark); padding-right: 6px; border-right: 1px solid #eee; flex-shrink: 0; }
+  .tide-bar-chip {
+    display: flex; flex-direction: column; align-items: center; padding: 4px 8px;
+    border-radius: 6px; background: #f7fafa; cursor: pointer; flex-shrink: 0; min-width: 60px;
+  }
+  .tide-bar-chip:hover { background: #e8f5f6; }
+  .tide-bar-chip-name { font-size: 10px; color: var(--gray-5); }
+  .tide-bar-chip-val { font-size: 12px; font-weight: 700; }
+  .tide-bar-chip-val.rising { color: #f97316; }
+  .tide-bar-chip-val.falling { color: #0d9488; }
+
+  /* 地圖 toggle button */
+  .tide-toggle {
+    position: absolute; bottom: 14px; right: 10px; z-index: 500;
+    background: white; border: 1px solid #eee; border-radius: 8px;
+    padding: 6px 10px; font-size: 12px; font-weight: 600; cursor: pointer;
+    font-family: inherit; box-shadow: 0 2px 6px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 4px;
+  }
+  .tide-toggle.on { background: var(--orange); color: white; border-color: var(--orange); }
+  .tide-toggle:hover { transform: translateY(-1px); }
   </style>
 
   <!-- Leaflet CSS -->
@@ -2045,21 +2110,36 @@ function renderMapView() {
   const view = document.getElementById('view-map');
   const gpsCatches = (state.catches || []).filter(c => c.latitude && c.longitude);
   const hasMapTilerKey = (typeof localStorage !== 'undefined' && (localStorage.getItem('maptiler_key') || '').length > 10);
+  const showTideStations = localStorage.getItem('map_show_tide') !== '0';  // 預設顯示
   view.innerHTML = '<div class="map-container"><div id="map-canvas"></div>'
     + '<div class="map-overlay"><div class="map-overlay-title">🗺️ 釣點分佈<span class="map-overlay-close" onclick="closeMapOverlay()">×</span></div>'
     + '<div class="map-stats"><span>📍 已記錄 <span class="map-stat-value">'+gpsCatches.length+'</span> 個 GPS 點</span>'
     + '<span>🐟 共 <span class="map-stat-value">'+(state.catches||[]).length+'</span> 條魚</span>'
     + (hasMapTilerKey ? '' : '<button class="btn-mini" onclick="setMapTilerKey()" style="margin-left:auto;background:var(--orange);color:white;border:none;padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;">+ 啟用繁體中文</button>')
     + '</div></div>'
+    + '<div class="tide-bar" id="tide-bar"></div>'  // Route I+: 即時潮汐 bar
+    + '<button class="tide-toggle'+(showTideStations?' on':'')+'" id="tide-toggle" onclick="toggleTideStations()">'
+    + '🌊 潮汐站' + (showTideStations?' ✓':'')
+    + '</button>'
     + '<div class="map-legend"><div class="map-legend-item"><div class="map-legend-dot" style="background:#f97316"></div>我的魚獲</div>'
     + '<div class="map-legend-item"><div class="map-legend-dot" style="background:#0d9488"></div>釣友的魚獲</div>'
-    + '<div class="map-legend-item"><div class="map-legend-dot" style="background:#9ca3af"></div>示範數據</div></div>'
+    + '<div class="map-legend-item"><div class="map-legend-dot" style="background:#9ca3af"></div>示範數據</div>'
+    + '<div class="map-legend-item"><div class="map-legend-dot" style="background:#0a6e7a"></div>潮汐站</div></div>'
     + '</div>';
+  // 渲染潮汐 bar（即使冇 GPS 都出）
+  refreshTideBar();
+  // 啟動 / 清除 5 分鐘 auto-refresh
+  if (window._tideMapInterval) clearInterval(window._tideMapInterval);
+  window._tideMapInterval = setInterval(() => {
+    refreshTideBar();
+    if (mapInstance && typeof refreshTideMarkers === 'function') refreshTideMarkers();
+  }, 300000);  // 5 min
   if (gpsCatches.length === 0) {
-    view.innerHTML = '<div class="map-empty"><div class="map-empty-icon">🗺️</div>'
+    view.innerHTML = view.innerHTML.replace('<div id="map-canvas"></div>',
+      '<div id="map-canvas" style="display:none"></div><div class="map-empty"><div class="map-empty-icon">🗺️</div>'
       + '<div style="font-size:16px;font-weight:700;color:var(--dark);margin-bottom:6px;">尚未有 GPS 記錄</div>'
       + '<div style="font-size:13px;color:var(--gray-4);margin-bottom:16px;">在記錄魚獲時點「📍 使用當前位置」即可在地圖顯示</div>'
-      + '<button class="btn btn-primary" onclick="goToView(\'record\')">去記錄魚獲</button></div>';
+      + '<button class="btn btn-primary" onclick="goToView(\'record\')">去記錄魚獲</button></div>');
     return;
   }
   // 等下一個 tick 才初始化地圖（確保 DOM 已建立）
@@ -2134,6 +2214,158 @@ function initMap(items) {
     const bounds = L.latLngBounds(items.map(c => [c.latitude, c.longitude]));
     mapInstance.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
   }
+  // ===== Route I+: 6 個潮汐站 markers =====
+  addTideStationMarkers();
+}
+
+/* ============================================================
+ * Route I+: 潮汐站 markers / popup / bar / refresh
+ * ============================================================ */
+let tideStationMarkers = [];  // 全域，畀 refreshTideMarkers 用
+
+function addTideStationMarkers() {
+  if (!mapInstance || !window.tidesLib) return;
+  const showTide = localStorage.getItem('map_show_tide') !== '0';
+  const stations = window.tidesLib.getAllStations();
+  const now = Date.now();
+  stations.forEach(st => {
+    const t = window.tidesLib.getCurrentTide(st.code, now);
+    const iconHtml = window.tidesLib.tideMarkerIcon(st.code, t.height, t.trend);
+    const icon = L.divIcon({
+      className: 'tide-marker-wrap',
+      html: iconHtml,
+      iconSize: [70, 56],
+      iconAnchor: [35, 28],
+    });
+    const marker = L.marker([st.lat, st.lng], { icon, zIndexOffset: -500 }).addTo(mapInstance);
+    marker.bindPopup(() => buildTideStationPopup(st.code), { maxWidth: 300 });
+    marker._stationCode = st.code;
+    if (!showTide) mapInstance.removeLayer(marker);
+    tideStationMarkers.push(marker);
+  });
+}
+
+function buildTideStationPopup(code) {
+  const meta = window.tidesLib.getStationMeta(code);
+  if (!meta) return '<div>無資料</div>';
+  const now = Date.now();
+  const cur = window.tidesLib.getCurrentTide(code, now);
+  const nextTides = window.tidesLib.getNextTides(code, now, 4);
+  const curvePoints = window.tidesLib.getTideCurve24h(code, now);
+  const advice = window.tidesLib.getFishingAdvice(code, now);
+  const curH = cur.height === null ? '—' : cur.height.toFixed(2);
+  const trendIcon = cur.trend === 'rising' ? '↗ 漲中' : cur.trend === 'falling' ? '↘ 退中' : '→ 平';
+  const trendClass = cur.trend || 'unknown';
+  // 高低潮列表
+  const tideRows = nextTides.map(e => {
+    const isHigh = e.type === 'high';
+    return `<div><b>${window.tidesLib.formatTime(e.ms)}</b> ${isHigh?'🔼':'🔽'}${e.height}m${isHigh?' (今日最大)':''}</div>`;
+  }).join('');
+  // 下一個高低潮
+  const nextHighStr = cur.nextHigh ? `${window.tidesLib.formatTime(cur.nextHigh.ms)} 高潮 ${cur.nextHigh.height}m` : '—';
+  const nextLowStr  = cur.nextLow  ? `${window.tidesLib.formatTime(cur.nextLow.ms)} 低潮 ${cur.nextLow.height}m` : '—';
+  // 釣況建議
+  const adviceHtml = advice.map(a => `<div>${a.icon} ${escapeHtml(a.text)}</div>`).join('');
+  return `<div class="tide-popup">
+    <div class="tide-popup-header">
+      <span class="tide-popup-name">📡 ${escapeHtml(meta.name_zh)}</span>
+      <span class="tide-popup-area">${escapeHtml(meta.area)}</span>
+    </div>
+    <div class="tide-popup-now">
+      <span class="tide-popup-now-h">${curH}m</span>
+      <span class="tide-popup-now-trend tide-bar-chip-val ${trendClass}">${trendIcon}</span>
+    </div>
+    <div class="tide-popup-next">
+      下一個高潮：<b>${nextHighStr}</b><br>
+      下一個低潮：<b>${nextLowStr}</b>
+    </div>
+    <div class="tide-popup-curve">${window.tidesLib.curveSvg(curvePoints, 240, 60)}</div>
+    <div class="tide-popup-list">${tideRows || '—'}</div>
+    <div class="tide-popup-advice">${adviceHtml}</div>
+    <button class="tide-popup-action" onclick="startTripAtStation('${code}')">🎯 以此站為起點開始行程</button>
+  </div>`;
+}
+
+function refreshTideMarkers() {
+  if (!window.tidesLib || !mapInstance) return;
+  const now = Date.now();
+  tideStationMarkers.forEach(marker => {
+    const code = marker._stationCode;
+    const t = window.tidesLib.getCurrentTide(code, now);
+    const newHtml = window.tidesLib.tideMarkerIcon(code, t.height, t.trend);
+    // 更新 icon
+    marker.setIcon(L.divIcon({
+      className: 'tide-marker-wrap',
+      html: newHtml,
+      iconSize: [70, 56],
+      iconAnchor: [35, 28],
+    }));
+  });
+}
+
+function refreshTideBar() {
+  const bar = document.getElementById('tide-bar');
+  if (!bar || !window.tidesLib) return;
+  const stations = window.tidesLib.getAllStations();
+  const now = Date.now();
+  const chips = stations.map(st => {
+    const t = window.tidesLib.getCurrentTide(st.code, now);
+    const h = t.height === null ? '—' : t.height.toFixed(2);
+    const trend = t.trend || 'unknown';
+    return `<div class="tide-bar-chip" onclick="flyToTideStation('${st.code}')" title="${escapeHtml(st.area)}">
+      <div class="tide-bar-chip-name">${escapeHtml(st.name_zh)}</div>
+      <div class="tide-bar-chip-val ${trend}">${h}m ${trend==='rising'?'↗':trend==='falling'?'↘':'→'}</div>
+    </div>`;
+  }).join('');
+  bar.innerHTML = `<div class="tide-bar-title">🌊 即時潮汐</div>${chips}`;
+}
+
+function flyToTideStation(code) {
+  if (!mapInstance || !window.tidesLib) return;
+  const meta = window.tidesLib.getStationMeta(code);
+  if (!meta) return;
+  mapInstance.flyTo([meta.lat, meta.lng], 13, { duration: 0.8 });
+  // 開對應 marker popup
+  const m = tideStationMarkers.find(x => x._stationCode === code);
+  if (m) m.openPopup();
+}
+
+function toggleTideStations() {
+  const current = localStorage.getItem('map_show_tide') !== '0';
+  const next = !current;
+  localStorage.setItem('map_show_tide', next ? '1' : '0');
+  if (mapInstance && tideStationMarkers.length) {
+    tideStationMarkers.forEach(m => {
+      if (next) m.addTo(mapInstance); else mapInstance.removeLayer(m);
+    });
+  }
+  // 更新 toggle button 樣式
+  const btn = document.getElementById('tide-toggle');
+  if (btn) {
+    btn.classList.toggle('on', next);
+    btn.textContent = '🌊 潮汐站' + (next ? ' ✓' : '');
+  }
+}
+
+function startTripAtStation(code) {
+  const meta = window.tidesLib.getStationMeta(code);
+  if (!meta) return;
+  // 預填釣點（用 spotMap 內嘅首個關鍵字，或者用站名）
+  const data = window.tidesLib.loadData();
+  let spotName = meta.name_zh;
+  // 嘗試搵最匹配 FISHING_SPOTS 嘅釣點名
+  for (const { p, s } of (data.spotMap || [])) {
+    if (s === code && p.length) { spotName = p[0]; break; }
+  }
+  // 設置 state，導向行程 tab
+  state.tripPickingSpot = spotName;
+  state.tripPickingCustom = '';
+  if (typeof closeMapOverlay === 'function') closeMapOverlay();
+  // 關 popup
+  if (mapInstance) mapInstance.closePopup();
+  // 去行程 tab
+  goToView('trips');
+  toast('已預填釣點：' + spotName + '（' + meta.name_zh + '）');
 }
 
 /* ===== Spots View ===== */
@@ -2245,6 +2477,11 @@ function renderEncyclopediaView() {
 
 /* ===== Navigation ===== */
 function switchView(name) {
+  // 離開地圖時清除潮汐 auto-refresh
+  if (state.view === 'map' && name !== 'map' && window._tideMapInterval) {
+    clearInterval(window._tideMapInterval);
+    window._tideMapInterval = null;
+  }
   state.view = name;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const viewEl = document.getElementById('view-'+name);

@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v33';  // bump: 加入香港潮汐（內嵌 HKO 2026 數據）
+const CACHE = 'hk-fishing-v34';  // bump: 地圖加 6 站潮汐 markers + 即時潮汐 bar
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js'
 ];
