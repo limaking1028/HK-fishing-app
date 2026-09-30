@@ -433,6 +433,29 @@
   .tide-popup-advice div { margin: 2px 0; color: var(--gray-6, #444); }
   .tide-popup-action { margin-top: 8px; width: 100%; padding: 6px; background: var(--orange); color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
 
+  /* Route J+: Station highlight marker（地圖上嘅 pin + pulse 動畫） */
+  .station-highlight-marker { position: relative; z-index: 1000; }
+  .station-highlight-pin {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: 34px; height: 34px; border-radius: 50%;
+    background: #ef4444; color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    border: 3px solid white;
+    box-shadow: 0 3px 10px rgba(239,68,68,0.5);
+  }
+  .station-highlight-pulse {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: 34px; height: 34px; border-radius: 50%;
+    background: #ef4444;
+    opacity: 0.4;
+    animation: station-pulse 1.5s ease-out infinite;
+  }
+  @keyframes station-pulse {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+    100% { transform: translate(-50%, -50%) scale(2.8); opacity: 0; }
+  }
+
   /* 地圖 sub-tabs（地圖 / 潮汐） */
   .map-subtabs {
     display: flex; gap: 4px; padding: 8px 12px 6px;
@@ -2418,7 +2441,7 @@ function renderLocationCard() {
       const dist = window.geoLib.formatDistance(s.distanceKm);
       const bear = window.geoLib.formatBearing(s.bearingDeg);
       const estBadge = s.estimated ? ' <span class="loc-est">📐</span>' : '';
-      return `<div class="loc-station-row" onclick="startTripAtStation('${s.code}')">
+      return `<div class="loc-station-row" onclick="showStationOnMap('${s.code}')">
         <span class="loc-station-medal">${medal}</span>
         <span class="loc-station-name">${escapeHtml(s.name_zh)} <span class="loc-station-code">${s.code}</span>${estBadge}</span>
         <span class="loc-station-dist">${dist} ${bear}</span>
@@ -2516,7 +2539,7 @@ function renderMapTideList(view) {
         <span style="color:#f97316;">▲ 高潮</span> · <span style="color:#0d9488;">▼ 低潮</span> · <span style="color:#ef4444;">● 現在</span>
       </div>
       <div class="tide-card-advice">${adviceHtml}</div>
-      <button class="tide-card-action" onclick="startTripAtStation('${st.code}')">🎯 以此站為起點開始行程</button>
+      <button class="tide-card-action" onclick="showStationOnMap('${st.code}')">🗺️ 在地圖上顯示位置</button>
     </div>`;
   }).join('');
   view.innerHTML = '<div class="map-subtabs">'
@@ -2633,7 +2656,7 @@ function renderWeatherCards(view, results) {
       <div class="weather-card-reasons">${reasonsShort}</div>
       <div class="weather-card-foot">
         <span class="weather-card-update">更新 ${updateStr}</span>
-        <button class="weather-card-action" onclick="startTripAtStation('${r.station.code}')">🎯 開始行程</button>
+        <button class="weather-card-action" onclick="showStationOnMap('${r.station.code}')">🗺️ 在地圖上顯示位置</button>
       </div>
     </div>`;
   }).join('');
@@ -2774,7 +2797,7 @@ function buildTideStationPopup(code) {
     <div class="tide-popup-curve">${window.tidesLib.curveSvg(curvePoints, 240, 60)}</div>
     <div class="tide-popup-list">${tideRows || '—'}</div>
     <div class="tide-popup-advice">${adviceHtml}</div>
-    <button class="tide-popup-action" onclick="startTripAtStation('${code}')">🎯 以此站為起點開始行程</button>
+    <button class="tide-popup-action" onclick="showStationOnMap('${code}')">🗺️ 在地圖上顯示位置</button>
   </div>`;
 }
 
@@ -2858,6 +2881,90 @@ function startTripAtStation(code) {
   // 去行程 tab
   goToView('trips');
   toast('已預填釣點：' + spotName + '（' + meta.name_zh + '）');
+}
+
+/* ============================================================
+ * Route J+: 喺地圖上顯示某個站（從潮汐/天氣/最近站跳轉）
+ * ============================================================ */
+let stationHighlightMarker = null;
+
+function showStationOnMap(code) {
+  if (!window.tidesLib) return;
+  const meta = window.tidesLib.getStationMeta(code);
+  if (!meta) { toast('搵唔到站：' + code); return; }
+
+  // 切換到地圖 sub-tab
+  state.mapTab = 'map';
+  // 跳去地圖 view（如未喺度）
+  if (state.view !== 'map') {
+    goToView('map');
+  } else {
+    // 已喺地圖 view，強制 re-render map sub-tab
+    renderMapView();
+  }
+
+  // 等 DOM 更新 + map init
+  setTimeout(() => {
+    // 如果地圖未初始化（用戶未有 GPS 魚獲），用空 list init
+    if (!mapInstance) {
+      try {
+        const dummyCatch = [{
+          latitude: meta.lat,
+          longitude: meta.lng,
+          species: meta.name_zh,
+          weight: 0,
+          spot: meta.name_zh,
+          user: '你',
+          date: new Date().toISOString().slice(0,10),
+          time: '',
+          locationAccuracy: 0,
+          speciesIcon: '📡',
+          isMine: false,
+          isDemo: true,
+          _highlightOnly: true
+        }];
+        initMap(dummyCatch);
+      } catch(e) { console.warn('initMap fail', e); }
+    }
+    if (!mapInstance) return;
+
+    // 移除舊 highlight marker
+    if (stationHighlightMarker) {
+      try { mapInstance.removeLayer(stationHighlightMarker); } catch(e) {}
+      stationHighlightMarker = null;
+    }
+
+    // 高亮 marker（大紅色 pulse 動畫）
+    const highlightIcon = L.divIcon({
+      className: 'station-highlight-marker',
+      html: '<div class="station-highlight-pulse"></div><div class="station-highlight-pin">📍</div>',
+      iconSize: [40, 40],
+      iconAnchor: [20, 20]
+    });
+    stationHighlightMarker = L.marker([meta.lat, meta.lng], {
+      icon: highlightIcon,
+      zIndexOffset: 1000
+    }).addTo(mapInstance);
+
+    // Popup 顯示站名 + 估算標記
+    const estBadge = meta.estimated
+      ? '<div style="margin-top:6px;"><span style="font-size:10px;background:rgba(245,166,35,0.15);color:#b45309;padding:2px 8px;border-radius:6px;font-weight:600;">📐 估算站（基於 ' + escapeHtml(meta.source || '最近') + '）</span></div>'
+      : '';
+    const popupHtml = '<div style="text-align:center;padding:4px 0;">'
+      + '<div style="font-size:15px;font-weight:700;color:var(--dark);">📡 ' + escapeHtml(meta.name_zh) + '</div>'
+      + '<div style="font-size:11px;color:var(--gray-4);margin-top:2px;">' + escapeHtml(meta.area) + '</div>'
+      + '<div style="font-size:10px;color:var(--gray-5);margin-top:4px;font-family:monospace;">' + meta.lat.toFixed(4) + ', ' + meta.lng.toFixed(4) + '</div>'
+      + estBadge
+      + '</div>';
+    stationHighlightMarker.bindPopup(popupHtml, { maxWidth: 240, offset: [0, -8] });
+    stationHighlightMarker.openPopup();
+
+    // Fly to 該位置
+    mapInstance.flyTo([meta.lat, meta.lng], 13, { duration: 0.8 });
+
+    // Toast 提示
+    toast('📍 已跳到 ' + meta.name_zh);
+  }, 80);
 }
 
 /* ===== Spots View ===== */

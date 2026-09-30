@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v42';  // bump: GPS 自動偵測最近站（Geolocation API + Haversine）
+const CACHE = 'hk-fishing-v43';  // bump: 潮汐/天氣/最近站 button 改為「在地圖上顯示位置」+ 紅色 pulse highlight marker
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
 ];
