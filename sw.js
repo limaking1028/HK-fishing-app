@@ -1,6 +1,6 @@
-const CACHE = 'hk-fishing-v41';  // bump: 潮汐+天氣擴展至 12 站（西貢/青衣/南丫島/赤鱲角/東涌/坪洲，估算站加 📐 badge）
+const CACHE = 'hk-fishing-v42';  // bump: GPS 自動偵測最近站（Geolocation API + Haversine）
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
-  './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js'
+  './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
 ];
 
 self.addEventListener('install', e => {
