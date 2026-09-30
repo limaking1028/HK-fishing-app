@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v39';  // bump: 天氣 sub-tab dashboard（Open-Meteo 6 站 + 釣魚指數 + 24h 風速曲線）
+const CACHE = 'hk-fishing-v40';  // bump: 修正 st.lon → st.lng 嘅 fetchWeather crash
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js'
 ];
