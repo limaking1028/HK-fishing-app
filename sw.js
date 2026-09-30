@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v40';  // bump: 修正 st.lon → st.lng 嘅 fetchWeather crash
+const CACHE = 'hk-fishing-v41';  // bump: 潮汐+天氣擴展至 12 站（西貢/青衣/南丫島/赤鱲角/東涌/坪洲，估算站加 📐 badge）
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js'
 ];
