@@ -429,34 +429,46 @@
   .tide-popup-advice div { margin: 2px 0; color: var(--gray-6, #444); }
   .tide-popup-action { margin-top: 8px; width: 100%; padding: 6px; background: var(--orange); color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
 
-  /* 地圖頂部潮汐 bar */
-  .tide-bar {
-    position: absolute; top: 75px; left: 10px; right: 10px;
-    background: rgba(255,255,255,0.96); border-radius: 10px; padding: 8px 10px;
-    z-index: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-    display: flex; align-items: center; gap: 6px; overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+  /* 地圖 sub-tabs（地圖 / 潮汐） */
+  .map-subtabs {
+    display: flex; gap: 4px; padding: 8px 12px 6px;
+    border-bottom: 1px solid #eee; background: white; position: sticky; top: 0; z-index: 10;
   }
-  .tide-bar-title { font-size: 11px; font-weight: 700; color: var(--dark); padding-right: 6px; border-right: 1px solid #eee; flex-shrink: 0; }
-  .tide-bar-chip {
-    display: flex; flex-direction: column; align-items: center; padding: 4px 8px;
-    border-radius: 6px; background: #f7fafa; cursor: pointer; flex-shrink: 0; min-width: 60px;
+  .map-subtab {
+    flex: 1; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px;
+    background: white; color: var(--gray-5); font-size: 13px; font-weight: 600;
+    cursor: pointer; font-family: inherit; text-align: center;
   }
-  .tide-bar-chip:hover { background: #e8f5f6; }
-  .tide-bar-chip-name { font-size: 10px; color: var(--gray-5); }
-  .tide-bar-chip-val { font-size: 12px; font-weight: 700; }
-  .tide-bar-chip-val.rising { color: #f97316; }
-  .tide-bar-chip-val.falling { color: #0d9488; }
+  .map-subtab.active { background: var(--orange); color: white; border-color: var(--orange); }
+  .map-subtab:hover:not(.active) { background: #f7fafa; }
 
-  /* 地圖 toggle button */
-  .tide-toggle {
-    position: absolute; bottom: 14px; right: 10px; z-index: 500;
-    background: white; border: 1px solid #eee; border-radius: 8px;
-    padding: 6px 10px; font-size: 12px; font-weight: 600; cursor: pointer;
-    font-family: inherit; box-shadow: 0 2px 6px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 4px;
+  /* 潮汐卡片列表（Layout A） */
+  .tide-list { padding: 10px 12px; overflow-y: auto; }
+  .tide-list-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .tide-card {
+    background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   }
-  .tide-toggle.on { background: var(--orange); color: white; border-color: var(--orange); }
-  .tide-toggle:hover { transform: translateY(-1px); }
+  .tide-card-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .tide-card-name { font-weight: 700; font-size: 16px; color: var(--dark); }
+  .tide-card-area { font-size: 11px; color: var(--gray-4); }
+  .tide-card-now { display: flex; align-items: baseline; gap: 10px; margin: 6px 0 8px; }
+  .tide-card-now-h { font-size: 32px; font-weight: 800; color: var(--orange); line-height: 1; }
+  .tide-card-now-trend { font-size: 13px; font-weight: 700; }
+  .tide-card-now-trend.rising { color: #f97316; }
+  .tide-card-now-trend.falling { color: #0d9488; }
+  .tide-card-now-trend.unknown { color: var(--gray-4); }
+  .tide-card-next { font-size: 12px; color: var(--gray-5); line-height: 1.7; margin-bottom: 8px; }
+  .tide-card-next b { color: var(--dark); }
+  .tide-card-curve { background: #f7fafa; border-radius: 8px; padding: 6px; margin: 8px 0; }
+  .tide-card-advice { padding: 8px 10px; background: #fff8ed; border-radius: 8px; font-size: 12px; line-height: 1.7; margin-top: 8px; }
+  .tide-card-advice div { margin: 2px 0; color: #444; }
+  .tide-card-action {
+    margin-top: 10px; width: 100%; padding: 8px;
+    background: var(--orange); color: white; border: none; border-radius: 8px;
+    font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .tide-card-action:hover { background: #ea580c; }
   </style>
 
   <!-- Leaflet CSS -->
@@ -779,7 +791,7 @@ function genSampleCatches() {
 /* ===== State & Persistence ===== */
 const STORAGE_KEY = 'hk_fishing_catches_v5';
 const USERNAME_KEY = 'hk_fishing_username';
-let state = { view:'my', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{}, expandedPokedex:{} }, trips:[], activeTrip:null, tripDetailId:null, tripTickHandle:null, tripPicking:false, tripPickingSpot:'', tripPickingCustom:'', tripPickingMethod:'', tripPickingBait:'', tripPickingLat:null, tripPickingLng:null, tripPickingAccuracy:null };
+let state = { view:'my', mapTab:'map', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{}, expandedPokedex:{} }, trips:[], activeTrip:null, tripDetailId:null, tripTickHandle:null, tripPicking:false, tripPickingSpot:'', tripPickingCustom:'', tripPickingMethod:'', tripPickingBait:'', tripPickingLat:null, tripPickingLng:null, tripPickingAccuracy:null };
 function getUserName() { return state.user ? (state.user.display_name || state.user.username) : (localStorage.getItem(USERNAME_KEY) || '我'); }
 function setUserName(name) {
   if (SB_ENABLED && state.user) return;  // 雲端模式由 display_name 管理
@@ -2110,30 +2122,30 @@ function renderMapView() {
   const view = document.getElementById('view-map');
   const gpsCatches = (state.catches || []).filter(c => c.latitude && c.longitude);
   const hasMapTilerKey = (typeof localStorage !== 'undefined' && (localStorage.getItem('maptiler_key') || '').length > 10);
-  const showTideStations = localStorage.getItem('map_show_tide') !== '0';  // 預設顯示
-  view.innerHTML = '<div class="map-container"><div id="map-canvas"></div>'
+  // Sub-tab bar（地圖 / 潮汐）
+  const tab = state.mapTab || 'map';
+  const subTabs = '<div class="map-subtabs">'
+    + '<button class="map-subtab'+(tab==='map'?' active':'')+'" data-tab="map" onclick="switchMapTab(this.dataset.tab)">🗺️ 地圖</button>'
+    + '<button class="map-subtab'+(tab==='tide'?' active':'')+'" data-tab="tide" onclick="switchMapTab(this.dataset.tab)">🌊 潮汐</button>'
+    + '</div>';
+
+  if (tab === 'tide') {
+    // 潮汐 sub-tab：渲染 6 站卡片列表
+    renderMapTideList(view);
+    return;
+  }
+
+  // 地圖 sub-tab：原有地圖
+  view.innerHTML = subTabs + '<div class="map-container"><div id="map-canvas"></div>'
     + '<div class="map-overlay"><div class="map-overlay-title">🗺️ 釣點分佈<span class="map-overlay-close" onclick="closeMapOverlay()">×</span></div>'
     + '<div class="map-stats"><span>📍 已記錄 <span class="map-stat-value">'+gpsCatches.length+'</span> 個 GPS 點</span>'
     + '<span>🐟 共 <span class="map-stat-value">'+(state.catches||[]).length+'</span> 條魚</span>'
     + (hasMapTilerKey ? '' : '<button class="btn-mini" onclick="setMapTilerKey()" style="margin-left:auto;background:var(--orange);color:white;border:none;padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;">+ 啟用繁體中文</button>')
     + '</div></div>'
-    + '<div class="tide-bar" id="tide-bar"></div>'  // Route I+: 即時潮汐 bar
-    + '<button class="tide-toggle'+(showTideStations?' on':'')+'" id="tide-toggle" onclick="toggleTideStations()">'
-    + '🌊 潮汐站' + (showTideStations?' ✓':'')
-    + '</button>'
     + '<div class="map-legend"><div class="map-legend-item"><div class="map-legend-dot" style="background:#f97316"></div>我的魚獲</div>'
     + '<div class="map-legend-item"><div class="map-legend-dot" style="background:#0d9488"></div>釣友的魚獲</div>'
-    + '<div class="map-legend-item"><div class="map-legend-dot" style="background:#9ca3af"></div>示範數據</div>'
-    + '<div class="map-legend-item"><div class="map-legend-dot" style="background:#0a6e7a"></div>潮汐站</div></div>'
+    + '<div class="map-legend-item"><div class="map-legend-dot" style="background:#9ca3af"></div>示範數據</div></div>'
     + '</div>';
-  // 渲染潮汐 bar（即使冇 GPS 都出）
-  refreshTideBar();
-  // 啟動 / 清除 5 分鐘 auto-refresh
-  if (window._tideMapInterval) clearInterval(window._tideMapInterval);
-  window._tideMapInterval = setInterval(() => {
-    refreshTideBar();
-    if (mapInstance && typeof refreshTideMarkers === 'function') refreshTideMarkers();
-  }, 300000);  // 5 min
   if (gpsCatches.length === 0) {
     view.innerHTML = view.innerHTML.replace('<div id="map-canvas"></div>',
       '<div id="map-canvas" style="display:none"></div><div class="map-empty"><div class="map-empty-icon">🗺️</div>'
@@ -2144,6 +2156,55 @@ function renderMapView() {
   }
   // 等下一個 tick 才初始化地圖（確保 DOM 已建立）
   setTimeout(() => initMap(gpsCatches), 50);
+}
+
+/* ============================================================
+ * Route I+: 地圖 sub-tab 切換 + 潮汐卡片列表
+ * ============================================================ */
+function switchMapTab(tab) {
+  state.mapTab = tab;
+  // 銷毀舊地圖實例（重新 init）
+  if (mapInstance) { try { mapInstance.remove(); } catch(e) {} mapInstance = null; }
+  renderMapView();
+}
+
+function renderMapTideList(view) {
+  if (!window.tidesLib) return;
+  const stations = window.tidesLib.getAllStations();
+  const now = Date.now();
+  const cards = stations.map(st => {
+    const cur = window.tidesLib.getCurrentTide(st.code, now);
+    const curve = window.tidesLib.getTideCurve24h(st.code, now);
+    const advice = window.tidesLib.getFishingAdvice(st.code, now);
+    const curH = cur.height === null ? '—' : cur.height.toFixed(2);
+    const trendClass = cur.trend || 'unknown';
+    const trendText = cur.trend === 'rising' ? '↗ 漲中' : cur.trend === 'falling' ? '↘ 退中' : '→ 平';
+    const nextHigh = cur.nextHigh ? `${window.tidesLib.formatTime(cur.nextHigh.ms)} 高潮 ${cur.nextHigh.height}m` : '—';
+    const nextLow  = cur.nextLow  ? `${window.tidesLib.formatTime(cur.nextLow.ms)} 低潮 ${cur.nextLow.height}m` : '—';
+    const adviceHtml = advice.map(a => `<div>${a.icon} ${escapeHtml(a.text)}</div>`).join('');
+    return `<div class="tide-card">
+      <div class="tide-card-head">
+        <span class="tide-card-name">📡 ${escapeHtml(st.name_zh)}</span>
+        <span class="tide-card-area">${escapeHtml(st.area)}</span>
+      </div>
+      <div class="tide-card-now">
+        <span class="tide-card-now-h">${curH}<span style="font-size:14px;color:var(--gray-4);font-weight:600;"> m</span></span>
+        <span class="tide-card-now-trend ${trendClass}">${trendText}</span>
+      </div>
+      <div class="tide-card-next">
+        🔼 下一個高潮：<b>${nextHigh}</b><br>
+        🔽 下一個低潮：<b>${nextLow}</b>
+      </div>
+      <div class="tide-card-curve">${window.tidesLib.curveSvg(curve, 260, 60)}</div>
+      <div class="tide-card-advice">${adviceHtml}</div>
+      <button class="tide-card-action" onclick="startTripAtStation('${st.code}')">🎯 以此站為起點開始行程</button>
+    </div>`;
+  }).join('');
+  view.innerHTML = '<div class="map-subtabs">'
+    + '<button class="map-subtab" data-tab="map" onclick="switchMapTab(this.dataset.tab)">🗺️ 地圖</button>'
+    + '<button class="map-subtab active" data-tab="tide" onclick="switchMapTab(this.dataset.tab)">🌊 潮汐</button>'
+    + '</div>'
+    + '<div class="tide-list"><div class="tide-list-grid">' + cards + '</div></div>';
 }
 
 function closeMapOverlay() {
@@ -2214,8 +2275,6 @@ function initMap(items) {
     const bounds = L.latLngBounds(items.map(c => [c.latitude, c.longitude]));
     mapInstance.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
   }
-  // ===== Route I+: 6 個潮汐站 markers =====
-  addTideStationMarkers();
 }
 
 /* ============================================================
@@ -2477,11 +2536,6 @@ function renderEncyclopediaView() {
 
 /* ===== Navigation ===== */
 function switchView(name) {
-  // 離開地圖時清除潮汐 auto-refresh
-  if (state.view === 'map' && name !== 'map' && window._tideMapInterval) {
-    clearInterval(window._tideMapInterval);
-    window._tideMapInterval = null;
-  }
   state.view = name;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const viewEl = document.getElementById('view-'+name);
