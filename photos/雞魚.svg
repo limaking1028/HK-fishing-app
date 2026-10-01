@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" preserveAspectRatio="xMidYMid meet">
+  <!-- 雞魚 (Parupeneus indicus) placeholder illustration -->
+  <defs>
+    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f4d49a"/>
+      <stop offset="40%" stop-color="#e8b774"/>
+      <stop offset="100%" stop-color="#c8915a"/>
+    </linearGradient>
+    <linearGradient id="stripeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="bellyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#faf3e7"/>
+      <stop offset="100%" stop-color="#fde8d0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Tail -->
+  <path d="M 195 100 L 225 80 L 220 100 L 225 120 Z" fill="#dc8a64" stroke="#a86040" stroke-width="1"/>
+  <path d="M 195 100 L 220 75 M 195 100 L 220 125" stroke="#7a3e22" stroke-width="0.8" opacity="0.4"/>
+
+  <!-- Body main shape (oval) -->
+  <ellipse cx="115" cy="100" rx="80" ry="30" fill="url(#bodyGrad)" stroke="#8b5a3c" stroke-width="1.2"/>
+
+  <!-- Yellow lateral stripe -->
+  <path d="M 50 100 Q 115 96 195 100 Q 115 104 50 100 Z" fill="url(#stripeGrad)" opacity="0.85"/>
+
+  <!-- Belly (lighter underside) -->
+  <path d="M 60 110 Q 115 130 180 110 Q 115 122 60 110 Z" fill="url(#bellyGrad)" opacity="0.85"/>
+
+  <!-- Dorsal fin (top) -->
+  <path d="M 80 75 Q 100 55 130 60 Q 160 65 180 80 Q 145 70 100 75 Z" fill="#e8b374" stroke="#8b5a3c" stroke-width="1"/>
+  <path d="M 85 75 L 95 62 M 105 60 L 115 60 M 125 60 L 135 62 M 145 62 L 155 65 M 165 67 L 175 75" stroke="#8b5a3c" stroke-width="0.6" opacity="0.5"/>
+
+  <!-- Anal fin (bottom rear) -->
+  <path d="M 130 125 Q 140 145 165 130 Q 145 132 130 125 Z" fill="#e8b374" stroke="#8b5a3c" stroke-width="1"/>
+
+  <!-- Pectoral fin (side) -->
+  <path d="M 95 110 Q 100 130 120 125 Q 110 115 95 110 Z" fill="#f59e0b" opacity="0.7" stroke="#8b5a3c" stroke-width="0.8"/>
+
+  <!-- Gill cover -->
+  <path d="M 50 80 Q 45 100 50 120" stroke="#8b5a3c" stroke-width="1.5" fill="none"/>
+
+  <!-- Eye -->
+  <circle cx="42" cy="90" r="6" fill="white" stroke="#3a2418" stroke-width="1"/>
+  <circle cx="42" cy="90" r="3.5" fill="#1f1306"/>
+  <circle cx="41" cy="89" r="1" fill="white"/>
+
+  <!-- Mouth -->
+  <path d="M 30 100 Q 25 102 30 105" stroke="#5a3a22" stroke-width="1.2" fill="none"/>
+
+  <!-- Chin barbels (whisker) — distinctive of goatfish -->
+  <path d="M 32 108 Q 28 118 25 130" stroke="#8b5a3c" stroke-width="1.2" fill="none" opacity="0.7"/>
+  <path d="M 35 110 Q 33 122 32 132" stroke="#8b5a3c" stroke-width="1" fill="none" opacity="0.6"/>
+
+  <!-- Scale hint -->
+  <g opacity="0.3" stroke="#8b5a3c" stroke-width="0.5" fill="none">
+    <path d="M 70 90 Q 75 95 70 100"/>
+    <path d="M 90 85 Q 95 90 90 95"/>
+    <path d="M 110 85 Q 115 90 110 95"/>
+    <path d="M 130 85 Q 135 90 130 95"/>
+    <path d="M 150 88 Q 155 93 150 98"/>
+    <path d="M 170 92 Q 175 97 170 102"/>
+  </g>
+</svg>
