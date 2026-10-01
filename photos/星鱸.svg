@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#D6DBE0"/>
+    <stop offset="50%" stop-color="#94A3B8"/>
+    <stop offset="100%" stop-color="#475569"/>
+  </linearGradient>
+    <linearGradient id="bellyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#FDE8D0"/>
+    <stop offset="50%" stop-color="#FAF3E7"/>
+    <stop offset="100%" stop-color="#E8C99B"/>
+  </linearGradient>
+  </defs>
+
+  <path d="M 200 100 L 228 75 L 224 100 L 228 125 Z" fill="#D6DBE0" stroke="#8b5a3c" stroke-width="1" stroke-linejoin="round"/>
+  <ellipse cx="115" cy="100" rx="82" ry="32" fill="url(#bodyGrad)" stroke="#475569" stroke-width="1.2"/>
+  <path d="M 55 108 Q 115 130 180 108 Q 115 122 55 108 Z" fill="url(#bellyGrad)" opacity="0.85"/>
+  <path d="M 75 75 Q 125.0 53 175 77 Q 125.0 73 75 75 Z" fill="#D6DBE0" stroke="#8b5a3c" stroke-width="0.8"/>
+  <path d="M 125 124 Q 133 142 155 129 Q 140 132 125 124 Z" fill="#D6DBE0" stroke="#8b5a3c" stroke-width="0.8"/>
+  <path d="M 90 110 Q 95 128 112 124 Q 102 118 90 110 Z" fill="#f59e0b" opacity="0.75" stroke="#8b5a3c" stroke-width="0.6"/>
+  <path d="M 50 80 Q 45 100 50 120" stroke="#8b5a3c" stroke-width="1.5" fill="none"/>
+  <circle cx="40" cy="92" r="5.5" fill="white" stroke="#1F2937" stroke-width="1.2"/>
+  <circle cx="40" cy="92" r="3.5" fill="#1F1306"/>
+  <circle cx="39" cy="91" r="1.2" fill="white"/>
+  <path d="M 30 100 Q 25 102 30 106" stroke="#5a3a22" stroke-width="1.2" fill="none"/>
+  <g opacity="0.3" stroke="#8b5a3c" stroke-width="0.5" fill="none"><path d="M 70 88 Q 74 94 70 100"/><path d="M 90 88 Q 94 94 90 100"/><path d="M 110 88 Q 114 94 110 100"/><path d="M 130 88 Q 134 94 130 100"/><path d="M 150 88 Q 154 94 150 100"/><path d="M 170 88 Q 174 94 170 100"/></g><g>
+    <circle cx="85" cy="92" r="3" fill="white" stroke="#475569" stroke-width="1"/>
+    <circle cx="105" cy="105" r="3" fill="white" stroke="#475569" stroke-width="1"/>
+    <circle cx="125" cy="90" r="3" fill="white" stroke="#475569" stroke-width="1"/>
+    <circle cx="145" cy="105" r="3" fill="white" stroke="#475569" stroke-width="1"/>
+    <circle cx="165" cy="92" r="3" fill="white" stroke="#475569" stroke-width="1"/>
+  </g><g fill="#475569"><polygon points="90,90 92,95 97,95 93,98 95,103 90,100 85,103 87,98 83,95 88,95"/><polygon points="135,100 137,105 142,105 138,108 140,113 135,110 130,113 132,108 128,105 133,105"/><polygon points="160,90 162,94 166,94 163,97 165,101 160,98 155,101 157,97 154,94 158,94"/></g>
+</svg>

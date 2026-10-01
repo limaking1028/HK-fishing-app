@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#475569"/>
+    <stop offset="50%" stop-color="#1E293B"/>
+    <stop offset="100%" stop-color="#0F172A"/>
+  </linearGradient>
+    <linearGradient id="bellyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#FDE8D0"/>
+    <stop offset="50%" stop-color="#FAF3E7"/>
+    <stop offset="100%" stop-color="#E8C99B"/>
+  </linearGradient>
+  </defs>
+
+  <path d="M 115 30 Q 60 90 30 130 Q 80 145 115 158 Q 150 145 200 130 Q 170 90 115 30 Z" fill="url(#bodyGrad)" stroke="#0F172A" stroke-width="1.2"/>
+  <ellipse cx="115" cy="110" rx="55" ry="20" fill="url(#bellyGrad)" opacity="0.6"/>
+  <path d="M 110 158 L 90 195 L 115 175 L 140 195 L 120 158" fill="#475569" stroke="#0F172A" stroke-width="1"/>
+  <ellipse cx="115" cy="115" rx="25" ry="8" fill="#0F172A" opacity="0.3"/>
+  <circle cx="95" cy="90" r="4" fill="white" stroke="#1F2937" stroke-width="1.2"/>
+  <circle cx="95" cy="90" r="2" fill="#1F1306"/>
+  <circle cx="94" cy="89" r="1.2" fill="white"/>  <circle cx="135" cy="90" r="4" fill="white" stroke="#1F2937" stroke-width="1.2"/>
+  <circle cx="135" cy="90" r="2" fill="#1F1306"/>
+  <circle cx="134" cy="89" r="1.2" fill="white"/>
+</svg>
