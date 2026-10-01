@@ -200,6 +200,176 @@
   .species-chip .chip-icon { font-size: 20px; display: block; margin-bottom: 3px; }
   .species-chip.selected { border-color: var(--teal); background: var(--teal-light); color: var(--teal-dark); font-weight: 600; }
   .species-chip:active { transform: scale(0.95); }
+
+  /* Route K: 智能揀魚種 UI（Top 8 + 摺疊展開） */
+  #species-selector { margin-top: 4px; }
+  .sp-section-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gray-5);
+    margin: 4px 4px 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .sp-sub-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--teal-dark);
+    margin: 14px 4px 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .sp-sub-section-title span { color: var(--gray-4); font-weight: 600; }
+  .sp-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .sp-card {
+    position: relative;
+    background: white;
+    border: 1.5px solid var(--gray-2);
+    border-radius: 10px;
+    padding: 8px 4px 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    aspect-ratio: 1 / 1.1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .sp-card:hover {
+    border-color: var(--teal);
+    transform: translateY(-1px);
+  }
+  .sp-card.selected {
+    border-color: var(--teal);
+    background: var(--teal-light);
+    box-shadow: 0 0 0 1.5px var(--teal);
+  }
+  .sp-card.pinned {
+    border-color: #f5a623;
+    background: linear-gradient(180deg, #fff8ed 0%, #fff 100%);
+  }
+  .sp-card.selected.pinned {
+    border-color: var(--teal);
+    background: var(--teal-light);
+  }
+  .sp-card:active { transform: scale(0.95); }
+  .sp-icon {
+    font-size: 28px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .sp-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--dark);
+    line-height: 1.2;
+    word-break: keep-all;
+  }
+  .sp-count {
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    font-size: 9px;
+    background: var(--orange);
+    color: white;
+    padding: 1px 4px;
+    border-radius: 6px;
+    font-weight: 700;
+  }
+  .sp-pin {
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    font-size: 10px;
+  }
+  .sp-pin-toggle {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    font-size: 14px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0.4;
+    transition: opacity 0.15s, transform 0.15s;
+    border: 1px solid var(--gray-3);
+    z-index: 2;
+  }
+  .sp-card:hover .sp-pin-toggle { opacity: 0.85; }
+  .sp-pin-toggle:hover { transform: scale(1.15); }
+  .sp-pin-toggle:active { transform: scale(0.9); }
+  .sp-pin-toggle.active {
+    opacity: 1;
+    background: #fef3c7;
+    border-color: #f5a623;
+    box-shadow: 0 0 4px rgba(245,166,35,0.4);
+  }
+  .sp-empty, .sp-empty-tip {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--gray-4);
+    font-size: 12px;
+    padding: 16px 8px;
+    background: var(--gray-1);
+    border-radius: 8px;
+  }
+  .sp-empty-large {
+    text-align: center;
+    color: var(--gray-4);
+    font-size: 13px;
+    padding: 18px 8px;
+    background: var(--gray-1);
+    border-radius: 8px;
+    margin: 8px 4px;
+  }
+  .sp-empty-tip {
+    background: var(--teal-light);
+    color: var(--teal-dark);
+    margin: 4px;
+  }
+  .sp-expand-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #e0f5f8 0%, #f0fafb 100%);
+    border: 1.5px dashed var(--teal);
+    color: var(--teal-dark);
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+  .sp-expand-btn:hover {
+    background: linear-gradient(135deg, #d0eef3 0%, #e0f5f8 100%);
+  }
+  .sp-expand-btn.open {
+    border-style: solid;
+    background: var(--teal-light);
+  }
+  .sp-expand-btn span { font-weight: 800; }
+  .sp-expand-arrow {
+    font-size: 10px;
+    transition: transform 0.2s;
+  }
+  .sp-expand-btn.open .sp-expand-arrow { transform: rotate(0deg); }
   .photo-upload { border: 2px dashed var(--gray-3); border-radius: var(--radius); padding: 24px 16px; text-align: center; cursor: pointer; transition: border-color 0.2s; position: relative; }
   .photo-upload:active { border-color: var(--teal); }
   .photo-upload .upload-icon { font-size: 36px; }
@@ -759,21 +929,50 @@ const sb = SB_ENABLED ? window.supabase.createClient(SB_URL, SB_KEY, {
 
 /* ===== 預載數據 ===== */
 const FISH_SPECIES = [
-  { name: '泥鯭', icon: '🐡', photo: 'photos/泥鯭.jpg', sci: 'Siganus fuscescens', habitat: '淺水礁區·碼頭', desc: '群居，碼頭樁柱旁常見，背鰭有毒刺', rarity: 'common' },
-  { name: '黑沙鱲', icon: '🐟', photo: 'photos/黑沙鱲.jpg', sci: 'Acanthopagrus schlegelii', habitat: '礁石區', desc: '力大善搏，礁石區磯釣常見', rarity: 'common' },
-  { name: '黃腳鱲', icon: '🐠', photo: 'photos/黃腳鱲.jpg', sci: 'Acanthopagrus latus', habitat: '灣口·淺水', desc: '雜食性，香港磯釣主力目標魚', rarity: 'common' },
-  { name: '牛屎鱲', icon: '🐟', photo: 'photos/牛屎鱲.jpg', sci: 'Rhabdosargus sarba', habitat: '淺水·泥灘', desc: '小型魚，淺灘常見，入門魚種', rarity: 'common' },
-  { name: '白鱲', icon: '🐟', photo: 'photos/白鱲.jpg', sci: 'Acanthopagrus berda', habitat: '礁石區·沙底', desc: '底棲魚，礁石與沙底交界處', rarity: 'common' },
-  { name: '石狗公', icon: '🐡', photo: 'photos/石狗公.jpg', sci: 'Sebasticus', habitat: '礁石·海底', desc: '底棲伏擊型，背鰭有毒刺', rarity: 'common' },
-  { name: '烏頭', icon: '🐟', photo: 'photos/烏頭.jpg', sci: 'Mugil cephalus', habitat: '河口·蠔排', desc: '雜食性，流浮山蠔排主力魚', rarity: 'common' },
-  { name: '沙鑽', icon: '🐟', photo: 'photos/沙鑽.jpg', sci: 'Sillago japonica', habitat: '沙底·淺灘', desc: '吻尖體長，沙底群居', rarity: 'common' },
-  { name: '牛鰍', icon: '🐟', photo: 'photos/牛鰍.jpg', sci: 'Platycephalus indicus', habitat: '沙泥底·淺海', desc: '底棲伏擊型，沙泥底常見', rarity: 'common' },
-  { name: '紅衫', icon: '🐠', photo: 'photos/紅衫.jpg', sci: 'Nemipterus virgatus', habitat: '淺海·沙泥底', desc: '底棲魚，淺海沙泥底常見，體色偏紅', rarity: 'common' },
-  { name: '丁公', icon: '🐟', photo: 'photos/丁公.jpg', sci: 'Terapon jarbua', habitat: '淺水礁區·河口', desc: '條紋雞魚，背鰭尾鰭有黑斑條紋', rarity: 'common' },
-  { name: '火點', icon: '🐠', photo: 'photos/火點.jpg', sci: 'Lutjanus fulvus', habitat: '珊瑚礁·夜行', desc: '夜間活躍，珊瑚礁邊緣伏擊', rarity: 'uncommon' },
-  { name: '沙鯭', icon: '🐡', photo: 'photos/沙鯭.jpg', sci: 'Sillago sihama', habitat: '沙底·淺灘', desc: '沙底群居，灘釣常見', rarity: 'common' },
-  { name: '金鯧', icon: '🐠', photo: 'photos/金鯧.jpg', sci: 'Trachinotus blochii', habitat: '淺海·岩礁', desc: '銀身黃尾，淺海岩礁常見，肉質細嫩', rarity: 'common' },
-  { name: '金鼓', icon: '🐡', photo: 'photos/金鼓.jpg', sci: 'Scatophagus argus', habitat: '河口·半鹹淡', desc: '半鹹淡水棲，背鰭有毒刺', rarity: 'uncommon' },
+  { name: '泥鯭', icon: '🐡', sci: 'Siganus fuscescens', habitat: '淺水礁區·碼頭', desc: '群居，背鰭有毒刺', rarity: 'common' },
+  { name: '石狗公', icon: '🐡', sci: 'Sebastiscus marmoratus', habitat: '礁石·海底', desc: '底棲伏擊型，背鰭有毒刺', rarity: 'common' },
+  { name: '釘公', icon: '🐟', sci: 'Terapon jarbua', habitat: '淺水礁區·河口', desc: '條紋雞魚，背鰭尾鰭有黑斑條紋', rarity: 'common' },
+  { name: '黃腳鱲', icon: '🐠', sci: 'Acanthopagrus latus', habitat: '灣口·淺水', desc: '雜食性，香港磯釣主力目標魚', rarity: 'common' },
+  { name: '雞泡', icon: '🐡', sci: 'Diodon holocanthus', habitat: '礁石·沙底', desc: '河豚科，受刺激會充氣脹大', rarity: 'common' },
+  { name: '沙鯭', icon: '🐡', sci: 'Sillago sihama', habitat: '沙底·淺灘', desc: '沙底群居，灘釣常見', rarity: 'common' },
+  { name: '黑鱲', icon: '🐟', sci: 'Acanthopagrus schlegelii', habitat: '礁石區', desc: '力大善搏，礁石區磯釣常見', rarity: 'common' },
+  { name: '牛屎鱲', icon: '🐟', sci: 'Rhabdosargus sarba', habitat: '淺水·泥灘', desc: '小型魚，淺灘常見，入門魚種', rarity: 'common' },
+  { name: '三鬚', icon: '🐟', sci: 'Johnius belengerii', habitat: '沙泥底·淺海', desc: '石首魚科，下頜有3根觸鬚', rarity: 'common' },
+  { name: '梳羅', icon: '🐠', sci: 'Hapalogenys analis', habitat: '礁石區·深水', desc: '身體有黑色橫紋，磯釣高級魚', rarity: 'uncommon' },
+  { name: '牛鰍', icon: '🐟', sci: 'Platycephalus indicus', habitat: '沙泥底·淺海', desc: '底棲伏擊型，扁平頭部', rarity: 'common' },
+  { name: '油蠟', icon: '🐟', sci: 'Sphyraena pinguis', habitat: '中層·岩礁', desc: '梭魚科，泳速快，掠食性', rarity: 'common' },
+  { name: '紅衫魚', icon: '🐠', sci: 'Nemipterus virgatus', habitat: '淺海·沙泥底', desc: '底棲魚，淺海沙泥底常見，體色偏紅', rarity: 'common' },
+  { name: '盲鰽', icon: '🐟', sci: 'Atrobucca nibe', habitat: '深海·沙底', desc: '石首魚科，深海船釣對象', rarity: 'common' },
+  { name: '金鼓', icon: '🐡', sci: 'Scatophagus argus', habitat: '河口·半鹹淡', desc: '半鹹淡水棲，背鰭有毒刺', rarity: 'uncommon' },
+  { name: '烏頭', icon: '🐟', sci: 'Mugil cephalus', habitat: '河口·蠔排', desc: '雜食性，流浮山蠔排主力魚', rarity: 'common' },
+  { name: '沙鑽', icon: '🐟', sci: 'Sillago japonica', habitat: '沙底·淺灘', desc: '吻尖體長，沙底群居', rarity: 'common' },
+  { name: '沙巴龍躉', icon: '🐡', sci: 'Epinephelus coioides', habitat: '珊瑚礁·深海', desc: '大型石斑，磯釣夢幻魚種', rarity: 'rare' },
+  { name: '赤鱲', icon: '🐟', sci: 'Lutjanus argentimaculatus', habitat: '珊瑚礁·岩礁', desc: '紅色斑紋，夜行性大型魚', rarity: 'uncommon' },
+  { name: '火點', icon: '🐠', sci: 'Lutjanus fulvus', habitat: '珊瑚礁·夜行', desc: '夜間活躍，珊瑚礁邊緣伏擊', rarity: 'uncommon' },
+  { name: '牙點', icon: '🐟', sci: 'Pelates quadrilineatus', habitat: '淺水·河口', desc: '條紋雞魚科，淺水河口常見', rarity: 'common' },
+  { name: '左口', icon: '🐟', sci: 'Paralichthys olivaceus', habitat: '沙底·淺海', desc: '比目魚科，扁平伏底', rarity: 'uncommon' },
+  { name: '石蚌', icon: '🐡', sci: 'Haliotis', habitat: '礁石·岩岸', desc: '鮑魚類，磯釣偶爾上鈎', rarity: 'uncommon' },
+  { name: '坑鰜', icon: '🐟', sci: 'Pseudorhombus', habitat: '沙底·淺海', desc: '比目魚科，扁平伏底', rarity: 'common' },
+  { name: '連尖', icon: '🐟', sci: 'Scomberomorus spp', habitat: '中層·外海', desc: '馬鮫科，泳速極快，掠食性', rarity: 'rare' },
+  { name: '哨牙妹', icon: '🐡', sci: 'Champsodon capensis', habitat: '沙底·深海', desc: '牙齒尖銳，雜食性深海魚', rarity: 'uncommon' },
+  { name: '紅鮋', icon: '🐠', sci: 'Scorpaena', habitat: '礁石·深海', desc: '鮋科，紅色斑紋，背鰭有毒刺', rarity: 'uncommon' },
+  { name: '三刀', icon: '🐟', sci: 'Trichiurus lepturus', habitat: '中層·深海', desc: '帶魚科，扁平銀身如刀', rarity: 'common' },
+  { name: '細鱗', icon: '🐟', sci: 'Nematalosa nasus', habitat: '淺水·河口', desc: '鰳魚科，銀身細鱗', rarity: 'common' },
+  { name: '白鬚公', icon: '🐟', sci: 'Polynemus paradiseus', habitat: '沙底·淺海', desc: '馬鮁科，胸鰭呈鬚狀', rarity: 'common' },
+  { name: '海狼', icon: '🐟', sci: 'Sphyraena jello', habitat: '中層·外海', desc: '大型梭魚，泳速快，釣手感佳', rarity: 'uncommon' },
+  { name: '煙仔', icon: '🐟', sci: 'Hyporhamphus', habitat: '中層·淺海', desc: '鱵魚科，下頷延長如針', rarity: 'common' },
+  { name: '馬友', icon: '🐟', sci: 'Caranx spp', habitat: '中層·外海', desc: '鰺科，群居性，曳繩釣對象', rarity: 'common' },
+  { name: '花鱸', icon: '🐠', sci: 'Lateolabrax japonicus', habitat: '河口·岩礁', desc: '七星鱸科，銀身黑斑，高級食用魚', rarity: 'uncommon' },
+  { name: '星鱸', icon: '🐠', sci: 'Pseudorasbora parva', habitat: '淡水·河口', desc: '小型淡水魚，半鹹淡水域', rarity: 'common' },
+  { name: '黃立鯧', icon: '🐠', sci: 'Trachinotus blochii', habitat: '淺海·岩礁', desc: '銀身黃尾，淺海岩礁常見，肉質細嫩', rarity: 'common' },
+  { name: '大尾魷', icon: '🦑', sci: 'Loligo edulis', habitat: '中層·外海', desc: '槍烏賊科，夜釣墨魚對象', rarity: 'common' },
+  { name: '雞魚', icon: '🐠', sci: 'Parupeneus indicus', habitat: '礁石·沙底', desc: '鬚鯛科，下頷有長鬚', rarity: 'common' },
+  { name: '牛廣GT', icon: '🐟', sci: 'Caranx ignobilis', habitat: '珊瑚礁外海', desc: '巨型鰺科，俗稱 GT，磯釣夢幻魚', rarity: 'rare' },
+  { name: '魔鬼魚', icon: '🐡', sci: 'Mobula', habitat: '中層·外海', desc: '鱝科，扁平胸鰺，悠遊外海', rarity: 'rare' },
+  { name: '青斑', icon: '🐡', sci: 'Epinephelus awoensi', habitat: '珊瑚礁·岩礁', desc: '石斑科，淺藍斑紋', rarity: 'uncommon' },
+  { name: '芝麻斑', icon: '🐡', sci: 'Epinephelus', habitat: '珊瑚礁·深海', desc: '石斑科，斑點如芝麻', rarity: 'rare' },
+  { name: '白鱲', icon: '🐟', sci: 'Acanthopagrus berda', habitat: '礁石區·沙底', desc: '底棲魚，礁石與沙底交界處', rarity: 'common' },
+  { name: '星點泥鯭', icon: '🐡', sci: 'Siganus guttatus', habitat: '淺水礁區', desc: '泥鯭科變種，背部有星狀斑點', rarity: 'uncommon' },
   { name: '其他', icon: '🐟', custom: true },
 ];
 const FISHING_SPOTS = [
@@ -988,7 +1187,13 @@ function genSampleCatches() {
 /* ===== State & Persistence ===== */
 const STORAGE_KEY = 'hk_fishing_catches_v5';
 const USERNAME_KEY = 'hk_fishing_username';
-let state = { view:'my', mapTab:'map', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{}, expandedPokedex:{} }, trips:[], activeTrip:null, tripDetailId:null, tripTickHandle:null, tripPicking:false, tripPickingSpot:'', tripPickingCustom:'', tripPickingMethod:'', tripPickingBait:'', tripPickingLat:null, tripPickingLng:null, tripPickingAccuracy:null, geoStatus:'idle', userLocation:null, nearestStations:[], geoError:null, geoRequestedAt:0 };
+let state = { view:'my', mapTab:'map', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{}, expandedPokedex:{} }, trips:[], activeTrip:null, tripDetailId:null, tripTickHandle:null, tripPicking:false, tripPickingSpot:'', tripPickingCustom:'', tripPickingMethod:'', tripPickingBait:'', tripPickingLat:null, tripPickingLng:null, tripPickingAccuracy:null, geoStatus:'idle', userLocation:null, nearestStations:[], geoError:null, geoRequestedAt:0, pinnedSpecies:[], speciesExpanded:false };
+
+// 載入用戶 pin 嘅魚種（持久化）
+try {
+  const pinnedJson = localStorage.getItem('hk-fishing-pinned-species');
+  if (pinnedJson) state.pinnedSpecies = JSON.parse(pinnedJson);
+} catch(e) { state.pinnedSpecies = []; }
 function getUserName() { return state.user ? (state.user.display_name || state.user.username) : (localStorage.getItem(USERNAME_KEY) || '我'); }
 function setUserName(name) {
   if (SB_ENABLED && state.user) return;  // 雲端模式由 display_name 管理
@@ -1058,12 +1263,7 @@ function renderRecordView() {
     : '';
   view.innerHTML = '<div class="card"><div class="section-title">🎣 記錄新魚獲</div>'
     + tripBadge
-    + '<div class="form-group"><label class="form-label">魚種 <span class="req">*</span></label><div class="species-grid" id="species-grid">'
-    + FISH_SPECIES.map((f,i) => '<div class="species-chip '+(state.selectedSpecies===i?'selected':'')+'" onclick="selectSpecies('+i+')">'
-      + (window.fishIconSvg ? window.fishIconSvg(f.name, 36) : '<span class="chip-thumb-fallback">'+f.icon+'</span>')
-      + '<div class="chip-name">'+f.name+'</div></div>').join('')
-    + '</div>'
-    + (state.selectedSpecies===FISH_SPECIES.length-1 ? '<input type="text" class="form-input" id="custom-species" placeholder="輸入魚種名稱..." value="'+(state.customSpecies||'')+'" oninput="state.customSpecies=this.value" style="margin-top:10px;">' : '')
+    + '<div class="form-group"><label class="form-label">魚種 <span class="req">*</span></label><div id="species-selector"></div>'
     + '</div></div>'
     + '<div class="form-row"><div class="form-group"><label class="form-label">重量 <span class="req">*</span></label><div class="input-suffix"><input type="number" class="form-input" id="catch-weight" placeholder="0.0" step="0.1" min="0"><span class="suffix">斤</span></div></div><div class="form-group"><label class="form-label">長度</label><div class="input-suffix"><input type="number" class="form-input" id="catch-length" placeholder="0" step="0.5" min="0"><span class="suffix">cm</span></div></div></div>'
     + '<div class="form-group"><label class="form-label">釣點 <span class="req">*</span></label>'
@@ -1088,8 +1288,182 @@ function renderRecordView() {
     + '<button class="btn btn-primary" onclick="submitCatch()">送出魚獲記錄</button></div>';
   // Route A1: 表單渲染後初始化 astro 顯示（用預設日期時間）
   setTimeout(() => { try { onDateChange(); } catch(e) { console.warn('astro init failed', e); } }, 0);
+  // Route K: 渲染智能揀魚種 UI（Top 8 by 使用次數 + 摺疊展開）
+  renderSpeciesSelector();
 }
 function selectSpecies(idx) { state.selectedSpecies = idx; if (idx !== FISH_SPECIES.length - 1) state.customSpecies = ''; renderRecordView(); }
+
+/* ============================================================
+ * Route K: 智能揀魚種 UI（Top 8 by 使用次數 + 摺疊展開）
+ * ============================================================ */
+// 用戶記錄嘅魚種次數（排除 demo data）
+function getSpeciesCounts() {
+  const counts = {};
+  (state.catches || []).forEach(c => {
+    if (c.isDemo) return;
+    counts[c.species] = (counts[c.species] || 0) + 1;
+  });
+  return counts;
+}
+
+// 取得 Top N 魚種（pinned 永遠在前 + 其他 by 次數 desc）
+function getTopSpecies(n) {
+  const counts = getSpeciesCounts();
+  const pinned = (state.pinnedSpecies || []).map(name => {
+    const idx = FISH_SPECIES.findIndex(f => f.name === name);
+    return idx >= 0 ? { idx, f: FISH_SPECIES[idx], count: counts[name] || 0, pinned: true } : null;
+  }).filter(Boolean);
+  const pinnedNames = new Set(pinned.map(p => p.f.name));
+  const others = FISH_SPECIES
+    .map((f, idx) => ({ idx, f, count: counts[f.name] || 0, pinned: false }))
+    .filter(x => !x.f.custom && !pinnedNames.has(x.f.name))
+    .sort((a, b) => b.count - a.count);
+  // 去重（防止因為相同魚名出現兩次）
+  const seen = new Set();
+  const result = [...pinned];
+  pinned.forEach(p => seen.add(p.f.name));
+  for (const x of others) {
+    if (seen.has(x.f.name)) continue;
+    seen.add(x.f.name);
+    result.push(x);
+    if (result.length >= n) break;
+  }
+  return result;
+}
+
+// 取得「已收過」魚種（用戶曾釣過）
+function getCollectedSpecies() {
+  const counts = getSpeciesCounts();
+  return FISH_SPECIES
+    .map((f, idx) => ({ idx, f, count: counts[f.name] || 0 }))
+    .filter(x => !x.f.custom && x.count > 0)
+    .sort((a, b) => b.count - a.count);
+}
+
+function togglePinSpecies(name) {
+  if (!state.pinnedSpecies) state.pinnedSpecies = [];
+  const idx = state.pinnedSpecies.indexOf(name);
+  if (idx >= 0) {
+    state.pinnedSpecies.splice(idx, 1);
+    toast('已取消收藏 ' + name);
+  } else {
+    state.pinnedSpecies.push(name);
+    toast('⭐ 已收藏 ' + name);
+  }
+  // 持久化
+  try {
+    localStorage.setItem('hk-fishing-pinned-species', JSON.stringify(state.pinnedSpecies));
+  } catch(e) { console.warn('localStorage save failed', e); }
+  renderSpeciesSelector();
+}
+
+function selectSpeciesByName(name) {
+  const idx = FISH_SPECIES.findIndex(f => f.name === name);
+  if (idx >= 0) {
+    state.selectedSpecies = idx;
+    state.customSpecies = '';
+    renderRecordView();
+  }
+}
+
+function expandSpecies() {
+  state.speciesExpanded = true;
+  renderSpeciesSelector();
+}
+
+function collapseSpecies() {
+  state.speciesExpanded = false;
+  renderSpeciesSelector();
+}
+
+function renderSpeciesSelector() {
+  const container = document.getElementById('species-selector');
+  if (!container) return;
+  const top = getTopSpecies(8);
+  const collected = getCollectedSpecies();
+  const pinnedNames = new Set(state.pinnedSpecies || []);
+
+  // 渲染單個 species card
+  const renderCard = (item, opts) => {
+    const { f, count, pinned } = item;
+    const isSelected = state.selectedSpecies === item.idx;
+    const isCustom = f.custom;
+    const isPinned = pinned || pinnedNames.has(f.name);
+    const countBadge = count > 0 ? '<span class="sp-count">×' + count + '</span>' : '';
+    const pinBadge = isPinned ? '<span class="sp-pin" title="已收藏">⭐</span>' : '';
+    const clickAction = isCustom ? `selectSpeciesByName('${f.name}')` : `selectSpeciesByName('${f.name}')`;
+    return `<div class="sp-card ${isSelected ? 'selected' : ''} ${isPinned ? 'pinned' : ''}" onclick="${clickAction}" data-species="${escapeHtml(f.name)}">
+      <div class="sp-pin-toggle ${isPinned ? 'active' : ''}" onclick="event.stopPropagation();togglePinSpecies('${escapeHtml(f.name)}')" title="${isPinned ? '取消收藏' : '加入收藏'}">${isPinned ? '⭐' : '☆'}</div>
+      <div class="sp-icon">${f.icon}</div>
+      <div class="sp-name">${escapeHtml(f.name)}</div>
+      ${countBadge}${pinBadge}
+    </div>`;
+  };
+
+  // Top 8 區域
+  let html = '<div class="sp-section-title">🔥 常用 (自動 by 使用次數)</div>';
+  html += '<div class="sp-grid">';
+  if (top.length === 0) {
+    html += '<div class="sp-empty">尚未記錄魚獲 — 全部 44 種魚都會顯示喺呢度 🎣</div>';
+  } else {
+    top.forEach(item => { html += renderCard(item); });
+  }
+  html += '</div>';
+
+  // 展開 / 摺疊按鈕
+  const collectedCount = collected.length;
+  const pinnedCount = (state.pinnedSpecies || []).filter(n => FISH_SPECIES.find(f => f.name === n)).length;
+  if (!state.speciesExpanded) {
+    // 摺疊狀態：只顯示「📦 收藏 + 已釣」按鈕
+    const total = pinnedCount + collectedCount;
+    html += '<button class="sp-expand-btn" onclick="expandSpecies()">';
+    html += '📦 已收藏 + 已釣過 (<span>' + total + '</span>)';
+    html += '<span class="sp-expand-arrow">▼</span>';
+    html += '</button>';
+  } else {
+    // 展開狀態
+    html += '<button class="sp-expand-btn open" onclick="collapseSpecies()">';
+    html += '📦 已收藏 + 已釣過 (<span>' + (pinnedCount + collectedCount) + '</span>)';
+    html += '<span class="sp-expand-arrow">▲</span>';
+    html += '</button>';
+
+    // ⭐ Pinned section
+    if (pinnedCount > 0) {
+      html += '<div class="sp-sub-section-title">⭐ 已收藏 (<span>' + pinnedCount + '</span>)</div>';
+      html += '<div class="sp-grid">';
+      const pinnedItems = (state.pinnedSpecies || [])
+        .map(name => {
+          const fIdx = FISH_SPECIES.findIndex(f => f.name === name);
+          return fIdx >= 0 ? { idx: fIdx, f: FISH_SPECIES[fIdx], count: getSpeciesCounts()[name] || 0, pinned: true } : null;
+        })
+        .filter(Boolean);
+      pinnedItems.forEach(item => { html += renderCard(item); });
+      html += '</div>';
+    }
+
+    // 🐟 已收過 section（唔包含已 pin 嘅）
+    const collectedOnly = collected.filter(x => !pinnedNames.has(x.f.name));
+    if (collectedOnly.length > 0) {
+      html += '<div class="sp-sub-section-title">🐟 已釣過 (<span>' + collectedOnly.length + '</span>)</div>';
+      html += '<div class="sp-grid">';
+      collectedOnly.forEach(item => { html += renderCard(item); });
+      html += '</div>';
+    }
+
+    // 空狀態提示
+    if (pinnedCount === 0 && collectedCount === 0) {
+      html += '<div class="sp-empty-large">未有收藏或魚獲記錄</div>'
+        + '<div class="sp-empty-tip">💡 提示：長按魚 card 嘅 ☆ 號可加入收藏</div>';
+    }
+  }
+
+  // 自訂魚種輸入（始終保留「其他」選項）
+  if (state.selectedSpecies === FISH_SPECIES.length - 1) {
+    html += '<input type="text" class="form-input" id="custom-species" placeholder="輸入魚種名稱..." value="' + (state.customSpecies || '') + '" oninput="state.customSpecies=this.value" style="margin-top:10px;">';
+  }
+
+  container.innerHTML = html;
+}
 
 /* ===== Route A1: 月相 / 日出日落資訊 ===== */
 function onDateChange() {

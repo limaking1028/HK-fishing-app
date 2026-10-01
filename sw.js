@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v43';  // bump: 潮汐/天氣/最近站 button 改為「在地圖上顯示位置」+ 紅色 pulse highlight marker
+const CACHE = 'hk-fishing-v44';  // bump: 智能揀魚種 UI（Top 8 by 使用次數 + 摺疊展開已收藏/已收過 + pin 持久化 + 45 種魚）
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
 ];
