@@ -1340,6 +1340,21 @@ function getCollectedSpecies() {
     .sort((a, b) => b.count - a.count);
 }
 
+// 取得全部魚種（pinned 置頂 + 其他按 count desc，count=0 排最後）
+function getAllSpecies() {
+  const counts = getSpeciesCounts();
+  const pinnedNames = new Set(state.pinnedSpecies || []);
+  const items = FISH_SPECIES
+    .filter(f => !f.custom)  // 排除「其他」自訂
+    .map((f, idx) => ({ idx, f, count: counts[f.name] || 0, pinned: pinnedNames.has(f.name) }));
+  // 排序：pinned first → count desc → 維持原順序（首次出現）
+  return items.sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    if (a.count !== b.count) return b.count - a.count;
+    return 0;
+  });
+}
+
 function togglePinSpecies(name) {
   if (!state.pinnedSpecies) state.pinnedSpecies = [];
   const idx = state.pinnedSpecies.indexOf(name);
@@ -1380,7 +1395,6 @@ function renderSpeciesSelector() {
   const container = document.getElementById('species-selector');
   if (!container) return;
   const top = getTopSpecies(8);
-  const collected = getCollectedSpecies();
   const pinnedNames = new Set(state.pinnedSpecies || []);
 
   // 渲染單個 species card
@@ -1403,58 +1417,33 @@ function renderSpeciesSelector() {
   // Top 8 區域
   let html = '<div class="sp-section-title">🔥 常用 (自動 by 使用次數)</div>';
   html += '<div class="sp-grid">';
-  if (top.length === 0) {
-    html += '<div class="sp-empty">尚未記錄魚獲 — 全部 44 種魚都會顯示喺呢度 🎣</div>';
+  if (top.length === 0 || top.every(t => t.count === 0 && !t.pinned)) {
+    html += '<div class="sp-empty">尚未記錄魚獲 — 全部 ' + FISH_SPECIES.filter(f => !f.custom).length + ' 種魚都會顯示喺呢度 🎣</div>';
   } else {
     top.forEach(item => { html += renderCard(item); });
   }
   html += '</div>';
 
   // 展開 / 摺疊按鈕
-  const collectedCount = collected.length;
-  const pinnedCount = (state.pinnedSpecies || []).filter(n => FISH_SPECIES.find(f => f.name === n)).length;
+  const totalSpecies = FISH_SPECIES.filter(f => !f.custom).length;  // 排除「其他」
   if (!state.speciesExpanded) {
-    // 摺疊狀態：只顯示「📦 收藏 + 已釣」按鈕
-    const total = pinnedCount + collectedCount;
+    // 摺疊狀態：顯示「📂 全部 N 種魚」按鈕
     html += '<button class="sp-expand-btn" onclick="expandSpecies()">';
-    html += '📦 已收藏 + 已釣過 (<span>' + total + '</span>)';
+    html += '📂 全部 <span>' + totalSpecies + '</span> 種魚';
     html += '<span class="sp-expand-arrow">▼</span>';
     html += '</button>';
   } else {
     // 展開狀態
     html += '<button class="sp-expand-btn open" onclick="collapseSpecies()">';
-    html += '📦 已收藏 + 已釣過 (<span>' + (pinnedCount + collectedCount) + '</span>)';
+    html += '📂 全部 <span>' + totalSpecies + '</span> 種魚';
     html += '<span class="sp-expand-arrow">▲</span>';
     html += '</button>';
 
-    // ⭐ Pinned section
-    if (pinnedCount > 0) {
-      html += '<div class="sp-sub-section-title">⭐ 已收藏 (<span>' + pinnedCount + '</span>)</div>';
-      html += '<div class="sp-grid">';
-      const pinnedItems = (state.pinnedSpecies || [])
-        .map(name => {
-          const fIdx = FISH_SPECIES.findIndex(f => f.name === name);
-          return fIdx >= 0 ? { idx: fIdx, f: FISH_SPECIES[fIdx], count: getSpeciesCounts()[name] || 0, pinned: true } : null;
-        })
-        .filter(Boolean);
-      pinnedItems.forEach(item => { html += renderCard(item); });
-      html += '</div>';
-    }
-
-    // 🐟 已收過 section（唔包含已 pin 嘅）
-    const collectedOnly = collected.filter(x => !pinnedNames.has(x.f.name));
-    if (collectedOnly.length > 0) {
-      html += '<div class="sp-sub-section-title">🐟 已釣過 (<span>' + collectedOnly.length + '</span>)</div>';
-      html += '<div class="sp-grid">';
-      collectedOnly.forEach(item => { html += renderCard(item); });
-      html += '</div>';
-    }
-
-    // 空狀態提示
-    if (pinnedCount === 0 && collectedCount === 0) {
-      html += '<div class="sp-empty-large">未有收藏或魚獲記錄</div>'
-        + '<div class="sp-empty-tip">💡 提示：長按魚 card 嘅 ☆ 號可加入收藏</div>';
-    }
+    // 全部魚種（pinned 置頂 + 其他按 count desc，count=0 排最後）
+    const allItems = getAllSpecies();
+    html += '<div class="sp-grid">';
+    allItems.forEach(item => { html += renderCard(item); });
+    html += '</div>';
   }
 
   // 自訂魚種輸入（始終保留「其他」選項）

@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v44';  // bump: 智能揀魚種 UI（Top 8 by 使用次數 + 摺疊展開已收藏/已收過 + pin 持久化 + 45 種魚）
+const CACHE = 'hk-fishing-v46';  // bump: 揀魚種展開後改顯示全部 44 種魚（取消已釣過分類）
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
 ];
