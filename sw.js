@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v48';  // bump: 全部 44 種魚 SVG placeholder (雞魚 + 43 新) + index.html photo fields 更新
+const CACHE = 'hk-fishing-v49';  // bump: fishPhotoImg() helper + photo path 無 ext (jpg→png→webp→svg chain)
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
 ];
