@@ -873,7 +873,6 @@
     <div id="view-my" class="view active"></div>
     <div id="view-trips" class="view"></div>
     <div id="view-leaderboard" class="view"></div>
-    <div id="view-encyclopedia" class="view"></div>
     <div id="view-map" class="view"></div>
   </main>
   <nav id="bottom-nav">
@@ -3480,10 +3479,6 @@ function togglePokedexSpecies(name) {
   renderMyView();  // 圖鑑在 view-my 內，要 rerender 我的頁
 }
 
-function renderEncyclopediaView() {
-  document.getElementById('view-encyclopedia').innerHTML = getPokedexHTML();
-}
-
 /* ===== Navigation ===== */
 function switchView(name) {
   state.view = name;
@@ -3493,7 +3488,7 @@ function switchView(name) {
   setTimeout(() => viewEl.classList.remove('fade-in'), 300);
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelector('.nav-item[data-view="'+name+'"]').classList.add('active');
-  const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', encyclopedia:'📖 魚種圖鑑', map:'🗺️ 釣點地圖' };
+  const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   document.getElementById('header-title').textContent = titles[name];
   renderView(name);
 }
@@ -3508,7 +3503,6 @@ function renderView(name) {
     } else renderTripsView();
   }
   else if (name==='leaderboard') renderLeaderboardView();
-  else if (name==='encyclopedia') renderEncyclopediaView();
   else if (name==='map') renderMapView();
 }
 function renderAll() { renderView(state.view); }
