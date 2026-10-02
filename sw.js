@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v49';  // bump: fishPhotoImg() helper + photo path 無 ext (jpg→png→webp→svg chain)
+const CACHE = 'hk-fishing-v50';  // bump: 刪走 44 個 SVG fallback + chain 改 jpg/jpeg/png/webp 4-level
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
 ];

@@ -1246,10 +1246,11 @@ function saveCatches(c) {
 function getFishInfo(name) { return FISH_SPECIES.find(f => f.name === name) || { name: name, icon: '🐟' }; }
 function getSpotInfo(name) { return FISHING_SPOTS.find(s => s.name === name) || { name: name, area: '' }; }
 
-// 魚照 resolver: 自動 try .jpg/.png/.webp/.svg，再 fallback emoji
+// 魚照 resolver: 自動 try .jpg/.png/.webp，再 fallback emoji
 // photo field 用 base path (無 ext): 'photos/泥鯭'
 // 將來 push 真實 jpg 就直接覆蓋 photos/泥鯭.jpg，唔使改 code
-const FISH_PHOTO_EXTS = ['jpg', 'jpeg', 'png', 'webp', 'svg'];
+// 44 種魚全部已有真實 jpg/png (.svg 全部刪走)，鏈由 5 級減到 4 級
+const FISH_PHOTO_EXTS = ['jpg', 'jpeg', 'png', 'webp'];
 function fishPhotoImg(base, icon, klass) {
   if (!base) return '<div class="' + (klass || 'sp-icon-emoji') + '">' + icon + '</div>';
   // 用 data-attr 儲 base，onerror chain 試下一個 ext
@@ -1448,7 +1449,7 @@ function renderSpeciesSelector() {
     const countBadge = count > 0 ? '<span class="sp-count">×' + count + '</span>' : '';
     const pinBadge = isPinned ? '<span class="sp-pin" title="已收藏">⭐</span>' : '';
     const clickAction = isCustom ? `selectSpeciesByName('${f.name}')` : `selectSpeciesByName('${f.name}')`;
-    // Image vs emoji：如有 photo 就用真實魚圖 (auto try .jpg/.png/.webp/.svg)，否則 fallback 為 emoji
+    // Image vs emoji：如有 photo 就用真實魚圖 (auto try .jpg/.png/.webp)，否則 fallback 為 emoji
     const iconHtml = f.photo
       ? fishPhotoImg(f.photo, f.icon, 'sp-icon-img').replace('alt=""', 'alt="' + escapeHtml(f.name) + '"')
       : `<div class="sp-icon-emoji">${f.icon}</div>`;
