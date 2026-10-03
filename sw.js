@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v70';  // bump: 行程釣點改為 GPS 自動檢測（移除下拉選擇器，GPS 三層識別）
+const CACHE = 'hk-fishing-v71';  // bump: 修復 v70 行程 picker JS SyntaxError（行 2311 括號不平衡）→ 整支 JS 唔跑 / 白屏
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
 ];

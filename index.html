@@ -2308,7 +2308,7 @@ function tripGetGPS() {
           detectEl.className = 'gps-detect-status success';
         } else {
           detectedSpot = '其他';
-          detectEl.innerHTML = '📍 無法識別（離最近 ' + (result.distance >= 1000 ? (result.distance/1000).toFixed(1) + 'km' : result.distance + 'm）），請於下方輸入釣點';
+          detectEl.innerHTML = '📍 無法識別（離最近 ' + (result.distance >= 1000 ? ((result.distance/1000).toFixed(1) + 'km') : (result.distance + 'm')) + '），請於下方輸入釣點';
           detectEl.className = 'gps-detect-status muted';
         }
         state.tripPickingDetectedSpot = detectedSpot;
@@ -4048,7 +4048,7 @@ function setupGlobalHandlers() {
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=v8').catch(()=>{});
+    navigator.serviceWorker.register('sw.js?v=v9').catch(()=>{});
   }
   checkSharedCatch();
   renderRecordView();
