@@ -3857,28 +3857,43 @@ function initMap(items) {
     : [items.reduce((s,c)=>s+c.latitude,0)/items.length, items.reduce((s,c)=>s+c.longitude,0)/items.length];
 
   // ===== Tile Layers =====
-  // 1. CartoDB Positron（預設，無需 key，簡潔風格）
-  //    Leaflet 直接吃 raster PNG，是最可靠的免費選擇
-  const openFreeMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  // 1. CartoDB Positron（無需 key，簡潔風格）— 隱藏嘅 emergency fallback
+  //    用戶唔會喺 layer control 見到。當 MapTiler 失敗（key 過期/額度用完）時自動切換。
+  const cartoFallback = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     attribution: '© OpenStreetMap contributors © CARTO',
     subdomains: 'abcd',
     maxZoom: 19,
-    name: 'CartoDB'
   });
 
   // 2. MapTiler 繁體中文（需到 https://maptiler.com 註冊拿免費 key）
   //    免費額度 100K tile/月，個人使用綽綽有餘
   //    預設 key 在模組頂層宣告 DEFAULT_MAPTILER_KEY
   const MAPTILER_KEY = (typeof localStorage !== 'undefined' && localStorage.getItem('maptiler_key')) || DEFAULT_MAPTILER_KEY;
+  const maptilerLayer = L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MAPTILER_KEY}&language=zh-Hant`, {
+    attribution: '© MapTiler © OpenStreetMap contributors',
+    maxZoom: 19
+  });
+  // 用戶睇到嘅：只有 MapTiler（CartoDB 唔顯示喺 layer control）
   const baseLayers = {
-    '🗺️ CartoDB Positron': openFreeMap,
-    '🇭🇰 MapTiler 繁體中文': L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MAPTILER_KEY}&language=zh-Hant`, {
-      attribution: '© MapTiler © OpenStreetMap contributors',
-      maxZoom: 19
-    })
+    '🇭🇰 MapTiler 繁體中文': maptilerLayer,
   };
-  // 預設使用 MapTiler 繁中，fallback CartoDB
-  let defaultLayer = baseLayers['🇭🇰 MapTiler 繁體中文'];
+  const defaultLayer = baseLayers['🇭🇰 MapTiler 繁體中文'];
+
+  // ===== Emergency fallback：MapTiler 失敗自動切 CartoDB =====
+  let fallbackTriggered = false;
+  let fallbackErrorCount = 0;
+  defaultLayer.on('tileerror', () => {
+    fallbackErrorCount++;
+    // 連續 5 個 tile 失敗先 trigger，避免單一網絡抖動誤判
+    if (fallbackTriggered || fallbackErrorCount < 5) return;
+    fallbackTriggered = true;
+    if (mapInstance && mapInstance.hasLayer(defaultLayer)) {
+      mapInstance.removeLayer(defaultLayer);
+      cartoFallback.addTo(mapInstance);
+      console.warn('[map] MapTiler tile errors detected, switched to CartoDB fallback');
+      if (window.toast) toast('⚠️ MapTiler 暫時失效，已切到備用地圖（地圖仍可繼續使用）', 5000);
+    }
+  });
 
   mapInstance = L.map('map-canvas', { zoomControl: true }).setView(center, 11);
   defaultLayer.addTo(mapInstance);
@@ -4412,7 +4427,7 @@ function setupGlobalHandlers() {
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=v84').catch(()=>{});
+    navigator.serviceWorker.register('sw.js?v=v85').catch(()=>{});
   }
   checkSharedCatch();
   renderRecordView();

@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v84';  // bump: 天氣卡加 HKO 蒲福風級 badge
+const CACHE = 'hk-fishing-v85';  // bump: CartoDB 從 layer control 隱藏，改做 MapTiler 緊急 fallback（5 errors trigger）
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js'  // Route L+
