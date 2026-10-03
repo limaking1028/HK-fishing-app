@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v55';  // bump: 排行榜冠軍卡片改 flex — 用戶名左 / 稱號 flex:1 中間 / 數值右
+const CACHE = 'hk-fishing-v56';  // bump: 修復 flex overflow:hidden 導致 Safari 徽章+詳情被擠壓豎排
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
 ];
