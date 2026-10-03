@@ -1122,6 +1122,38 @@ async function uploadCatchPhoto(file) {
   return pub.publicUrl;
 }
 
+// 啟動時自動補傳上次未同步的魚獲
+async function retryUnsyncedCatches() {
+  if (!sb || !state.user) return;
+  const unsynced = state.catches.filter(c => c.isMine && c.unsynced && c.id && String(c.id).startsWith('temp-'));
+  if (unsynced.length === 0) return;
+  console.log('[補傳] 檢測到 ' + unsynced.length + ' 條未同步魚獲,正在重傳...');
+  let success = 0, failed = 0;
+  for (const c of unsynced) {
+    try {
+      const saved = await dbAddCatch(c);
+      if (saved) {
+        c.id = saved.id;
+        c.photoUrl = saved.photo_url;
+        delete c.unsynced;
+        delete c.unsyncedReason;
+        delete c.unsyncedAt;
+        success++;
+      } else {
+        failed++;
+      }
+    } catch (e) {
+      console.warn('[補傳失敗]', c.species, e.message || e);
+      failed++;
+    }
+  }
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.catches));
+  } catch(_) {}
+  if (success > 0) toast('✓ 已補傳 ' + success + ' 條魚獲到雲端' + (failed > 0 ? ' (' + failed + ' 條仍失敗)' : ''), 3000);
+  else if (failed > 0) toast('✗ 仍有 ' + failed + ' 條魚獲未同步', 3000);
+}
+
 async function dbAddCatch(c) {
   if (!sb || !state.user) return null;
   // Route E: 上傳照片到 Supabase Storage（先 upload 再 insert row）
@@ -3774,6 +3806,8 @@ window.handleAuthSubmit = async function() {
     const migrated = await migrateLocalCatches();
     await seedDemoDataIfNeeded();
     state.catches = await dbLoadCatches();
+    // 啟動補傳
+    retryUnsyncedCatches();
     document.getElementById('login-screen').innerHTML = '';
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('header').style.display = '';
@@ -3808,6 +3842,8 @@ async function init() {
       if (migrated > 0) toast('已從本地匯入 ' + migrated + ' 條舊記錄');
       const seeded = await seedDemoDataIfNeeded();
       state.catches = await dbLoadCatches();
+      // 啟動補傳:把之前未同步的魚獲重試上傳
+      retryUnsyncedCatches();
     } catch (e) {
       console.error('Init failed', e);
       toast('雲端載入失敗：' + e.message);
