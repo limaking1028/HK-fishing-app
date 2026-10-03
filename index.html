@@ -579,6 +579,19 @@
   .gps-detect-status.success { background: rgba(34, 197, 94, 0.12); color: #15803d; }
   .gps-detect-status.warn { background: rgba(245, 158, 11, 0.15); color: #b45309; }
   .gps-detect-status.muted { background: var(--gray-1); color: var(--gray-5); }
+  /* Route L+: 自動定位 UI */
+  .auto-gps-badge { background: linear-gradient(135deg, var(--teal), var(--teal-dark)); color: white; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: 6px; letter-spacing: 0.3px; vertical-align: middle; }
+  .gps-auto-box { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: linear-gradient(135deg, #f0fafa, #e0f5f3); border: 1.5px solid var(--teal); border-radius: var(--radius); font-size: 13px; transition: all 0.3s; }
+  .gps-auto-box.loading { background: linear-gradient(135deg, #fff8e1, #ffeaa7); border-color: #f5a623; }
+  .gps-auto-box.success { background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-color: #22c55e; }
+  .gps-auto-box.warn { background: linear-gradient(135deg, #fef3c7, #fde68a); border-color: #f59e0b; }
+  .gps-auto-box.error { background: linear-gradient(135deg, #fee2e2, #fecaca); border-color: #dc2626; }
+  .gps-auto-icon { font-size: 28px; animation: none; flex-shrink: 0; }
+  .gps-auto-box.loading .gps-auto-icon { animation: spin 1.2s linear infinite; }
+  .gps-auto-box.success .gps-auto-icon, .gps-auto-box.warn .gps-auto-icon { animation: none; }
+  .gps-auto-content { flex: 1; min-width: 0; }
+  .gps-auto-title { font-size: 14px; font-weight: 700; color: var(--dark); margin-bottom: 4px; }
+  .gps-auto-status { font-size: 12px; color: var(--gray-5); line-height: 1.4; }
 
   /* ===== Map View ===== */
   .map-container { position: relative; height: calc(100vh - 200px); min-height: 360px; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
@@ -1323,20 +1336,23 @@ function renderRecordView() {
     + '<div class="form-group"><label class="form-label">魚種 <span class="req">*</span></label><div id="species-selector"></div>'
     + '</div></div>'
     + '<div class="form-row"><div class="form-group"><label class="form-label">重量 <span class="req">*</span></label><div class="input-suffix"><input type="number" class="form-input" id="catch-weight" placeholder="0.0" step="0.1" min="0"><span class="suffix">斤</span></div></div><div class="form-group"><label class="form-label">長度</label><div class="input-suffix"><input type="number" class="form-input" id="catch-length" placeholder="0" step="0.5" min="0"><span class="suffix">cm</span></div></div></div>'
-    + '<div class="form-group"><label class="form-label">釣點 <span class="req">*</span></label>'
-    + (state.activeTrip ? '<div style="background:var(--orange-light);color:var(--orange-dark);padding:8px 10px;border-radius:6px;font-size:12px;margin-bottom:8px;line-height:1.5;">📍 <b>行程中</b>'
-    + (state.activeTrip.spot ? ' · 釣點：'+escapeHtml(state.activeTrip.spot) : '')
-    + (state.activeTrip.method ? ' · 釣法：'+escapeHtml(state.activeTrip.method) : '')
-    + (state.activeTrip.bait ? ' · 釣餌：'+escapeHtml(state.activeTrip.bait) : '')
-    + '<br><span style="font-size:11px;opacity:0.8;">未填欄位會自動帶入行程設定（可改）</span></div>' : '')
-    + '<select class="form-select" id="catch-spot" onchange="onSpotChange(this.value)"><option value="">選擇釣點...</option>'
-    + (state.activeTrip && state.activeTrip.spot && !state.selectedSpot ? '<option value="'+state.activeTrip.spot+'" selected>'+state.activeTrip.spot+'</option>' : '')
+    // Route L+: 釣點自動定位模式 — 用戶不需手動輸入
+    + '<div class="form-group">'
+    + '<label class="form-label">📍 釣點 <span class="auto-gps-badge">自動定位</span></label>'
+    + '<div class="gps-auto-box" id="gps-auto-box">'
+    +   '<div class="gps-auto-icon">📡</div>'
+    +   '<div class="gps-auto-content">'
+    +     '<div class="gps-auto-title">GPS 自動識別中...</div>'
+    +     '<div class="gps-auto-status" id="gps-status">點擊下方按鈕或等待系統定位</div>'
+    +   '</div>'
+    + '</div>'
+    + '<button type="button" id="gps-btn" class="gps-btn" onclick="getCurrentLocation()" style="width:100%;margin-top:8px;">📍 取得當前位置</button>'
+    + '<input type="hidden" id="catch-lat" value="'+(state.catchLat||'')+'"><input type="hidden" id="catch-lng" value="'+(state.catchLng||'')+'"><input type="hidden" id="catch-accuracy" value="'+(state.catchAccuracy||'')+'">'
+    + '<select id="catch-spot" style="display:none;">'
     + FISHING_SPOTS.map(s => '<option value="'+s.name+'"'+(state.selectedSpot===s.name?' selected':'')+'>'+s.name+'</option>').join('')
-    + '</select><input type="text" class="form-input" id="custom-spot" placeholder="輸入具體位置備註（可選），例如：西貢碼頭北防波堤..." value="'+(state.customSpot||'')+'" oninput="state.customSpot=this.value" style="margin-top:8px;">'
-    // Route I: 潮汐預覽
-    + '<div id="catch-tide-preview" style="margin-top:8px;font-size:12px;color:var(--gray-5);"></div>'
-    + '<div class="gps-section"><button type="button" id="gps-btn" class="gps-btn" onclick="getCurrentLocation()">📍 使用當前位置</button><div class="gps-status" id="gps-status">未取得位置</div></div>'
-    + '<input type="hidden" id="catch-lat" value="'+(state.catchLat||'')+'"><input type="hidden" id="catch-lng" value="'+(state.catchLng||'')+'"><input type="hidden" id="catch-accuracy" value="'+(state.catchAccuracy||'')+'"></div>'
+    + '</select>'
+    + '<input type="hidden" id="custom-spot" value="'+(state.customSpot||'')+'">'
+    + '</div>'
     + '<div class="form-row"><div class="form-group"><label class="form-label">日期</label><input type="date" class="form-input" id="catch-date" value="'+today+'" max="'+today+'" onchange="onDateChange()"></div><div class="form-group"><label class="form-label">時間</label><input type="time" class="form-input" id="catch-time" value="'+nowTime+'" onchange="onDateChange()"></div></div>'
     + '<div id="astro-info" class="astro-card"></div>'
     + '<div class="form-row"><div class="form-group"><label class="form-label">釣法</label><select class="form-select" id="catch-method" onchange="onMethodChange(this.value)">'+FISHING_METHODS.map(m=>'<option value="'+m+'"'+(state.selectedMethod===m?' selected':'')+'>'+m+'</option>').join('')+'</select><input type="text" class="form-input" id="custom-method" placeholder="輸入釣法名稱..." value="'+(state.customMethod||'')+'" oninput="state.customMethod=this.value" style="margin-top:8px;display:'+(state.selectedMethod==='其他'?'block':'none')+';"></div><div class="form-group"><label class="form-label">釣餌</label><select class="form-select" id="catch-bait" onchange="onBaitChange(this.value)">'+BAIT_TYPES.map(b=>'<option value="'+b+'"'+(state.selectedBait===b?' selected':'')+'>'+b+'</option>').join('')+'</select><input type="text" class="form-input" id="custom-bait" placeholder="輸入釣餌名稱..." value="'+(state.customBait||'')+'" oninput="state.customBait=this.value" style="margin-top:8px;display:'+(state.selectedBait==='其他'?'block':'none')+';"></div></div>'
@@ -1345,6 +1361,8 @@ function renderRecordView() {
     + '<button class="btn btn-primary" onclick="submitCatch()">送出魚獲記錄</button></div>';
   // Route A1: 表單渲染後初始化 astro 顯示（用預設日期時間）
   setTimeout(() => { try { onDateChange(); } catch(e) { console.warn('astro init failed', e); } }, 0);
+  // Route L+: 表單打開時自動觸發定位（不需用戶手動）
+  setTimeout(() => { try { getCurrentLocation(); } catch(e) { console.warn('auto gps trigger failed', e); } }, 500);
   // Route K: 渲染智能揀魚種 UI（Top 8 by 使用次數 + 摺疊展開）
   renderSpeciesSelector();
 }
@@ -1623,9 +1641,13 @@ function updateCatchTidePreview(spot, dateStr, timeStr) {
 function getCurrentLocation() {
   const btn = document.getElementById('gps-btn');
   const status = document.getElementById('gps-status');
+  const titleEl = document.querySelector('.gps-auto-title');
+  const box = document.getElementById('gps-auto-box');
   if (!navigator.geolocation) {
-    status.textContent = '瀏覽�器不支援定位';
+    status.textContent = '瀏覽器不支援定位';
     status.className = 'gps-status error';
+    if (titleEl) titleEl.textContent = '❌ 瀏覽器不支援定位';
+    if (box) box.classList.add('error');
     return;
   }
   btn.disabled = true;
@@ -1633,10 +1655,11 @@ function getCurrentLocation() {
   btn.textContent = '⏳ 定位中...';
   status.textContent = '正在取得位置...';
   status.className = 'gps-status';
+  if (titleEl) titleEl.textContent = '📡 GPS 自動識別中...';
+  if (box) box.classList.add('loading');
 
   navigator.geolocation.getCurrentPosition(
     (pos) => {
-      // 預設模糊化到 3 位小數 ≈ 110 公尺（保護隱私）
       const rawLat = pos.coords.latitude;
       const rawLng = pos.coords.longitude;
       const accuracy = Math.round(pos.coords.accuracy);
@@ -1650,9 +1673,11 @@ function getCurrentLocation() {
       document.getElementById('catch-accuracy').value = accuracy;
       btn.disabled = false;
       btn.classList.remove('loading');
-      btn.textContent = '✓ 已取得位置';
+      btn.textContent = '🔄 重新定位';
       status.className = 'gps-status success';
-      status.innerHTML = '✓ 已記錄 <span class="gps-accuracy">（精度 ±' + accuracy + ' 公尺，已模糊化至約 110m）</span><br><span class="gps-detect-status">🔍 正在自動識別釣點...</span>';
+      status.innerHTML = '✓ 已記錄 GPS（精度 ±' + accuracy + 'm，已模糊化至約 110m）<br><span class="gps-detect-status">🔍 正在自動識別釣點...</span>';
+      if (titleEl) titleEl.textContent = '🔍 正在識別釣點...';
+      if (box) box.classList.remove('loading');
       // Route L: 三層回退自動識別釣點
       autoDetectSpot(fuzzedLat, fuzzedLng).then(result => {
         const detectEl = status.querySelector('.gps-detect-status');
@@ -1661,36 +1686,51 @@ function getCurrentLocation() {
           detectEl.innerHTML = '🎯 自動匹配：<b>' + result.spot + '</b>（距離 ' + result.distance + 'm）';
           detectEl.className = 'gps-detect-status success';
           selectSpot(result.spot);
+          if (titleEl) titleEl.innerHTML = '🎯 <b>' + result.spot + '</b>';
+          if (box) { box.classList.remove('error','loading'); box.classList.add('success'); }
         } else if (result.type === 'local-warn') {
-          detectEl.innerHTML = '⚠️ 最近：<b>' + result.spot + '</b>（' + result.distance + 'm，請確認是否準確）';
+          detectEl.innerHTML = '⚠️ 最近：<b>' + result.spot + '</b>（' + result.distance + 'm，請確認）';
           detectEl.className = 'gps-detect-status warn';
           selectSpot(result.spot);
+          if (titleEl) titleEl.innerHTML = '⚠️ ' + result.spot + '（遠）';
+          if (box) { box.classList.remove('error','loading'); box.classList.add('warn'); }
         } else if (result.type === 'nominatim') {
-          detectEl.innerHTML = '📍 已識別：<b>' + result.spot + '</b>（已填入備註欄，可修改）';
+          detectEl.innerHTML = '📍 已識別：<b>' + result.spot + '</b>';
           detectEl.className = 'gps-detect-status success';
           state.customSpot = result.spot;
           const customInput = document.getElementById('custom-spot');
           if (customInput) customInput.value = result.spot;
+          state.selectedSpot = '其他';
+          if (titleEl) titleEl.innerHTML = '📍 ' + result.spot;
+          if (box) { box.classList.remove('error','loading'); box.classList.add('success'); }
         } else {
-          detectEl.innerHTML = '📍 無法自動識別（離最近釣點 ' + (result.distance >= 1000 ? (result.distance/1000).toFixed(1) + 'km' : result.distance + 'm') + '），請手動選擇';
+          detectEl.innerHTML = '📍 無法識別（離最近 ' + (result.distance >= 1000 ? (result.distance/1000).toFixed(1) + 'km' : result.distance + 'm') + '）';
           detectEl.className = 'gps-detect-status muted';
+          state.selectedSpot = '其他';
+          if (titleEl) titleEl.innerHTML = '📍 其他釣點';
+          if (box) { box.classList.remove('error','loading'); box.classList.add('muted'); }
         }
       }).catch(e => {
         console.warn('autoDetect failed', e);
         const detectEl = status.querySelector('.gps-detect-status');
-        if (detectEl) { detectEl.textContent = '⚠️ 自動識別失敗，請手動選擇釣點'; detectEl.className = 'gps-detect-status warn'; }
+        if (detectEl) { detectEl.textContent = '⚠️ 自動識別失敗，已預設為「其他」'; detectEl.className = 'gps-detect-status warn'; }
+        state.selectedSpot = '其他';
+        if (titleEl) titleEl.innerHTML = '⚠️ 識別失敗';
       });
     },
     (err) => {
       btn.disabled = false;
       btn.classList.remove('loading');
-      btn.textContent = '📍 使用當前位置';
+      btn.textContent = '📍 取得當前位置';
       let msg = '無法取得位置';
       if (err.code === 1) msg = '已拒絕位置權限';
       else if (err.code === 2) msg = '位置不可用';
       else if (err.code === 3) msg = '取得位置逾時';
       status.textContent = msg;
       status.className = 'gps-status error';
+      if (titleEl) titleEl.textContent = '❌ ' + msg;
+      if (box) { box.classList.remove('loading'); box.classList.add('error'); }
+      state.selectedSpot = '其他';
       toast(msg);
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }

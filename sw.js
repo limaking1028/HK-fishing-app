@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v62';  // bump: GPS 三層自動識別釣點 — Haversine + Nominatim + 緩存
+const CACHE = 'hk-fishing-v63';  // bump: 釣點改為完全自動 — 表單打開自動 GPS,隱藏手動選擇器
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
 ];
