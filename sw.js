@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v83';  // bump: 潮汐卡片新增「未來 5 天」潮差+高低潮預覽
+const CACHE = 'hk-fishing-v84';  // bump: 天氣卡加 HKO 蒲福風級 badge
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js'  // Route L+

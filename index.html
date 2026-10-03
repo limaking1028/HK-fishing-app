@@ -903,9 +903,19 @@ button { touch-action: manipulation; }
   .weather-card-est { font-size: 10px; color: #b45309; background: #fef3c7; padding: 2px 6px; border-radius: 5px; font-weight: 700; }
   .weather-card-now { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px dashed #e5e7eb; }
   .weather-card-icon { font-size: 30px; line-height: 1; }
+  .weather-card-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .weather-card-main-l { min-width: 0; }
   .weather-card-temp { font-size: 26px; font-weight: 800; color: var(--dark); line-height: 1; }
   .weather-card-temp-unit { font-size: 13px; color: var(--gray-4); font-weight: 600; margin-left: 2px; }
   .weather-card-desc { font-size: 11px; color: var(--gray-5); margin-top: 2px; }
+  .weather-card-wind {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 4px 8px; border-radius: 8px;
+    background: #f0f9ff; border: 1.2px solid #e0f2fe;
+    min-width: 56px;
+  }
+  .weather-card-wind-lvl { font-size: 11px; font-weight: 800; line-height: 1; }
+  .weather-card-wind-name { font-size: 10px; font-weight: 700; margin-top: 1px; }
   .weather-card-score {
     text-align: center; padding: 6px 10px; border-radius: 10px;
     min-width: 60px;
@@ -3760,6 +3770,7 @@ function renderWeatherCards(view, results) {
     const scoreObj = window.weatherLib.getFishingWeatherScore(w);
     const wcInfo = window.weatherLib.weatherCodeInfo(w.weatherCode);
     const wc = window.weatherLib.windCompass(w.windDir || 0);
+    const bf = window.weatherLib.beaufortLevel(w.windSpeed || 0);
     const sparkline = window.weatherLib.windSparklineSvg(r.data.hours, 280, 70);
     // 整理 reasons 為短描述（只頭 3 條）
     const reasonsShort = scoreObj.reasons.slice(0, 3).map(r => `<div>${r.icon} ${escapeHtml(r.text)}</div>`).join('');
@@ -3779,8 +3790,14 @@ function renderWeatherCards(view, results) {
       <div class="weather-card-now">
         <div class="weather-card-icon">${wcInfo.icon}</div>
         <div class="weather-card-main">
-          <div class="weather-card-temp">${w.temp !== null ? w.temp.toFixed(1) : '—'}<span class="weather-card-temp-unit">°C</span></div>
-          <div class="weather-card-desc">${wcInfo.label} · ${wcInfo.label === '晴' ? '☀️' : ''}${wcInfo.label === '多雲' ? '⛅' : ''}</div>
+          <div class="weather-card-main-l">
+            <div class="weather-card-temp">${w.temp !== null ? w.temp.toFixed(1) : '—'}<span class="weather-card-temp-unit">°C</span></div>
+            <div class="weather-card-desc">${wcInfo.label} · ${wcInfo.label === '晴' ? '☀️' : ''}${wcInfo.label === '多雲' ? '⛅' : ''}</div>
+          </div>
+          <div class="weather-card-wind" style="background:${bf.color}1a;border-color:${bf.color};">
+            <div class="weather-card-wind-lvl" style="color:${bf.color};">${bf.level} 級</div>
+            <div class="weather-card-wind-name" style="color:${bf.color};">${bf.name}</div>
+          </div>
         </div>
         <div class="weather-card-score" style="background:${scoreObj.bg};color:${scoreObj.color};border:1.5px solid ${scoreObj.color};">
           <div class="weather-card-score-val">${scoreObj.score}</div>
@@ -4395,7 +4412,7 @@ function setupGlobalHandlers() {
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=v83').catch(()=>{});
+    navigator.serviceWorker.register('sw.js?v=v84').catch(()=>{});
   }
   checkSharedCatch();
   renderRecordView();
