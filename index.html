@@ -1416,16 +1416,18 @@ function getCollectedSpecies() {
     .sort((a, b) => b.count - a.count);
 }
 
-// 取得全部魚種（pinned 置頂 + 其他按 count desc，count=0 排最後）
+// 取得全部魚種（pinned 置頂 + 其他按 count desc，count=0 排最後，「其他」永遠排最後）
 function getAllSpecies() {
   const counts = getSpeciesCounts();
   const pinnedNames = new Set(state.pinnedSpecies || []);
   const items = FISH_SPECIES
-    .filter(f => !f.custom)  // 排除「其他」自訂
     .map((f, idx) => ({ idx, f, count: counts[f.name] || 0, pinned: pinnedNames.has(f.name) }));
-  // 排序：pinned first → count desc → 維持原順序（首次出現）
+  // 排序:pinned first → 自訂(custom)永遠最後 → count desc → 維持原順序
   return items.sort((a, b) => {
     if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    const aCustom = a.f.custom ? 1 : 0;
+    const bCustom = b.f.custom ? 1 : 0;
+    if (aCustom !== bCustom) return aCustom - bCustom;  // 自訂永遠排最後
     if (a.count !== b.count) return b.count - a.count;
     return 0;
   });
