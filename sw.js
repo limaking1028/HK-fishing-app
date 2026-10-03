@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v85';  // bump: CartoDB 從 layer control 隱藏，改做 MapTiler 緊急 fallback（5 errors trigger）
+const CACHE = 'hk-fishing-v86';  // bump: 隱藏「啟用繁體中文」按鈕（App 已內建 default key）
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js'  // Route L+

@@ -3486,7 +3486,7 @@ function renderMapView() {
     + '<div class="map-overlay"><div class="map-overlay-title">🗺️ 釣點分佈<span class="map-overlay-close" onclick="closeMapOverlay()">×</span></div>'
     + '<div class="map-stats"><span>📍 已記錄 <span class="map-stat-value">'+gpsCatches.length+'</span> 個 GPS 點</span>'
     + '<span>🐟 共 <span class="map-stat-value">'+(state.catches||[]).length+'</span> 條魚</span>'
-    + (hasMapTilerKey ? '' : '<button class="btn-mini" onclick="setMapTilerKey()" style="margin-left:auto;background:var(--orange);color:white;border:none;padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;">+ 啟用繁體中文</button>')
+    + (hasMapTilerKey ? '' : '')  // 自訂 key 按鈕已隱藏（App 已內建 DEFAULT_MAPTILER_KEY）；如需設定，console 跑 setMapTilerKey()
     + '</div></div>'
     + '<div class="map-legend"><div class="map-legend-item"><div class="map-legend-dot" style="background:#f97316"></div>我的魚獲</div>'
     + '<div class="map-legend-item"><div class="map-legend-dot" style="background:#0d9488"></div>釣友的魚獲</div>'
@@ -4427,7 +4427,7 @@ function setupGlobalHandlers() {
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=v85').catch(()=>{});
+    navigator.serviceWorker.register('sw.js?v=v86').catch(()=>{});
   }
   checkSharedCatch();
   renderRecordView();
