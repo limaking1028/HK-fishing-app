@@ -476,19 +476,15 @@
   .lb-value .unit { font-size: 11px; color: var(--gray-4); }
   .lb-item.mine { background: linear-gradient(135deg, #fff4e8, #ffe8d8); border-left: 4px solid var(--orange); box-shadow: 0 2px 8px rgba(255,107,53,0.15); }
   .lb-item.mine .lb-username { color: var(--orange); }
-  /* 第一名「全港霸主」特別樣式 — table 佈局 */
-  .lb-item-champion { display: table !important; width: 100% !important; table-layout: fixed; border-collapse: separate; border-spacing: 0; background: linear-gradient(135deg, #fff8e1 0%, #ffeaa7 50%, #ffd98e 100%) !important; border: 2px solid #f5a623 !important; box-shadow: 0 6px 20px rgba(245,166,35,0.35), 0 0 0 1px rgba(245,166,35,0.2) !important; padding: 12px 14px !important; margin-bottom: 0 !important; position: relative; box-sizing: border-box !important; border-radius: 12px 12px 0 0 !important; }
-  .lb-item-champion::before { content: '✨'; position: absolute; top: -8px; right: -8px; font-size: 28px; opacity: 0.4; transform: rotate(15deg); pointer-events: none; z-index: 0; }
-  .lb-item-champion::after { content: '✨'; position: absolute; bottom: -8px; left: -8px; font-size: 22px; opacity: 0.3; transform: rotate(-20deg); pointer-events: none; z-index: 0; }
-  .lb-item-champion > * { display: table-cell !important; vertical-align: middle; padding: 0 6px; position: relative; z-index: 1; }
-  .lb-item-champion .lb-rank { width: 44px !important; min-width: 44px !important; max-width: 44px !important; text-align: center; }
-  .lb-item-champion .lb-rank.gold { width: 38px !important; height: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 0 !important; background: linear-gradient(135deg, #f5a623, #e8941a); color: white; border-radius: 50%; display: flex !important; align-items: center; justify-content: center; font-size: 17px; font-weight: 800; box-shadow: 0 2px 8px rgba(245,166,35,0.5), 0 0 0 3px rgba(245,166,35,0.15); margin: 0 auto; }
-  .lb-item-champion .lb-user { width: auto !important; min-width: 90px !important; max-width: 180px !important; text-align: left; font-size: 14px; font-weight: 600; color: var(--dark); }
-  .lb-champion-badge { width: auto !important; text-align: center !important; white-space: nowrap !important; font-size: 12px; font-weight: 800; color: #b06820; padding: 6px 14px; letter-spacing: 0.5px; background: rgba(255,255,255,0.55); border: 1.5px solid rgba(245,166,35,0.7); border-radius: 20px; text-shadow: 0 1px 0 rgba(255,255,255,0.6); animation: championGlow 2.5s ease-in-out infinite; margin: 0 auto !important; }
+  /* 第一名「全港霸主」特別樣式 — 沿用 .lb-item 的 flex 佈局，徽章和 detail 用 flex-basis:100% 換行 */
+  .lb-item-champion { flex-wrap: wrap; gap: 6px; background: linear-gradient(135deg, #fff8e1 0%, #ffeaa7 50%, #ffd98e 100%) !important; border: 2px solid #f5a623; box-shadow: 0 6px 20px rgba(245,166,35,0.35), 0 0 0 1px rgba(245,166,35,0.2); padding: 12px 14px 10px !important; margin-bottom: 12px !important; position: relative; }
+  .lb-item-champion::before { content: '✨'; position: absolute; top: -8px; right: -8px; font-size: 28px; opacity: 0.4; transform: rotate(15deg); pointer-events: none; }
+  .lb-item-champion::after { content: '✨'; position: absolute; bottom: -8px; left: -8px; font-size: 22px; opacity: 0.3; transform: rotate(-20deg); pointer-events: none; }
+  .lb-item-champion .lb-rank { width: 38px; height: 38px; font-size: 17px; box-shadow: 0 2px 8px rgba(245,166,35,0.5), 0 0 0 3px rgba(245,166,35,0.15); }
+  .lb-champion-badge { flex-basis: 100%; text-align: center; font-size: 13px; font-weight: 800; color: #b06820; padding: 6px 12px; letter-spacing: 0.5px; background: rgba(255,255,255,0.55); border: 1.5px solid rgba(245,166,35,0.7); border-radius: 20px; white-space: nowrap; text-shadow: 0 1px 0 rgba(255,255,255,0.6); animation: championGlow 2.5s ease-in-out infinite; margin: 2px 0; }
   @keyframes championGlow { 0%, 100% { text-shadow: 0 1px 0 rgba(255,255,255,0.6), 0 0 4px rgba(245,166,35,0.3); } 50% { text-shadow: 0 1px 0 rgba(255,255,255,0.6), 0 0 12px rgba(245,166,35,0.7); } }
-  .lb-item-champion .lb-value { width: auto !important; min-width: 70px !important; text-align: right !important; color: #b06820 !important; font-size: 18px; font-weight: 800; }
-  .lb-item-champion .lb-value .unit { font-size: 11px; color: var(--gray-4); }
-  .lb-champion-detail { display: block !important; width: 100% !important; max-width: 100% !important; background: linear-gradient(135deg, #fff8e1 0%, #ffeaa7 50%, #ffd98e 100%) !important; border: 2px solid #f5a623 !important; border-top: 1px dashed rgba(245,166,35,0.5) !important; border-radius: 0 0 12px 12px !important; padding: 10px 14px !important; font-size: 12px !important; color: var(--gray-5) !important; margin: 0 0 12px !important; box-shadow: 0 6px 20px rgba(245,166,35,0.35) !important; position: relative; word-break: keep-all !important; overflow-wrap: normal !important; box-sizing: border-box !important; }
+  .lb-item-champion .lb-value { color: #b06820; }
+  .lb-item-champion .lb-detail { flex-basis: 100%; text-align: center; margin: 2px 0 0; }
   .rank-badge { background: linear-gradient(135deg, var(--gold), #e8941a); color: white; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; white-space: nowrap; box-shadow: 0 1px 3px rgba(229,148,26,0.3); }
   .spot-card { background: var(--white); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; box-shadow: var(--shadow); }
   .spot-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
@@ -2717,19 +2713,27 @@ function renderLeaderboardView() {
       if (state.lbType==='biggest') { value=item.weight+'<span class="unit">斤</span>'; detail=item.species+' · '+item.spot+' · '+daysAgo(item.date); }
       else if (state.lbType==='quantity') { value=item.count+'<span class="unit">條</span>'; detail=item.speciesCount+' 種魚 · '+item.spotCount+' 個釣點'; }
       else { value=item.speciesCount+'<span class="unit">種</span>'; detail='最大 '+item.biggestWeight+' 斤 · 釣過 '+item.spotCount+' 個釣點'; }
-      // 第一名「全港霸主」徽章 + 詳情移至第二行
-      let championInline = '';
-      let detailBlock = '';
+      // 第一名「全港霸主」：用原本 flex 結構，只加金色背景 + 徽章跨行 + detail 跨行
+      let championTitle = '';
+      if (state.lbType === 'biggest') championTitle = '全港重量霸主';
+      else if (state.lbType === 'quantity') championTitle = '全港魚獲霸主';
+      else if (state.lbType === 'species') championTitle = '全港魚種霸主';
+      const meTag = item.isMine?' <span style="font-size:11px;color:var(--orange)">（我）</span>':'';
       if (rank === 1) {
-        let championTitle = '';
-        if (state.lbType === 'biggest') championTitle = '全港重量霸主';
-        else if (state.lbType === 'quantity') championTitle = '全港魚獲霸主';
-        else if (state.lbType === 'species') championTitle = '全港魚種霸主';
-        championInline = '<div class="lb-champion-badge">👑 '+championTitle+' 👑</div>';
-        detailBlock = '<div class="lb-champion-detail">'+detail+'</div>';
+        listHtml += '<div class="lb-item lb-item-champion'+(item.isMine?' mine':'')+'">'
+          +'<div class="lb-rank '+rankClass+'">'+rank+'</div>'
+          +'<div class="lb-user"><div class="lb-username">'+item.user+meTag+'</div></div>'
+          +'<div class="lb-value">'+value+'</div>'
+          +'<div class="lb-champion-badge">👑 '+championTitle+' 👑</div>'
+          +'<div class="lb-detail">'+detail+'</div>'
+          +'</div>';
+      } else {
+        listHtml += '<div class="lb-item'+(item.isMine?' mine':'')+'">'
+          +'<div class="lb-rank '+rankClass+'">'+rank+'</div>'
+          +'<div class="lb-user"><div class="lb-username">'+item.user+meTag+'<div class="lb-detail">'+detail+'</div></div></div>'
+          +'<div class="lb-value">'+value+'</div>'
+          +'</div>';
       }
-      const userBlock = '<div class="lb-user"><div class="lb-username">'+item.user+(item.isMine?' <span style="font-size:11px;color:var(--orange)">（我）</span>':'')+(rank===1?'':'<div class="lb-detail">'+detail+'</div>')+'</div>';
-      listHtml += '<div class="lb-item'+(item.isMine?' mine':'')+' '+(rank===1?'lb-item-champion':'')+'"><div class="lb-rank '+rankClass+'">'+rank+'</div>'+userBlock+championInline+'<div class="lb-value">'+value+'</div></div>'+detailBlock;
     });
   }
   view.innerHTML = '<div class="lb-tabs"><button class="lb-tab '+(state.lbType==='biggest'?'active':'')+'" onclick="setLbType(\'biggest\')">重量王者</button><button class="lb-tab '+(state.lbType==='quantity'?'active':'')+'" onclick="setLbType(\'quantity\')">數量王者</button><button class="lb-tab '+(state.lbType==='species'?'active':'')+'" onclick="setLbType(\'species\')">品種王者</button></div>'

@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v59';  // bump: 第一名卡片改 table 佈局（最穩定）
+const CACHE = 'hk-fishing-v60';  // bump: 排行榜冠軍改方案 X — flex + flex-basis:100% 換行
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
 ];
