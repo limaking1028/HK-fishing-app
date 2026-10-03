@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v64';  // bump: 自動定位按鈕文字改為「啟用自動定位」(iOS 政策需用戶操作觸發)
+const CACHE = 'hk-fishing-v65';  // bump: 自訂魚種(其他)不加入圖鑑、不觸發解鎖慶祝
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
 ];

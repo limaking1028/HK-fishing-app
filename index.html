@@ -259,6 +259,8 @@
     border-color: var(--teal);
     background: var(--teal-light);
   }
+  .sp-card.custom-species { border: 1.5px dashed #f5a623 !important; background: linear-gradient(135deg, #fff8e1, #ffeaa7); }
+  .sp-card.custom-species .sp-name::after { content: ' (自訂)'; font-size: 9px; color: #b06820; font-weight: 500; }
   .sp-card:active { transform: scale(0.95); }
   .sp-icon {
     font-size: 28px;
@@ -1484,7 +1486,7 @@ function renderSpeciesSelector() {
     const iconHtml = f.photo
       ? fishPhotoImg(f.photo, f.icon, 'sp-icon-img').replace('alt=""', 'alt="' + escapeHtml(f.name) + '"')
       : `<div class="sp-icon-emoji">${f.icon}</div>`;
-    return `<div class="sp-card ${isSelected ? 'selected' : ''} ${isPinned ? 'pinned' : ''}" onclick="${clickAction}" data-species="${escapeHtml(f.name)}">
+    return `<div class="sp-card ${isSelected ? 'selected' : ''} ${isPinned ? 'pinned' : ''} ${isCustom ? 'custom-species' : ''}" onclick="${clickAction}" data-species="${escapeHtml(f.name)}">
       <div class="sp-pin-toggle ${isPinned ? 'active' : ''}" onclick="event.stopPropagation();togglePinSpecies('${escapeHtml(f.name)}')" title="${isPinned ? '取消收藏' : '加入收藏'}">${isPinned ? '⭐' : '☆'}</div>
       <div class="sp-icon">${iconHtml}</div>
       <div class="sp-name">${escapeHtml(f.name)}</div>
@@ -1524,9 +1526,13 @@ function renderSpeciesSelector() {
     html += '</div>';
   }
 
-  // 自訂魚種輸入（始終保留「其他」選項）
+  // 自訂魚種輸入（始終保留「其他」選項 — 不加入圖鑑）
   if (state.selectedSpecies === FISH_SPECIES.length - 1) {
-    html += '<input type="text" class="form-input" id="custom-species" placeholder="輸入魚種名稱..." value="' + (state.customSpecies || '') + '" oninput="state.customSpecies=this.value" style="margin-top:10px;">';
+    html += '<div style="background:#fff8e1;border:1.5px dashed #f5a623;border-radius:8px;padding:10px 12px;margin-top:10px;font-size:12px;color:#8a5a1c;line-height:1.5;">'
+      + '📝 <b>自訂魚種</b> — 你輸入的名稱會跟這次魚獲一起保存，<br>'
+      + '但 <b>不會加入「魚種圖鑑」</b>，也不會觸發解鎖慶祝。'
+      + '</div>';
+    html += '<input type="text" class="form-input" id="custom-species" placeholder="輸入魚種名稱（例如：象拔蚌）..." value="' + (state.customSpecies || '') + '" oninput="state.customSpecies=this.value" style="margin-top:8px;">';
   }
 
   container.innerHTML = html;
@@ -1875,9 +1881,10 @@ function submitCatch() {
   if (photoEl) photoEl.value = '';
   const previewEl = document.getElementById('photo-preview-container');
   if (previewEl) previewEl.innerHTML = '';
-  // 解鎖偵測：如果這是用戶第一次釣到這個魚種，慶祝
+  // 解鎖偵測:只對圖鑑內的魚種慶祝（自訂魚種不會加入圖鑑）
+  const isInEncyclopedia = FISH_SPECIES.some(f => !f.custom && f.name === speciesName);
   const prevCatches = state.catches.filter(c => c.isMine && c.species === speciesName && c.id !== catchItem.id);
-  if (prevCatches.length === 0) {
+  if (isInEncyclopedia && prevCatches.length === 0) {
     setTimeout(() => showToast('🎉 解鎖新魚種：'+speciesName+'！'), 400);
   }
   // Route H: 若有進行中行程，更新 banner 統計
@@ -3543,14 +3550,8 @@ function getPokedexHTML() {
     if (c.date > s.lastDate) s.lastDate = c.date;
     s.catches.push(c);
   });
-  // 所有魚種（不含「其他」選項）
+  // 所有魚種（不含「其他」選項）— 自訂魚種永遠不會加入圖鑑
   const allSpecies = FISH_SPECIES.filter(f => !f.custom);
-  // 加上用戶自訂的魚種（不在預設清單裡的）
-  Object.keys(speciesStats).forEach(name => {
-    if (!allSpecies.find(f => f.name === name)) {
-      allSpecies.push({ name, icon: '🐟', sci: '自訂', habitat: '', desc: '用戶自訂魚種', rarity: 'common', custom: true });
-    }
-  });
   const caughtCount = allSpecies.filter(f => speciesStats[f.name]).length;
   const total = allSpecies.length;
   const pct = total > 0 ? Math.round(caughtCount / total * 100) : 0;
