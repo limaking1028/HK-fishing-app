@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v56';  // bump: 修復 flex overflow:hidden 導致 Safari 徽章+詳情被擠壓豎排
+const CACHE = 'hk-fishing-v57';  // bump: 徽章加 min-width 180px + detail !important 鎖寬度
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
 ];
