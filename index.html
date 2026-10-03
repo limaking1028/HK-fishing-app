@@ -981,6 +981,36 @@ button { touch-action: manipulation; }
       <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
         <button class="btn btn-outline" style="width:100%;color:#dc2626;border-color:#dc2626;" onclick="confirmClearAll()">🗑️ 清除所有記錄</button>
       </div>
+      <!-- Route M: 隱私設定（隨時可改變主意）-->
+      <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
+        <div style="font-size:13px;color:var(--gray-5);margin-bottom:8px;font-weight:600;">📊 匿名統計(改進產品)</div>
+        <div style="font-size:12px;color:var(--gray-5);margin-bottom:10px;line-height:1.5;">
+          同意後,你的魚獲會被加上<span style="color:var(--gray-6);">潮汐/時間/月相/天氣</span>等隱性維度,用於日後個人化漁情洞察。
+          <br>原始資料仍只有你看到,可隨時撤回。
+        </div>
+        <button id="analytics-toggle-btn" class="btn btn-outline" style="width:100%;" onclick="toggleAnalyticsConsent()">
+          <span id="analytics-toggle-label">讀取中…</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Route M: 首次開啟的隱私同意彈窗(置中、不可關閉強制選擇) -->
+  <div class="modal-overlay" id="consent-modal" style="align-items:center;">
+    <div class="modal-sheet" style="border-radius:16px;max-width:420px;margin:0 auto;">
+      <div class="modal-title">📊 幫助改進產品?</div>
+      <div style="font-size:14px;color:var(--gray-6);line-height:1.65;margin-bottom:18px;">
+        你的釣魚記錄可以幫我們發現「什麼條件下最容易上魚」,將來回饋給所有釣友。
+      </div>
+      <div style="background:var(--gray-1);border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:12.5px;color:var(--gray-5);line-height:1.6;">
+        <div style="margin-bottom:6px;"><strong style="color:var(--gray-6);">✓ 會收集:</strong> 時間、月相、潮汐、天氣、GPS 距離</div>
+        <div style="margin-bottom:6px;"><strong style="color:var(--gray-6);">✗ 不會收集:</strong> 你的名字、照片、備註、聯絡方式</div>
+        <div><strong style="color:var(--gray-6);">🔒 隨時可改:</strong> 設定 → 改名字 → 下方開關</div>
+      </div>
+      <div class="modal-btns" style="flex-direction:column;gap:10px;">
+        <button class="btn btn-primary" style="background:var(--teal);color:white;" onclick="setAnalyticsConsentAndClose(true)">同意(推薦)</button>
+        <button class="btn btn-outline" onclick="setAnalyticsConsentAndClose(false)">只記基本資料</button>
+      </div>
     </div>
   </div>
 
@@ -1221,6 +1251,7 @@ async function dbAddCatch(c) {
     trip_id: c.tripId || c.trip_id || null,  // Route H: 行程關聯（nullable，向後相容）
     photo_url: photoUrl,
     stats: c.stats || null,  // Route L+: 統計維度 JSONB
+    opted_in_analytics: c.optedInAnalytics || false,  // Route M: 同意旗標稽核軌跡
   };
   console.log('[dbAddCatch] payload:', payload);
   const { data, error } = await sb.from('catches').insert(payload).select().single();
@@ -2121,32 +2152,36 @@ function submitCatch() {
     locationAccuracy: state.catchAccuracy || null, locationSource: state.catchLat ? 'gps' : null,
     tripId: state.activeTrip ? state.activeTrip.id : null,  // Route H: 帶入當前行程
     stats: null,  // Route L+: 統計維度數據（時間桶/潮汐/月相/太陽/地理/天氣），submitCatch 後異步填入
+    optedInAnalytics: getAnalyticsConsent(),  // Route M: 帶入當下同意狀態(稽核軌跡)
   };
+  // Route M: 未同意就不做 enrichment(預設 false,GDPR 友善)
   // Route L+: 同步 enrichment（時間/月相/太陽/潮汐/地理）— 不阻塞送出，失敗不影響
-  try {
-    if (window.catchStatsLib) {
-      catchItem.stats = window.catchStatsLib.enrich({
-        dateStr: catchItem.date,
-        timeStr: catchItem.time,
-        lat: catchItem.latitude,
-        lng: catchItem.longitude,
-        spot: catchItem.spot
-      });
-    }
-  } catch (e) { console.warn('[stats enrichment failed]', e); }
-  // Route L+: 異步天氣 enrichment（不阻塞，失敗設為 unavailable）
-  if (window.catchStatsLib && catchItem.latitude != null && catchItem.longitude != null) {
-    window.catchStatsLib.enrichWeatherAsync(
-      catchItem.stats = catchItem.stats || {}, catchItem.latitude, catchItem.longitude, catchItem.date
-    ).then(stats => {
-      // 更新雲端 + 本地的 stats
-      catchItem.stats = stats;
-      if (SB_ENABLED && state.user && catchItem.id) {
-        sb.from('catches').update({ stats: stats }).eq('id', catchItem.id)
-          .then(({ error }) => { if (error) console.warn('[stats 雲端更新失敗]', error); })
-          .catch(e => console.warn('[stats 雲端更新失敗]', e));
+  if (catchItem.optedInAnalytics) {
+    try {
+      if (window.catchStatsLib) {
+        catchItem.stats = window.catchStatsLib.enrich({
+          dateStr: catchItem.date,
+          timeStr: catchItem.time,
+          lat: catchItem.latitude,
+          lng: catchItem.longitude,
+          spot: catchItem.spot
+        });
       }
-    }).catch(e => console.warn('[stats weather async failed]', e));
+    } catch (e) { console.warn('[stats enrichment failed]', e); }
+    // Route L+: 異步天氣 enrichment（不阻塞，失敗設為 unavailable）
+    if (window.catchStatsLib && catchItem.latitude != null && catchItem.longitude != null) {
+      window.catchStatsLib.enrichWeatherAsync(
+        catchItem.stats = catchItem.stats || {}, catchItem.latitude, catchItem.longitude, catchItem.date
+      ).then(stats => {
+        // 更新雲端 + 本地的 stats
+        catchItem.stats = stats;
+        if (SB_ENABLED && state.user && catchItem.id) {
+          sb.from('catches').update({ stats: stats }).eq('id', catchItem.id)
+            .then(({ error }) => { if (error) console.warn('[stats 雲端更新失敗]', error); })
+            .catch(e => console.warn('[stats 雲端更新失敗]', e));
+        }
+      }).catch(e => console.warn('[stats weather async failed]', e));
+    }
   }
   state.catches.unshift(catchItem);
   state.catches.sort((a,b) => b.date.localeCompare(a.date));
@@ -3106,6 +3141,7 @@ function openNameDialog() {
   document.getElementById('name-input').value = getUserName();
   document.getElementById('name-modal').classList.add('show');
   setTimeout(() => document.getElementById('name-input').focus(), 300);
+  refreshAnalyticsToggleUI();  // Route M: 確保 toggle 顯示當前狀態
 }
 function closeNameDialog() { document.getElementById('name-modal').classList.remove('show'); }
 function saveName() {
@@ -3115,6 +3151,46 @@ function saveName() {
   closeNameDialog();
   renderAll();
   showToast('名稱已更新為「' + name + '」');
+}
+
+/* ===== Route M: 分析同意管理（PDPA/GDPR opt-in）===== */
+const ANALYTICS_CONSENT_KEY = 'hk-fishing-analytics-consent';  // 'yes' | 'no'
+function getAnalyticsConsent() {
+  return localStorage.getItem(ANALYTICS_CONSENT_KEY) === 'yes';
+}
+function setAnalyticsConsent(val) {
+  localStorage.setItem(ANALYTICS_CONSENT_KEY, val ? 'yes' : 'no');
+}
+function setAnalyticsConsentAndClose(val) {
+  setAnalyticsConsent(val);
+  closeConsentModal();
+  showToast(val ? '✓ 已開啟匿名統計(隨時可改)' : '✓ 已關閉匿名統計');
+}
+function toggleAnalyticsConsent() {
+  const next = !getAnalyticsConsent();
+  setAnalyticsConsent(next);
+  refreshAnalyticsToggleUI();
+  showToast(next ? '✓ 已開啟匿名統計' : '✓ 已關閉匿名統計');
+}
+function refreshAnalyticsToggleUI() {
+  const btn = document.getElementById('analytics-toggle-btn');
+  const label = document.getElementById('analytics-toggle-label');
+  if (!btn || !label) return;
+  const on = getAnalyticsConsent();
+  btn.style.background = on ? 'var(--teal)' : 'white';
+  btn.style.color = on ? 'white' : 'var(--gray-5)';
+  btn.style.borderColor = on ? 'var(--teal)' : 'var(--gray-3)';
+  label.textContent = on ? '✓ 已同意匿名統計' : '✗ 未同意(只存基本欄位)';
+}
+function maybeShowConsentModal() {
+  // 只在「從未做過選擇」時彈出;已選過的不再打擾
+  const v = localStorage.getItem(ANALYTICS_CONSENT_KEY);
+  if (v !== 'yes' && v !== 'no') {
+    document.getElementById('consent-modal').classList.add('show');
+  }
+}
+function closeConsentModal() {
+  document.getElementById('consent-modal').classList.remove('show');
 }
 function confirmClearAll() {
   if (!confirm('確定要清除所有記錄嗎？\n\n包括：你嘅魚獲、收藏嘅朋友魚獲、排行榜數據\n（你嘅名稱會保留）\n\n此操作不可撤銷！')) return;
@@ -4270,16 +4346,19 @@ function setupGlobalHandlers() {
   window.closeNameDialog = closeNameDialog;
   window.saveName = saveName;
   window.confirmClearAll = confirmClearAll;
+  window.setAnalyticsConsentAndClose = setAnalyticsConsentAndClose;  // Route M
+  window.toggleAnalyticsConsent = toggleAnalyticsConsent;            // Route M
   window.nativeShare = nativeShare;
   window.copyShareLink = copyShareLink;
   window.closeShareModal = closeShareModal;
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=v15').catch(()=>{});
+    navigator.serviceWorker.register('sw.js?v=v78').catch(()=>{});
   }
   checkSharedCatch();
   renderRecordView();
+  maybeShowConsentModal();  // Route M: 首次啟動彈同意窗(已選過的不再打擾)
 }
 
 /* ===== Event Delegation（避免 inline onclick 嘅 escape 陷阱）===== */
