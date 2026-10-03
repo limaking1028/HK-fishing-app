@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v81';  // bump: 修復登入後總釣魚時間顯示為 0（handleAuthSubmit 漏載入 trips）
+const CACHE = 'hk-fishing-v82';  // bump: 潮汐圖 X 軸由「+6時/+12時」改成實際時間 HH:MM
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js'  // Route L+
