@@ -575,6 +575,10 @@
   .gps-status.success { color: var(--teal-dark); font-weight: 600; }
   .gps-status.error { color: #dc2626; }
   .gps-accuracy { font-size: 11px; color: var(--gray-4); margin-top: 2px; }
+  .gps-detect-status { display: inline-block; margin-top: 4px; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+  .gps-detect-status.success { background: rgba(34, 197, 94, 0.12); color: #15803d; }
+  .gps-detect-status.warn { background: rgba(245, 158, 11, 0.15); color: #b45309; }
+  .gps-detect-status.muted { background: var(--gray-1); color: var(--gray-5); }
 
   /* ===== Map View ===== */
   .map-container { position: relative; height: calc(100vh - 200px); min-height: 360px; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
@@ -1003,15 +1007,15 @@ const FISH_SPECIES = [
   { name: '其他', icon: '🐟', custom: true, photo: 'photos/其他'},
 ];
 const FISHING_SPOTS = [
-  { name: '魚排' },
-  { name: '碼頭' },
-  { name: '離島' },
-  { name: '馬灣' },
-  { name: '大澳' },
-  { name: '石澳' },
-  { name: '大美督' },
-  { name: '港珠橋墩' },
-  { name: '流浮山蠔排' },
+  { name: '魚排', lat: 22.247, lng: 114.165 },
+  { name: '碼頭', lat: 22.285, lng: 114.157 },
+  { name: '離島', lat: 22.205, lng: 114.029 },
+  { name: '馬灣', lat: 22.305, lng: 114.000 },
+  { name: '大澳', lat: 22.247, lng: 113.857 },
+  { name: '石澳', lat: 22.244, lng: 114.243 },
+  { name: '大美督', lat: 22.483, lng: 114.243 },
+  { name: '港珠橋墩', lat: 22.286, lng: 113.939 },
+  { name: '流浮山蠔排', lat: 22.485, lng: 113.984 },
   { name: '其他', custom: true },
 ];
 const FISHING_METHODS = ['手絲','手竿','投竿','筏竿','岸釣','磯釣','前打','路亞','沉底','放流','船釣筏釣','其他'];
@@ -1620,7 +1624,7 @@ function getCurrentLocation() {
   const btn = document.getElementById('gps-btn');
   const status = document.getElementById('gps-status');
   if (!navigator.geolocation) {
-    status.textContent = '瀏覽器不支援定位';
+    status.textContent = '瀏覽�器不支援定位';
     status.className = 'gps-status error';
     return;
   }
@@ -1648,7 +1652,34 @@ function getCurrentLocation() {
       btn.classList.remove('loading');
       btn.textContent = '✓ 已取得位置';
       status.className = 'gps-status success';
-      status.innerHTML = '✓ 已記錄 <span class="gps-accuracy">（精度 ±' + accuracy + ' 公尺，已模糊化至約 110m）</span>';
+      status.innerHTML = '✓ 已記錄 <span class="gps-accuracy">（精度 ±' + accuracy + ' 公尺，已模糊化至約 110m）</span><br><span class="gps-detect-status">🔍 正在自動識別釣點...</span>';
+      // Route L: 三層回退自動識別釣點
+      autoDetectSpot(fuzzedLat, fuzzedLng).then(result => {
+        const detectEl = status.querySelector('.gps-detect-status');
+        if (!detectEl) return;
+        if (result.type === 'local') {
+          detectEl.innerHTML = '🎯 自動匹配：<b>' + result.spot + '</b>（距離 ' + result.distance + 'm）';
+          detectEl.className = 'gps-detect-status success';
+          selectSpot(result.spot);
+        } else if (result.type === 'local-warn') {
+          detectEl.innerHTML = '⚠️ 最近：<b>' + result.spot + '</b>（' + result.distance + 'm，請確認是否準確）';
+          detectEl.className = 'gps-detect-status warn';
+          selectSpot(result.spot);
+        } else if (result.type === 'nominatim') {
+          detectEl.innerHTML = '📍 已識別：<b>' + result.spot + '</b>（已填入備註欄，可修改）';
+          detectEl.className = 'gps-detect-status success';
+          state.customSpot = result.spot;
+          const customInput = document.getElementById('custom-spot');
+          if (customInput) customInput.value = result.spot;
+        } else {
+          detectEl.innerHTML = '📍 無法自動識別（離最近釣點 ' + (result.distance >= 1000 ? (result.distance/1000).toFixed(1) + 'km' : result.distance + 'm') + '），請手動選擇';
+          detectEl.className = 'gps-detect-status muted';
+        }
+      }).catch(e => {
+        console.warn('autoDetect failed', e);
+        const detectEl = status.querySelector('.gps-detect-status');
+        if (detectEl) { detectEl.textContent = '⚠️ 自動識別失敗，請手動選擇釣點'; detectEl.className = 'gps-detect-status warn'; }
+      });
     },
     (err) => {
       btn.disabled = false;
@@ -1664,6 +1695,61 @@ function getCurrentLocation() {
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
+}
+/* Route L: GPS → 釣點三層自動識別 */
+function haversineDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371e3; // 地球半徑（米）
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat/2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+function selectSpot(spotName) {
+  state.selectedSpot = spotName;
+  const sel = document.getElementById('catch-spot');
+  if (sel) {
+    sel.value = spotName;
+    onSpotChange(spotName);
+  }
+}
+async function autoDetectSpot(lat, lng) {
+  // 第一層：本地 Haversine 找最近
+  let closest = null, closestDist = Infinity;
+  FISHING_SPOTS.forEach(s => {
+    if (s.lat != null && s.lng != null && !s.custom) {
+      const d = haversineDistance(lat, lng, s.lat, s.lng);
+      if (d < closestDist) { closestDist = d; closest = s; }
+    }
+  });
+  if (closest && closestDist < 500) {
+    return { type: 'local', spot: closest.name, distance: Math.round(closestDist) };
+  }
+  if (closest && closestDist < 1000) {
+    return { type: 'local-warn', spot: closest.name, distance: Math.round(closestDist) };
+  }
+  // 第二層：Nominatim 反向地理編碼（帶緩存）
+  try {
+    const cacheKey = 'nominatim_' + lat + '_' + lng;
+    const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+    if (cached && Date.now() - cached.ts < 86400000) {  // 24h 緩存
+      return { type: 'nominatim', spot: cached.name, distance: closestDist };
+    }
+    const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&zoom=18&accept-language=zh-Hant', {
+      headers: { 'User-Agent': 'HK-Fishing-PWA/1.0 (educational; +https://limaking1028.github.io/HK-fishing-app)' }
+    });
+    if (r.ok) {
+      const data = await r.json();
+      const parts = (data.display_name || '').split(',').slice(0, 2);
+      const name = parts.join(',').trim();
+      if (name) {
+        localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), name }));
+        return { type: 'nominatim', spot: name, distance: closestDist };
+      }
+    }
+  } catch(e) { console.warn('nominatim reverse failed', e); }
+  // 第三層：保留其他 + GPS
+  return { type: 'none', distance: Math.round(closestDist) };
 }
 function previewPhoto(input) {
   const c = document.getElementById('photo-preview-container');
