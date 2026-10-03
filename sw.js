@@ -1,6 +1,7 @@
-const CACHE = 'hk-fishing-v76';  // bump: 統一觸控反饋（tap highlight 移除 + 全域 :active scale + 44px 觸控目標）
+const CACHE = 'hk-fishing-v77';  // bump: 魚獲 stats 自動 enrichment（時間桶/月相/太陽/潮汐/地理 + 異步天氣）
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
-  './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
+  './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
+  './lib/catchStats.js'  // Route L+
 ];
 
 self.addEventListener('install', e => {
