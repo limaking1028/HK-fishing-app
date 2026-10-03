@@ -1442,6 +1442,42 @@ function renderRecordView() {
     view.innerHTML = '<div class="success-screen"><div class="success-circle">✓</div><div class="success-title">魚獲已記錄！</div><div class="success-sub">你嘅紀錄已加入個人歷史同排行榜</div></div><button class="btn btn-share" data-action="share-last">📤 即時分享這條魚獲</button><button class="btn btn-primary mt-2" onclick="resetForm()">記錄下一條</button><button class="btn btn-outline mt-2" onclick="goToView(\'my\')">查看我的魚獲</button><button class="btn btn-outline mt-2" onclick="goToView(\'leaderboard\')">查看排行榜</button>';
     return;
   }
+  // Route H+: 行程中自動從 activeTrip 預填(用戶直接按「記錄」tab 都會自動帶入,不用每次按「加魚」)
+  if (state.activeTrip) {
+    const tripSpot = state.activeTrip.spot || '';
+    const mainSpot = tripSpot.split('（')[0].trim();
+    if (mainSpot && !state.selectedSpot) {
+      const isKnownSpot = FISHING_SPOTS.some(s => s.name === mainSpot);
+      if (isKnownSpot) {
+        state.selectedSpot = mainSpot;
+        state.customSpot = tripSpot.includes('（') ? tripSpot.split('（')[1].replace(/）/g,'').trim() : '';
+      } else {
+        state.selectedSpot = '其他';
+        state.customSpot = tripSpot;
+      }
+    }
+    if (state.activeTrip.method && !state.selectedMethod) {
+      state.selectedMethod = state.activeTrip.method;
+      const isCustomMethod = !FISHING_METHODS.includes(state.activeTrip.method);
+      if (isCustomMethod) {
+        state.selectedMethod = '其他';
+        state.customMethod = state.activeTrip.method;
+      }
+    }
+    if (state.activeTrip.bait && !state.selectedBait) {
+      state.selectedBait = state.activeTrip.bait;
+      const isCustomBait = !BAIT_TYPES.includes(state.activeTrip.bait);
+      if (isCustomBait) {
+        state.selectedBait = '其他';
+        state.customBait = state.activeTrip.bait;
+      }
+    }
+    if (state.activeTrip.latitude != null && state.catchLat == null) {
+      state.catchLat = state.activeTrip.latitude;
+      state.catchLng = state.activeTrip.longitude;
+      state.catchAccuracy = state.activeTrip.accuracy || null;
+    }
+  }
   const now = new Date();
   const today = now.toISOString().slice(0,10);
   const nowTime = now.toTimeString().slice(0,5);
@@ -1455,28 +1491,67 @@ function renderRecordView() {
     + '</div></div>'
     + '<div class="form-row"><div class="form-group"><label class="form-label">重量 <span class="req">*</span></label><div class="input-suffix"><input type="number" class="form-input" id="catch-weight" placeholder="0.0" step="0.1" min="0"><span class="suffix">斤</span></div></div><div class="form-group"><label class="form-label">長度</label><div class="input-suffix"><input type="number" class="form-input" id="catch-length" placeholder="0" step="0.5" min="0"><span class="suffix">cm</span></div></div></div>'
     // Route L+: 釣點自動定位模式 — 用戶不需手動輸入
-    // Route H+: 進行中行程預填 — 從 activeTrip 帶入時,GPS 區顯示「已從行程帶入」
+    // Route H+: 進行中行程預填 — 永遠從 activeTrip 帶入 spot 名稱(就算 GPS 未啟用都顯示)
     + (function(){
       const hasGps = state.catchLat != null && state.catchLng != null;
-      const inheritedFromTrip = hasGps && !!state.activeTrip && state.activeTrip.latitude === state.catchLat;
-      const displaySpot = state.selectedSpot === '其他' ? (state.customSpot || '其他') : (state.selectedSpot || state.customSpot || '');
-      const accText = state.catchAccuracy ? '（精度 ±' + state.catchAccuracy + 'm）' : '';
-      const titleText = inheritedFromTrip
-        ? ('🎯 <b>已從行程帶入</b>' + (displaySpot ? '：' + escapeHtml(displaySpot) : '') + ' · <span style="color:var(--teal);font-size:11px;">🔒 GPS 鎖定中</span>')
-        : (hasGps ? '✅ <b>已記錄位置</b>' + (displaySpot ? '：' + escapeHtml(displaySpot) : '') : '點擊下方按鈕啟用自動定位');
-      const statusText = hasGps
-        ? (inheritedFromTrip
-            ? ('✓ GPS 已就緒' + accText + ' · 📌 行程中保持當前位置，無需重新定位<br><span style="font-size:10px;color:var(--gray-5);">移動到新釣點時，按下方按鈕更新</span>')
-            : ('✓ GPS 已就緒' + accText + '，可送出或重新定位'))
-        : '系統會自動識別最近釣點，無需手動輸入';
-      const boxClass = hasGps ? (inheritedFromTrip ? 'gps-auto-box success locked' : 'gps-auto-box success') : 'gps-auto-box';
-      const btnText = hasGps
-        ? (inheritedFromTrip ? '📍 更新當前位置（選填 · 移動到新釣點時用）' : '🔄 重新定位')
-        : '📍 啟用自動定位';
-      const btnClass = inheritedFromTrip ? 'gps-btn gps-btn-secondary' : 'gps-btn';
-      const iconEmoji = hasGps ? (inheritedFromTrip ? '🔒' : '🎯') : '📡';
+      const hasTrip = !!state.activeTrip;
+      const tripHasGps = hasTrip && state.activeTrip.latitude != null && state.activeTrip.longitude != null;
+      const tripSpotName = hasTrip ? (state.activeTrip.spot || '').trim() : '';
+      // 判斷釣點是否從行程帶入
+      const isTripSpot = hasTrip && tripSpotName !== '' && (
+        !state.selectedSpot ||
+        state.selectedSpot === tripSpotName ||
+        state.selectedSpot === tripSpotName.split('（')[0].trim() ||
+        (state.selectedSpot === '其他' && state.customSpot === tripSpotName)
+      );
+      // 顯示的釣點名稱(優先顯示行程釣點)
+      const displaySpotName = isTripSpot && tripSpotName
+        ? tripSpotName
+        : (state.selectedSpot === '其他'
+            ? (state.customSpot || '其他')
+            : (state.selectedSpot ? state.selectedSpot + (state.customSpot ? '（' + state.customSpot + '）' : '') : ''));
+      // 精度文字(優先用行程的,沒有的話用當前 GPS 的)
+      const accText = (isTripSpot && tripHasGps && state.activeTrip.accuracy)
+        ? '（精度 ±' + state.activeTrip.accuracy + 'm）'
+        : (state.catchAccuracy ? '（精度 ±' + state.catchAccuracy + 'm）' : '');
+      // 標題文字
+      let titleText;
+      if (isTripSpot && displaySpotName) {
+        const lockBadge = tripHasGps
+          ? ' <span style="color:var(--teal);font-size:11px;">🔒 GPS 鎖定</span>'
+          : ' <span style="color:var(--orange);font-size:11px;">⚠️ GPS 未啟用</span>';
+        titleText = '⏱️ <b>行程帶入</b>：' + escapeHtml(displaySpotName) + lockBadge;
+      } else if (hasGps && displaySpotName) {
+        titleText = '🎯 <b>已記錄位置</b>：' + escapeHtml(displaySpotName);
+      } else if (hasGps) {
+        titleText = '🎯 <b>已記錄位置</b>';
+      } else {
+        titleText = '點擊下方按鈕啟用自動定位';
+      }
+      // 狀態文字
+      let statusText;
+      if (isTripSpot) {
+        if (tripHasGps) {
+          statusText = '✓ 行程 GPS 已就緒' + accText + ' · 📌 行程中保持當前位置，無需重新定位<br><span style="font-size:10px;color:var(--gray-5);">移動到新釣點時，按下方按鈕更新</span>';
+        } else {
+          statusText = '✓ 行程釣點已帶入 · GPS 未啟用，可按下方按鈕啟用（選填）';
+        }
+      } else if (hasGps) {
+        statusText = '✓ GPS 已就緒' + accText + '，可送出或重新定位';
+      } else {
+        statusText = '系統會自動識別最近釣點，無需手動輸入';
+      }
+      // 樣式 & 按鈕
+      const locked = isTripSpot && tripHasGps;
+      const boxClass = locked ? 'gps-auto-box success locked' : (hasGps ? 'gps-auto-box success' : 'gps-auto-box');
+      const btnText = isTripSpot
+        ? (tripHasGps ? '📍 更新當前位置（選填 · 移動到新釣點時用）' : '📍 啟用 GPS 定位（選填）')
+        : (hasGps ? '🔄 重新定位' : '📍 啟用自動定位');
+      const btnClass = isTripSpot ? 'gps-btn gps-btn-secondary' : 'gps-btn';
+      const iconEmoji = isTripSpot ? (tripHasGps ? '🔒' : '⏱️') : (hasGps ? '🎯' : '📡');
+      const tripInheritBadge = isTripSpot ? ' <span class="trip-inherit-badge">⏱️ 行程帶入</span>' : '';
       return '<div class="form-group">'
-        + '<label class="form-label">📍 釣點 <span class="auto-gps-badge">自動定位</span>' + (inheritedFromTrip ? ' <span class="trip-inherit-badge">⏱️ 行程帶入</span>' : '') + '</label>'
+        + '<label class="form-label">📍 釣點 <span class="auto-gps-badge">自動定位</span>' + tripInheritBadge + '</label>'
         + '<div class="' + boxClass + '" id="gps-auto-box">'
         +   '<div class="gps-auto-icon">' + iconEmoji + '</div>'
         +   '<div class="gps-auto-content">'
@@ -1952,9 +2027,19 @@ function submitCatch() {
   // Route H+: 行程中自動帶入 activeTrip.spot/method/bait（用戶未填時）
   if (state.activeTrip) {
     if (state.activeTrip.spot && !state.selectedSpot) {
-      state.selectedSpot = state.activeTrip.spot;
+      // 若主名稱不在 FISHING_SPOTS,設為「其他」+ customSpot=完整名稱
+      const tripSpot = state.activeTrip.spot;
+      const mainSpot = tripSpot.split('（')[0].trim();
+      const isKnownSpot = FISHING_SPOTS.some(s => s.name === mainSpot);
+      if (isKnownSpot) {
+        state.selectedSpot = mainSpot;
+        state.customSpot = tripSpot.includes('（') ? tripSpot.split('（')[1].replace(/）/g,'').trim() : '';
+      } else {
+        state.selectedSpot = '其他';
+        state.customSpot = tripSpot;
+      }
       const sel = document.getElementById('catch-spot');
-      if (sel) sel.value = state.activeTrip.spot;
+      if (sel) sel.value = state.selectedSpot;
     }
     if (state.activeTrip.method && !state.selectedMethod) {
       state.selectedMethod = state.activeTrip.method;
@@ -2506,12 +2591,20 @@ async function addCatchInTrip() {
   if (!state.activeTrip) return;
   const trip = state.activeTrip;
   // 預填釣點:拆 activeTrip.spot 「主名稱（備註）」 → 主名稱進 selectedSpot,備註進 customSpot
+  // 若主名稱不在 FISHING_SPOTS 內,則 selectedSpot='其他',customSpot=完整行程釣點名稱
   const spotFull = trip.spot || '';
   const mainSpot = spotFull.split('（')[0].trim();
-  const customSpot = spotFull.includes('（') ? spotFull.split('（')[1].replace(/）/g,'').trim() : '';
+  const customInParen = spotFull.includes('（') ? spotFull.split('（')[1].replace(/）/g,'').trim() : '';
   if (mainSpot) {
-    state.selectedSpot = mainSpot;
-    state.customSpot = customSpot || '';
+    const isKnownSpot = FISHING_SPOTS.some(s => s.name === mainSpot);
+    if (isKnownSpot) {
+      state.selectedSpot = mainSpot;
+      state.customSpot = customInParen;
+    } else {
+      // 自訂釣點(主名不在 FISHING_SPOTS):catch-spot select 只可選「其他」
+      state.selectedSpot = '其他';
+      state.customSpot = spotFull;  // 保留完整名稱(主名+備註)
+    }
   }
   // 預填釣法
   if (trip.method) {
@@ -4122,7 +4215,7 @@ function setupGlobalHandlers() {
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=v12').catch(()=>{});
+    navigator.serviceWorker.register('sw.js?v=v13').catch(()=>{});
   }
   checkSharedCatch();
   renderRecordView();

@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v74';  // bump: 行程 GPS 鎖定 UI（行程中加魚不需重新定位）
+const CACHE = 'hk-fishing-v75';  // bump: renderRecordView 永遠顯示行程釣點 + 自動預填
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
 ];
