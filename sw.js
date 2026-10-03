@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v75';  // bump: renderRecordView 永遠顯示行程釣點 + 自動預填
+const CACHE = 'hk-fishing-v76';  // bump: 統一觸控反饋（tap highlight 移除 + 全域 :active scale + 44px 觸控目標）
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
 ];

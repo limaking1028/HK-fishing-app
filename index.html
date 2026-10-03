@@ -36,6 +36,37 @@
 --shadow: 0 2px 8px rgba(0,0,0,0.08); --shadow-lg: 0 4px 16px rgba(0,0,0,0.12);
   --radius: 14px; --radius-sm: 10px; --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
+/* ===== Touch interaction (mobile UX) ===== */
+*, *::before, *::after {
+  /* 移除 iOS Safari 點擊時的灰色高光 + Android Chrome 的藍色邊框 */
+  -webkit-tap-highlight-color: transparent;
+}
+/* 所有可點擊元素：觸碰時縮小一點 + 加快過渡 */
+button, .btn, .nav-item, .atb-btn, .gps-btn, .atb-end,
+.species-chip, .sp-card, .sp-pin-toggle, .trip-card,
+.start-trip-btn, .photo-upload, .collapsible-header, .species-row,
+.login-tab, .lb-tab, .lb-period, .filter-chip, .my-sub-tab,
+.leaderboard-card, .trip-detail-row, .nav-item, .atb-action {
+  transition: transform 0.12s ease, background-color 0.12s ease, opacity 0.12s ease, box-shadow 0.12s ease;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+/* 觸碰時縮放回饋（原生 app 質感） */
+button:active:not(:disabled), .btn:active:not(:disabled),
+.nav-item:active, .atb-btn:active, .gps-btn:active, .atb-end:active,
+.species-chip:active, .sp-card:active, .sp-pin-toggle:active, .trip-card:active,
+.start-trip-btn:active, .photo-upload:active, .collapsible-header:active, .species-row:active,
+.login-tab:active, .lb-tab:active, .lb-period:active, .filter-chip:active, .my-sub-tab:active {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
+/* 確保觸控目標 ≥44px（iOS HIG / WCAG 2.5.5 AAA）*/
+.nav-item { min-height: 48px; }
+.atb-btn, .atb-end { min-height: 36px; }
+.lb-tab, .lb-period, .filter-chip, .my-sub-tab { min-height: 36px; }
+/* 防止點擊延遲（passive listener 已在 JS 處理，這裡提供 CSS 層優化） */
+button { touch-action: manipulation; }
 /* ===== 登入畫面 ===== */
 .login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, var(--teal-dark), var(--teal)); display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 9999; }
 .login-card { background: white; border-radius: 16px; padding: 32px 24px; width: 100%; max-width: 360px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
@@ -4215,7 +4246,7 @@ function setupGlobalHandlers() {
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=v13').catch(()=>{});
+    navigator.serviceWorker.register('sw.js?v=v14').catch(()=>{});
   }
   checkSharedCatch();
   renderRecordView();
