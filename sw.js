@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v82';  // bump: 潮汐圖 X 軸由「+6時/+12時」改成實際時間 HH:MM
+const CACHE = 'hk-fishing-v83';  // bump: 潮汐卡片新增「未來 5 天」潮差+高低潮預覽
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js'  // Route L+

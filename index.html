@@ -750,6 +750,19 @@ button { touch-action: manipulation; }
   .tide-card-next { font-size: 12px; color: var(--gray-5); line-height: 1.7; margin-bottom: 8px; }
   .tide-card-next b { color: var(--dark); }
   .tide-card-curve { background: #f7fafa; border-radius: 8px; padding: 6px; margin: 8px 0; }
+  .tide-card-forecast { background: #f7fafa; border-radius: 8px; padding: 8px 10px; margin-top: 6px; }
+  .tide-card-forecast-title { font-size: 12px; font-weight: 700; color: var(--gray-6); margin-bottom: 6px; }
+  .tide-forecast-row { display: flex; align-items: center; gap: 6px; font-size: 11px; padding: 3px 0; border-top: 1px dashed #e5e7eb; }
+  .tide-forecast-row:first-of-type { border-top: none; }
+  .tide-forecast-date { font-weight: 700; color: var(--dark); min-width: 56px; }
+  .tide-forecast-date .lbl { color: var(--orange); font-size: 10px; margin-right: 2px; }
+  .tide-forecast-range { min-width: 60px; font-weight: 700; }
+  .tide-forecast-range.lg { color: #f97316; }
+  .tide-forecast-range.md { color: #16a34a; }
+  .tide-forecast-range.sm { color: var(--gray-5); }
+  .tide-forecast-events { flex: 1; color: var(--gray-6); font-size: 10px; line-height: 1.4; }
+  .tide-forecast-events .hi { color: #f97316; }
+  .tide-forecast-events .lo { color: #0d9488; }
   .tide-card-advice { padding: 8px 10px; background: #fff8ed; border-radius: 8px; font-size: 12px; line-height: 1.7; margin-top: 8px; }
   .tide-card-advice div { margin: 2px 0; color: #444; }
   .tide-card-action {
@@ -3655,6 +3668,29 @@ function renderMapTideList(view) {
       <div class="tide-card-legend" style="font-size:10px;color:var(--gray-5);text-align:center;margin:-4px 0 6px;">
         <span style="color:#f97316;">▲ 高潮</span> · <span style="color:#0d9488;">▼ 低潮</span> · <span style="color:#ef4444;">● 現在</span>
       </div>
+      ${(() => {
+        const f5 = window.tidesLib.getForecastDays(st.code, now, 5);
+        if (!f5.length) return '';
+        const wdNames = ['日','一','二','三','四','五','六'];
+        const rows = f5.map(d => {
+          const dd = new Date(d.ms);
+          const md = (dd.getMonth()+1) + '/' + dd.getDate();
+          const wd = wdNames[dd.getDay()];
+          const rangeCls = d.range >= 1.5 ? 'lg' : d.range >= 1.0 ? 'md' : 'sm';
+          const rangeIco = d.range >= 1.5 ? '🔥' : d.range >= 1.0 ? '✅' : '⚠️';
+          const hiHtml = d.highs.slice(0,2).map(h => `<span class="hi">▲${window.tidesLib.formatTime(h.ms)} ${h.height.toFixed(2)}</span>`).join(' ');
+          const loHtml = d.lows.slice(0,2).map(l => `<span class="lo">▼${window.tidesLib.formatTime(l.ms)} ${l.height.toFixed(2)}</span>`).join(' ');
+          return `<div class="tide-forecast-row">
+            <div class="tide-forecast-date">${d.label ? `<span class="lbl">${d.label}</span>` : ''}${md}<span style="color:var(--gray-4);font-weight:400;"> ${wd}</span></div>
+            <div class="tide-forecast-range ${rangeCls}">${rangeIco} ${d.range.toFixed(2)}m</div>
+            <div class="tide-forecast-events">${hiHtml} ${loHtml}</div>
+          </div>`;
+        }).join('');
+        return `<div class="tide-card-forecast">
+          <div class="tide-card-forecast-title">📅 未來 5 天潮汐（${f5.length} 日）</div>
+          ${rows}
+        </div>`;
+      })()}
       <div class="tide-card-advice">${adviceHtml}</div>
       <button class="tide-card-action" onclick="showStationOnMap('${st.code}')">🗺️ 在地圖上顯示位置</button>
     </div>`;
@@ -4359,7 +4395,7 @@ function setupGlobalHandlers() {
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=v82').catch(()=>{});
+    navigator.serviceWorker.register('sw.js?v=v83').catch(()=>{});
   }
   checkSharedCatch();
   renderRecordView();
