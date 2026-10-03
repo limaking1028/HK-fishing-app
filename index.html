@@ -4276,6 +4276,9 @@ window.handleAuthSubmit = async function() {
     state.catches = await dbLoadCatches();
     // 啟動補傳
     retryUnsyncedCatches();
+    // Route H+: 載入行程（init() 入面有,但 handleAuthSubmit 漏咗,所以總釣魚時間會顯示 0）
+    try { state.trips = await dbLoadTrips(); } catch(e) { console.warn('dbLoadTrips auth failed', e); }
+    try { await resumeActiveTrip(); } catch(e) { console.warn('resumeActiveTrip auth failed', e); }
     document.getElementById('login-screen').innerHTML = '';
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('header').style.display = '';
@@ -4356,7 +4359,7 @@ function setupGlobalHandlers() {
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=v80').catch(()=>{});
+    navigator.serviceWorker.register('sw.js?v=v81').catch(()=>{});
   }
   checkSharedCatch();
   renderRecordView();
