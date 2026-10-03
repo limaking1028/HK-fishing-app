@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v72';  // bump: 加魚時自動帶入進行中行程的釣點/釣法/釣餌/GPS（唔使每次重新輸入）
+const CACHE = 'hk-fishing-v73';  // bump: 修復 Nominatim/無識別/GPS失敗 時 sel.value 未同步為「其他」→ 提交時 spotRaw 為空 → 報「請選擇釣點」
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
 ];

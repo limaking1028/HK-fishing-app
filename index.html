@@ -1836,12 +1836,16 @@ function getCurrentLocation() {
           const customInput = document.getElementById('custom-spot');
           if (customInput) customInput.value = result.spot;
           state.selectedSpot = '其他';
+          const spotSel = document.getElementById('catch-spot');
+          if (spotSel) spotSel.value = '其他';
           if (titleEl) titleEl.innerHTML = '📍 ' + result.spot;
           if (box) { box.classList.remove('error','loading'); box.classList.add('success'); }
         } else {
           detectEl.innerHTML = '📍 無法識別（離最近 ' + (result.distance >= 1000 ? (result.distance/1000).toFixed(1) + 'km' : result.distance + 'm') + '）';
           detectEl.className = 'gps-detect-status muted';
           state.selectedSpot = '其他';
+          const spotSel = document.getElementById('catch-spot');
+          if (spotSel) spotSel.value = '其他';
           if (titleEl) titleEl.innerHTML = '📍 其他釣點';
           if (box) { box.classList.remove('error','loading'); box.classList.add('muted'); }
         }
@@ -1850,6 +1854,8 @@ function getCurrentLocation() {
         const detectEl = status.querySelector('.gps-detect-status');
         if (detectEl) { detectEl.textContent = '⚠️ 自動識別失敗，已預設為「其他」'; detectEl.className = 'gps-detect-status warn'; }
         state.selectedSpot = '其他';
+        const spotSel = document.getElementById('catch-spot');
+        if (spotSel) spotSel.value = '其他';
         if (titleEl) titleEl.innerHTML = '⚠️ 識別失敗';
       });
     },
@@ -4107,7 +4113,7 @@ function setupGlobalHandlers() {
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=v10').catch(()=>{});
+    navigator.serviceWorker.register('sw.js?v=v11').catch(()=>{});
   }
   checkSharedCatch();
   renderRecordView();
