@@ -590,6 +590,7 @@
   .gps-detected-spot.warn { background: rgba(245, 158, 11, 0.1); border-color: #f59e0b; color: #b45309; }
   /* Route L+: 自動定位 UI */
   .auto-gps-badge { background: linear-gradient(135deg, var(--teal), var(--teal-dark)); color: white; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: 6px; letter-spacing: 0.3px; vertical-align: middle; }
+  .trip-inherit-badge { background: linear-gradient(135deg, var(--orange), #ff8c5a); color: white; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: 6px; letter-spacing: 0.3px; vertical-align: middle; }
   .gps-auto-box { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: linear-gradient(135deg, #f0fafa, #e0f5f3); border: 1.5px solid var(--teal); border-radius: var(--radius); font-size: 13px; transition: all 0.3s; }
   .gps-auto-box.loading { background: linear-gradient(135deg, #fff8e1, #ffeaa7); border-color: #f5a623; }
   .gps-auto-box.success { background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-color: #22c55e; }
@@ -1451,22 +1452,37 @@ function renderRecordView() {
     + '</div></div>'
     + '<div class="form-row"><div class="form-group"><label class="form-label">重量 <span class="req">*</span></label><div class="input-suffix"><input type="number" class="form-input" id="catch-weight" placeholder="0.0" step="0.1" min="0"><span class="suffix">斤</span></div></div><div class="form-group"><label class="form-label">長度</label><div class="input-suffix"><input type="number" class="form-input" id="catch-length" placeholder="0" step="0.5" min="0"><span class="suffix">cm</span></div></div></div>'
     // Route L+: 釣點自動定位模式 — 用戶不需手動輸入
-    + '<div class="form-group">'
-    + '<label class="form-label">📍 釣點 <span class="auto-gps-badge">自動定位</span></label>'
-    + '<div class="gps-auto-box" id="gps-auto-box">'
-    +   '<div class="gps-auto-icon">📡</div>'
-    +   '<div class="gps-auto-content">'
-    +     '<div class="gps-auto-title">點擊下方按鈕啟用自動定位</div>'
-    +     '<div class="gps-auto-status" id="gps-status">系統會自動識別最近釣點，無需手動輸入</div>'
-    +   '</div>'
-    + '</div>'
-    + '<button type="button" id="gps-btn" class="gps-btn" onclick="getCurrentLocation()" style="width:100%;margin-top:8px;">📍 啟用自動定位</button>'
-    + '<input type="hidden" id="catch-lat" value="'+(state.catchLat||'')+'"><input type="hidden" id="catch-lng" value="'+(state.catchLng||'')+'"><input type="hidden" id="catch-accuracy" value="'+(state.catchAccuracy||'')+'">'
-    + '<select id="catch-spot" style="display:none;">'
-    + FISHING_SPOTS.map(s => '<option value="'+s.name+'"'+(state.selectedSpot===s.name?' selected':'')+'>'+s.name+'</option>').join('')
-    + '</select>'
-    + '<input type="hidden" id="custom-spot" value="'+(state.customSpot||'')+'">'
-    + '</div>'
+    // Route H+: 進行中行程預填 — 從 activeTrip 帶入時,GPS 區顯示「已從行程帶入」
+    + (function(){
+      const hasGps = state.catchLat != null && state.catchLng != null;
+      const inheritedFromTrip = hasGps && !!state.activeTrip && state.activeTrip.latitude === state.catchLat;
+      const displaySpot = state.selectedSpot === '其他' ? (state.customSpot || '其他') : (state.selectedSpot || state.customSpot || '');
+      const accText = state.catchAccuracy ? '（精度 ±' + state.catchAccuracy + 'm）' : '';
+      const titleText = inheritedFromTrip
+        ? ('🎯 <b>已從行程帶入</b>' + (displaySpot ? '：' + escapeHtml(displaySpot) : ''))
+        : (hasGps ? '✅ <b>已記錄位置</b>' + (displaySpot ? '：' + escapeHtml(displaySpot) : '') : '點擊下方按鈕啟用自動定位');
+      const statusText = hasGps
+        ? ('✓ GPS 已就緒' + accText + '，可送出或重新定位')
+        : '系統會自動識別最近釣點，無需手動輸入';
+      const boxClass = hasGps ? 'gps-auto-box success' : 'gps-auto-box';
+      const btnText = hasGps ? '🔄 重新定位' : '📍 啟用自動定位';
+      return '<div class="form-group">'
+        + '<label class="form-label">📍 釣點 <span class="auto-gps-badge">自動定位</span>' + (inheritedFromTrip ? ' <span class="trip-inherit-badge">⏱️ 行程帶入</span>' : '') + '</label>'
+        + '<div class="' + boxClass + '" id="gps-auto-box">'
+        +   '<div class="gps-auto-icon">' + (hasGps ? '🎯' : '📡') + '</div>'
+        +   '<div class="gps-auto-content">'
+        +     '<div class="gps-auto-title">' + titleText + '</div>'
+        +     '<div class="gps-auto-status" id="gps-status">' + statusText + '</div>'
+        +   '</div>'
+        + '</div>'
+        + '<button type="button" id="gps-btn" class="gps-btn" onclick="getCurrentLocation()" style="width:100%;margin-top:8px;">' + btnText + '</button>'
+        + '<input type="hidden" id="catch-lat" value="'+(state.catchLat||'')+'"><input type="hidden" id="catch-lng" value="'+(state.catchLng||'')+'"><input type="hidden" id="catch-accuracy" value="'+(state.catchAccuracy||'')+'">'
+        + '<select id="catch-spot" style="display:none;">'
+        + FISHING_SPOTS.map(s => '<option value="'+s.name+'"'+(state.selectedSpot===s.name?' selected':'')+'>'+s.name+'</option>').join('')
+        + '</select>'
+        + '<input type="hidden" id="custom-spot" value="'+(state.customSpot||'')+'">'
+        + '</div>';
+    })()
     + '<div class="form-row"><div class="form-group"><label class="form-label">日期</label><input type="date" class="form-input" id="catch-date" value="'+today+'" max="'+today+'" onchange="onDateChange()"></div><div class="form-group"><label class="form-label">時間</label><input type="time" class="form-input" id="catch-time" value="'+nowTime+'" onchange="onDateChange()"></div></div>'
     + '<div id="astro-info" class="astro-card"></div>'
     + '<div class="form-row"><div class="form-group"><label class="form-label">釣法</label><select class="form-select" id="catch-method" onchange="onMethodChange(this.value)">'+FISHING_METHODS.map(m=>'<option value="'+m+'"'+(state.selectedMethod===m?' selected':'')+'>'+m+'</option>').join('')+'</select><input type="text" class="form-input" id="custom-method" placeholder="輸入釣法名稱..." value="'+(state.customMethod||'')+'" oninput="state.customMethod=this.value" style="margin-top:8px;display:'+(state.selectedMethod==='其他'?'block':'none')+';"></div><div class="form-group"><label class="form-label">釣餌</label><select class="form-select" id="catch-bait" onchange="onBaitChange(this.value)">'+BAIT_TYPES.map(b=>'<option value="'+b+'"'+(state.selectedBait===b?' selected':'')+'>'+b+'</option>').join('')+'</select><input type="text" class="form-input" id="custom-bait" placeholder="輸入釣餌名稱..." value="'+(state.customBait||'')+'" oninput="state.customBait=this.value" style="margin-top:8px;display:'+(state.selectedBait==='其他'?'block':'none')+';"></div></div>'
@@ -2021,7 +2037,18 @@ function submitCatch() {
   }
   renderRecordView();
 }
-function resetForm() { state.formSuccess = false; state.selectedSpecies = null; state.customSpecies = ''; state.selectedMethod = ''; state.customMethod = ''; state.selectedBait = ''; state.customBait = ''; state.selectedSpot = ''; state.customSpot = ''; renderRecordView(); }
+function resetForm() {
+  state.formSuccess = false;
+  state.selectedSpecies = null; state.customSpecies = '';
+  // Route H+: 不清空 spot/method/bait/catchLat — 下次 addCatchInTrip() 會從 activeTrip 重新預填
+  // 但如果用戶手動改過,保留用戶的選擇(state.selectedSpot 等已是用戶最終值)
+  // 為咗簡化:每次 resetForm 都清空 spot/method/bait/catchLat,addCatchInTrip 會重新帶入
+  state.selectedMethod = ''; state.customMethod = '';
+  state.selectedBait = ''; state.customBait = '';
+  state.selectedSpot = ''; state.customSpot = '';
+  state.catchLat = null; state.catchLng = null; state.catchAccuracy = null;
+  renderRecordView();
+}
 
 /* ============================================================
  *  Route H: 釣魚行程 (Fishing Trip)
@@ -2460,11 +2487,43 @@ async function endTrip(skipConfirm) {
 }
 
 async function addCatchInTrip() {
-  // 從 banner 快捷加魚：切到 record tab，自動預填行程（trip_id 由 activeTrip 自動帶入）
+  // 從 banner 快捷加魚：切到 record tab，自動預填行程的釣點/釣法/釣餌/GPS
   if (!state.activeTrip) return;
+  const trip = state.activeTrip;
+  // 預填釣點:拆 activeTrip.spot 「主名稱（備註）」 → 主名稱進 selectedSpot,備註進 customSpot
+  const spotFull = trip.spot || '';
+  const mainSpot = spotFull.split('（')[0].trim();
+  const customSpot = spotFull.includes('（') ? spotFull.split('（')[1].replace(/）/g,'').trim() : '';
+  if (mainSpot) {
+    state.selectedSpot = mainSpot;
+    state.customSpot = customSpot || '';
+  }
+  // 預填釣法
+  if (trip.method) {
+    state.selectedMethod = trip.method;
+    // 「其他」自訂釣法要還原
+    const isCustomMethod = !FISHING_METHODS.includes(trip.method);
+    state.customMethod = isCustomMethod ? trip.method : '';
+    if (isCustomMethod) state.selectedMethod = '其他';
+  }
+  // 預填釣餌
+  if (trip.bait) {
+    state.selectedBait = trip.bait;
+    const isCustomBait = !BAIT_TYPES.includes(trip.bait);
+    state.customBait = isCustomBait ? trip.bait : '';
+    if (isCustomBait) state.selectedBait = '其他';
+  }
+  // 預填 GPS 座標(讓表單打開就有位置)
+  if (trip.latitude != null && trip.longitude != null) {
+    state.catchLat = trip.latitude;
+    state.catchLng = trip.longitude;
+    state.catchAccuracy = trip.accuracy || null;
+  }
   switchView('record');
   renderRecordView();
-  toast('填寫這次釣到的魚，會自動加入當前行程');
+  // 智能 toast:帶入內容時提示用戶
+  const inheritMsg = [trip.spot && '📍 '+trip.spot, trip.method && '🎣 '+trip.method, trip.bait && '🦐 '+trip.bait].filter(Boolean).join(' · ');
+  toast(inheritMsg ? ('✅ 已帶入行程資訊：'+inheritMsg) : '填寫這次釣到的魚，會自動加入當前行程');
 }
 
 // ===== Trips View =====
@@ -4048,7 +4107,7 @@ function setupGlobalHandlers() {
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=v9').catch(()=>{});
+    navigator.serviceWorker.register('sw.js?v=v10').catch(()=>{});
   }
   checkSharedCatch();
   renderRecordView();

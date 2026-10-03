@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v71';  // bump: 修復 v70 行程 picker JS SyntaxError（行 2311 括號不平衡）→ 整支 JS 唔跑 / 白屏
+const CACHE = 'hk-fishing-v72';  // bump: 加魚時自動帶入進行中行程的釣點/釣法/釣餌/GPS（唔使每次重新輸入）
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
 ];
