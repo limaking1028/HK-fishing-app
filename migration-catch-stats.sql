@@ -16,15 +16,15 @@ alter table catches
   add column if not exists stats jsonb;
 
 create index if not exists catches_stats_hour_idx
-  on catches ((stats->'temporal'->>'hour'))
+  on catches ((stats->'temporal'->>'hour'), date desc)
   where stats is not null;
 
 create index if not exists catches_stats_tide_type_idx
-  on catches ((stats->'tide'->>'tideType'))
+  on catches ((stats->'tide'->>'tideType'), date desc)
   where stats is not null;
 
 create index if not exists catches_stats_moon_phase_idx
-  on catches ((stats->'moon'->>'phaseName'))
+  on catches ((stats->'moon'->>'phaseName'), date desc)
   where stats is not null;
 
 -- 驗證

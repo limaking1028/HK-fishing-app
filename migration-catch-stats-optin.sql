@@ -14,8 +14,9 @@ alter table catches
   add column if not exists opted_in_analytics boolean default false;
 
 -- 部分索引:方便日後查「所有已同意用戶」的整體規律(未同意的不納入分析)
+-- 注意:catches 表沒有 caught_at 欄位,用 date 替代
 create index if not exists catches_opted_in_idx
-  on catches (opted_in_analytics, caught_at desc)
+  on catches (opted_in_analytics, date desc)
   where opted_in_analytics = true;
 
 -- 驗證
