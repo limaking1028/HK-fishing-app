@@ -434,6 +434,8 @@ button { touch-action: manipulation; }
   .astro-row { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
   .astro-item { display: inline-flex; align-items: center; gap: 4px; }
   .astro-tip { margin-top: 6px; font-size: 12px; color: #ffd699; padding-top: 6px; border-top: 1px solid rgba(224, 245, 248, 0.15); }
+  .astro-tide { margin-top: 4px; font-size: 12px; color: #a5d8ff; }
+  .astro-tide:empty { display: none; }
   .btn { width: 100%; padding: 14px; border: none; border-radius: var(--radius-sm); font-size: 16px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; font-family: inherit; }
   .btn:active { opacity: 0.85; }
   .btn-primary { background: linear-gradient(135deg, var(--teal-dark), var(--teal)); color: white; }
@@ -1873,6 +1875,25 @@ function onDateChange() {
   }
   html += '</div>';
   html += '<div class="astro-tip">💡 ' + tip + '</div>';
+
+  // 最近潮汐站簡報（GPS 自動定位 / fallback 香港中心）
+  if (window.tidesLib && window.geoLib) {
+    try {
+      const allSt = window.tidesLib.getAllStations();
+      const nearest = window.geoLib.getNearestStations(lat, lng, allSt, 1);
+      const st = nearest && nearest[0];
+      if (st) {
+        const tide = window.tidesLib.getCurrentTide(st.code, d.getTime());
+        const trendStr = tide.trend === 'rising' ? '漲中' : tide.trend === 'falling' ? '退中' : '平';
+        const hStr = tide.height !== null ? tide.height.toFixed(2) + 'm' : '—';
+        const nextH = tide.nextHigh ? '▲ ' + window.tidesLib.formatTime(tide.nextHigh.ms) : '';
+        const nextL = tide.nextLow ? '▼ ' + window.tidesLib.formatTime(tide.nextLow.ms) : '';
+        const distStr = st.distanceKm < 1 ? Math.round(st.distanceKm * 1000) + 'm' : st.distanceKm.toFixed(1) + 'km';
+        html += '<div class="astro-tide">🌊 ' + st.name_zh + ' ' + hStr + ' ' + trendStr + ' · ' + nextH + (nextH && nextL ? ' → ' : '') + nextL + ' <span style="color:#7b8aa3;">（' + distStr + '）</span></div>';
+      }
+    } catch (e) { console.warn('astro tide failed', e); }
+  }
+
   target.innerHTML = html;
   // Route I: 日期/時間改 → 同步更新潮汐預覽
   try {
@@ -4427,7 +4448,7 @@ function setupGlobalHandlers() {
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=v87').catch(()=>{});
+    navigator.serviceWorker.register('sw.js?v=v88').catch(()=>{});
   }
   checkSharedCatch();
   renderRecordView();
