@@ -476,6 +476,14 @@
   .lb-value .unit { font-size: 11px; color: var(--gray-4); }
   .lb-item.mine { background: linear-gradient(135deg, #fff4e8, #ffe8d8); border-left: 4px solid var(--orange); box-shadow: 0 2px 8px rgba(255,107,53,0.15); }
   .lb-item.mine .lb-username { color: var(--orange); }
+  /* 第一名「全港霸主」特別樣式 */
+  .lb-item-champion { background: linear-gradient(135deg, #fff8e1 0%, #ffeaa7 50%, #ffd98e 100%) !important; border: 2px solid #f5a623; box-shadow: 0 6px 20px rgba(245,166,35,0.35), 0 0 0 1px rgba(245,166,35,0.2); padding: 14px 14px 12px; margin-bottom: 12px; position: relative; overflow: hidden; }
+  .lb-item-champion::before { content: '✨'; position: absolute; top: -8px; right: -8px; font-size: 28px; opacity: 0.4; transform: rotate(15deg); pointer-events: none; }
+  .lb-item-champion::after { content: '✨'; position: absolute; bottom: -8px; left: -8px; font-size: 22px; opacity: 0.3; transform: rotate(-20deg); pointer-events: none; }
+  .lb-champion-badge { text-align: center; font-size: 13px; font-weight: 800; color: #b06820; padding: 5px 0 8px; letter-spacing: 1px; background: linear-gradient(90deg, transparent 0%, rgba(245,166,35,0.18) 50%, transparent 100%); margin: -4px -4px 8px; border-radius: 8px 8px 0 0; text-shadow: 0 1px 0 rgba(255,255,255,0.6); animation: championGlow 2.5s ease-in-out infinite; }
+  @keyframes championGlow { 0%, 100% { text-shadow: 0 1px 0 rgba(255,255,255,0.6), 0 0 4px rgba(245,166,35,0.3); } 50% { text-shadow: 0 1px 0 rgba(255,255,255,0.6), 0 0 12px rgba(245,166,35,0.7); } }
+  .lb-item-champion .lb-rank.gold { width: 38px; height: 38px; font-size: 17px; box-shadow: 0 2px 8px rgba(245,166,35,0.5), 0 0 0 3px rgba(245,166,35,0.15); }
+  .lb-item-champion .lb-value { color: #b06820; }
   .rank-badge { background: linear-gradient(135deg, var(--gold), #e8941a); color: white; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; white-space: nowrap; box-shadow: 0 1px 3px rgba(229,148,26,0.3); }
   .spot-card { background: var(--white); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; box-shadow: var(--shadow); }
   .spot-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
@@ -2704,7 +2712,16 @@ function renderLeaderboardView() {
       if (state.lbType==='biggest') { value=item.weight+'<span class="unit">斤</span>'; detail=item.species+' · '+item.spot+' · '+daysAgo(item.date); }
       else if (state.lbType==='quantity') { value=item.count+'<span class="unit">條</span>'; detail=item.speciesCount+' 種魚 · '+item.spotCount+' 個釣點'; }
       else { value=item.speciesCount+'<span class="unit">種</span>'; detail=item.speciesList+' · 最大'+item.biggestWeight+'斤'; }
-      listHtml += '<div class="lb-item'+(item.isMine?' mine':'')+'"><div class="lb-rank '+rankClass+'">'+rank+'</div><div class="lb-user"><div class="lb-username">'+item.user+(item.isMine?' <span style="font-size:11px;color:var(--orange)">（我）</span>':'')+'</div><div class="lb-detail">'+detail+'</div></div><div class="lb-value">'+value+'</div></div>';
+      // 第一名「全港霸主」徽章
+      let championBadge = '';
+      if (rank === 1) {
+        let championTitle = '';
+        if (state.lbType === 'biggest') championTitle = '全港重量霸主';
+        else if (state.lbType === 'quantity') championTitle = '全港魚獲霸主';
+        else if (state.lbType === 'species') championTitle = '全港魚種霸主';
+        championBadge = '<div class="lb-champion-badge">👑 '+championTitle+' 👑</div>';
+      }
+      listHtml += '<div class="lb-item'+(item.isMine?' mine':'')+' '+(rank===1?'lb-item-champion':'')+'">'+championBadge+'<div class="lb-rank '+rankClass+'">'+rank+'</div><div class="lb-user"><div class="lb-username">'+item.user+(item.isMine?' <span style="font-size:11px;color:var(--orange)">（我）</span>':'')+'</div><div class="lb-detail">'+detail+'</div></div><div class="lb-value">'+value+'</div></div>';
     });
   }
   view.innerHTML = '<div class="lb-tabs"><button class="lb-tab '+(state.lbType==='biggest'?'active':'')+'" onclick="setLbType(\'biggest\')">重量王者</button><button class="lb-tab '+(state.lbType==='quantity'?'active':'')+'" onclick="setLbType(\'quantity\')">數量王者</button><button class="lb-tab '+(state.lbType==='species'?'active':'')+'" onclick="setLbType(\'species\')">品種王者</button></div>'

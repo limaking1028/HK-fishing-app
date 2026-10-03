@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v52';  // bump: 刪 style.css (12.7KB) + view-encyclopedia 死碼 (5 行)
+const CACHE = 'hk-fishing-v53';  // bump: 排行榜第一名顯示「全港霸主」徽章
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
 ];
