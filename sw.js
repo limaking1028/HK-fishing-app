@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v66';  // bump: 修復 getAllSpecies 過濾掉「其他」,現在展開模式下會顯示「其他」卡片
+const CACHE = 'hk-fishing-v67';  // bump: 雲端寫入加強 — 詳細日誌 + 自動重試 + unsynced 標記 + XSS 防護
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
 ];
