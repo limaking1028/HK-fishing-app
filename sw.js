@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v68';  // bump: 魚獲與圖鑑全面改用真實魚照取代 SVG 簡筆風
+const CACHE = 'hk-fishing-v69';  // bump: 44 張魚照背景統一為 #f5f5f5 (KMeans 偵測 bg, scale → 245)
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
 ];
