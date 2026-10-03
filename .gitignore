@@ -1,0 +1,24 @@
+# Android / Google Play 上架敏感檔案
+android.keystore
+*.keystore
+google-play-service-account.json
+google-services.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Playwright
+playwright-report/
+test-results/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

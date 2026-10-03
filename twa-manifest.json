@@ -1,0 +1,42 @@
+{
+  "packageId": "app.hkfishing.twa",
+  "host": "limaking1028.github.io",
+  "name": "香港釣魚數據平台",
+  "launcherName": "釣魚HK",
+  "display": "standalone",
+  "themeColor": "#0a6e7a",
+  "backgroundColor": "#0a6e7a",
+  "enableNotifications": false,
+  "startUrl": "/HK-fishing-app/",
+  "iconUrl": "https://limaking1028.github.io/HK-fishing-app/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "versionCode": 89,
+  "versionName": "v89",
+  "shortcuts": [],
+  "splashStatisticsUrl": null,
+  "shareTarget": null,
+  "webManifestUrl": "https://limaking1028.github.io/HK-fishing-app/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "playBilling": { "enabled": false },
+    "navigation": { "enabled": true },
+    "locationDelegation": { "enabled": true },
+    "microphone": { "enabled": false },
+    "camera": { "enabled": false }
+  },
+  "signedBundleConfig": {
+    "signingKey": {
+      "alias": "hkfishing",
+      "keystorePath": "./android.keystore",
+      "keystorePasswordValue": "CHANGE_ME_BEFORE_BUILD"
+    }
+  },
+  "_comment": [
+    "1. 運行 'bubblewrap init --manifest=twa-manifest.json' 生成 keystore",
+    "2. bubblewrap 會輸出 SHA-256 fingerprint",
+    "3. 把 fingerprint 填到 .well-known/assetlinks.json",
+    "4. 部署 assetlinks.json 到 GitHub Pages",
+    "5. bubblewrap build 生成 app bundle (.aab)",
+    "6. 上傳 .aab 到 Google Play Console"
+  ]
+}
