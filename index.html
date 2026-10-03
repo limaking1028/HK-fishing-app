@@ -2953,8 +2953,8 @@ function renderTripDetailView(id) {
   if (tags.length) html += '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;">' + tags.join('') + '</div>';
   html += '<div class="trip-stats-grid">'
       + '<div class="trip-stat-box"><div class="trip-stat-num">' + window.tripsLib.formatDuration(durationSec) + '</div><div class="trip-stat-label">總時長</div></div>'
-      + '<div class="trip-stat-box"><div class="trip-stat-num">' + summary.count + '</div><div class="trip-stat-label">魚獲</div></div>'
-      + '<div class="trip-stat-box"><div class="trip-stat-num">' + summary.totalWeight.toFixed(2) + '</div><div class="trip-stat-label">斤</div></div>'
+      + '<div class="trip-stat-box"><div class="trip-stat-num">' + summary.count + '</div><div class="trip-stat-label">總魚獲</div></div>'
+      + '<div class="trip-stat-box"><div class="trip-stat-num">' + summary.totalWeight.toFixed(2) + '</div><div class="trip-stat-label">總重量（斤）</div></div>'
     + '</div>'
     + '<div style="font-size:12px;color:var(--gray-5);margin-top:10px;text-align:center;">共 ' + summary.speciesCount + ' 個魚種</div>'
   + '</div>';
@@ -4448,7 +4448,7 @@ function setupGlobalHandlers() {
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=v88').catch(()=>{});
+    navigator.serviceWorker.register('sw.js?v=v89').catch(()=>{});
   }
   checkSharedCatch();
   renderRecordView();

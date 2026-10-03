@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v88';  // bump: 月色卡片下方加簡單潮汐資訊（最近監測站）
+const CACHE = 'hk-fishing-v89';  // bump: 行程詳情標籤「魚獲」→「總魚獲」、「斤」→「總重量（斤）」
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js'  // Route L+
