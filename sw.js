@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v79';  // bump: 移除大尾魷 + 加入石剎/黃花/䱛仔(等用戶上傳照片)
+const CACHE = 'hk-fishing-v80';  // bump: 加入 3 種新魚照片(石剎/黃花/䱛仔) + 䱛仔科學名稱更新
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js'  // Route L+

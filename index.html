@@ -1087,7 +1087,7 @@ const FISH_SPECIES = [
   { name: '黃立鯧', icon: '🐠', sci: 'Trachinotus blochii', habitat: '淺海·岩礁', desc: '銀身黃尾，淺海岩礁常見，肉質細嫩', rarity: 'common', photo: 'photos/黃立鯧'},
   { name: '石剎', icon: '🐠', sci: 'Abudefduf bengalensis', habitat: '珊瑚礁·淺水', desc: '孟加拉豆娘魚，香港礁岩海岸常見', rarity: 'common', photo: 'photos/石剎'},
   { name: '黃花', icon: '🐠', sci: 'Larimichthys crocea', habitat: '沙泥底·深海', desc: '石首魚科黃魚屬，高級食用魚', rarity: 'uncommon', photo: 'photos/黃花'},
-  { name: '䱛仔', icon: '🐟', sci: '待確認', habitat: '礁石·沙底', desc: '本地俗稱·小型魚種', rarity: 'common', photo: 'photos/䱛仔'},
+  { name: '䱛仔', icon: '🐠', sci: 'Pampus argenteus', habitat: '沙底·淺至深海', desc: '白鯧幼體（白䱽），銀身高體，肉質細嫩，高級食用魚', rarity: 'uncommon', photo: 'photos/䱛仔'},
   { name: '雞魚', icon: '🐠', sci: 'Parupeneus indicus', habitat: '礁石·沙底', desc: '鬚鯛科，下頷有長鬚', rarity: 'common', photo: 'photos/雞魚'},
   { name: '牛廣GT', icon: '🐟', sci: 'Caranx ignobilis', habitat: '珊瑚礁外海', desc: '巨型鰺科，俗稱 GT，磯釣夢幻魚', rarity: 'rare', photo: 'photos/牛廣GT'},
   { name: '魔鬼魚', icon: '🐡', sci: 'Mobula', habitat: '中層·外海', desc: '鱝科，扁平胸鰺，悠遊外海', rarity: 'rare', photo: 'photos/魔鬼魚'},
@@ -4356,7 +4356,7 @@ function setupGlobalHandlers() {
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=v79').catch(()=>{});
+    navigator.serviceWorker.register('sw.js?v=v80').catch(()=>{});
   }
   checkSharedCatch();
   renderRecordView();
