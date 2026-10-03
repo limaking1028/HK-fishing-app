@@ -585,6 +585,9 @@
   .gps-detect-status.success { background: rgba(34, 197, 94, 0.12); color: #15803d; }
   .gps-detect-status.warn { background: rgba(245, 158, 11, 0.15); color: #b45309; }
   .gps-detect-status.muted { background: var(--gray-1); color: var(--gray-5); }
+  /* Route Trip-GPS: 行程 picker 已識別釣點展示 */
+  .gps-detected-spot { display: inline-block; margin-top: 6px; padding: 6px 12px; background: rgba(13, 138, 153, 0.1); border: 1px solid var(--teal); border-radius: 8px; font-size: 13px; color: var(--teal-dark); font-weight: 600; }
+  .gps-detected-spot.warn { background: rgba(245, 158, 11, 0.1); border-color: #f59e0b; color: #b45309; }
   /* Route L+: 自動定位 UI */
   .auto-gps-badge { background: linear-gradient(135deg, var(--teal), var(--teal-dark)); color: white; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: 6px; letter-spacing: 0.3px; vertical-align: middle; }
   .gps-auto-box { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: linear-gradient(135deg, #f0fafa, #e0f5f3); border: 1.5px solid var(--teal); border-radius: var(--radius); font-size: 13px; transition: all 0.3s; }
@@ -1299,7 +1302,7 @@ function genSampleCatches() {
 /* ===== State & Persistence ===== */
 const STORAGE_KEY = 'hk_fishing_catches_v5';
 const USERNAME_KEY = 'hk_fishing_username';
-let state = { view:'my', mapTab:'map', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{}, expandedPokedex:{} }, trips:[], activeTrip:null, tripDetailId:null, tripTickHandle:null, tripPicking:false, tripPickingSpot:'', tripPickingCustom:'', tripPickingMethod:'', tripPickingBait:'', tripPickingLat:null, tripPickingLng:null, tripPickingAccuracy:null, geoStatus:'idle', userLocation:null, nearestStations:[], geoError:null, geoRequestedAt:0, pinnedSpecies:[], speciesExpanded:false };
+let state = { view:'my', mapTab:'map', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{}, expandedPokedex:{} }, trips:[], activeTrip:null, tripDetailId:null, tripTickHandle:null, tripPicking:false, tripPickingSpot:'', tripPickingDetectedSpot:'', tripPickingCustom:'', tripPickingMethod:'', tripPickingBait:'', tripPickingLat:null, tripPickingLng:null, tripPickingAccuracy:null, geoStatus:'idle', userLocation:null, nearestStations:[], geoError:null, geoRequestedAt:0, pinnedSpecies:[], speciesExpanded:false };
 
 // 載入用戶 pin 嘅魚種（持久化）
 try {
@@ -2149,9 +2152,10 @@ function tickActiveTripBanner() {
 // ===== 開始 / 結束行程 =====
 function startTrip() {
   if (!sb || !state.user) { toast('請先登入'); return; }
-  // Route H+: 進入 picker 模式
+  // Route H+: 進入 picker 模式（GPS 自動檢測釣點）
   state.tripPicking = true;
   state.tripPickingSpot = '';
+  state.tripPickingDetectedSpot = '';
   state.tripPickingCustom = '';
   state.tripPickingMethod = '';
   state.tripPickingBait = '';
@@ -2165,8 +2169,12 @@ function editActiveTrip() {
   if (!state.activeTrip) return;
   // 預填當前行程的值，進入 picker 模式（用 tripPicking 但 flag 不同）
   state.tripPicking = true;
-  state.tripPickingSpot = state.activeTrip.spot || '';
-  state.tripPickingCustom = '';
+  // 從現有行程 spot 拆出主名稱（去除括號備註）
+  const activeSpotFull = state.activeTrip.spot || '';
+  const mainSpot = activeSpotFull.split('（')[0].trim();
+  state.tripPickingSpot = mainSpot;
+  state.tripPickingDetectedSpot = mainSpot;
+  state.tripPickingCustom = activeSpotFull.includes('（') ? activeSpotFull.split('（')[1].replace(/）/g,'').trim() : '';
   state.tripPickingMethod = state.activeTrip.method || '';
   state.tripPickingBait = state.activeTrip.bait || '';
   state.tripPickingLat = state.activeTrip.latitude;
@@ -2180,10 +2188,65 @@ function cancelTripPick() {
   state.tripPicking = false;
   state.editingActiveTrip = false;
   state.tripPickingSpot = '';
+  state.tripPickingDetectedSpot = '';
   state.tripPickingCustom = '';
   state.tripPickingMethod = '';
   state.tripPickingBait = '';
   renderTripsView();
+}
+
+// 進行中行程：快速重新 GPS 定位（不需進 picker）
+async function retripActiveGPS() {
+  if (!state.activeTrip) return;
+  if (!navigator.geolocation) { toast('瀏覽器不支援定位'); return; }
+  toast('🔍 重新定位中...');
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const lat = Math.round(pos.coords.latitude * 1000) / 1000;
+      const lng = Math.round(pos.coords.longitude * 1000) / 1000;
+      const acc = Math.round(pos.coords.accuracy);
+      let detectedSpot = state.activeTrip.spot;
+      try {
+        const result = await autoDetectSpot(lat, lng);
+        if (result.type === 'local' || result.type === 'local-warn' || result.type === 'nominatim') {
+          detectedSpot = result.spot;
+        } else {
+          detectedSpot = '其他';
+        }
+      } catch(e) { console.warn(e); }
+      const custom = state.activeTrip.spot && state.activeTrip.spot.includes('（') ? state.activeTrip.spot.split('（')[1].replace(/）/g,'').trim() : '';
+      const fullSpot = custom && !detectedSpot.includes('（') ? detectedSpot + '（' + custom + '）' : detectedSpot;
+      const ok = await dbUpdateTrip(state.activeTrip.id, {
+        spot: fullSpot,
+        spot_area: getSpotInfo(detectedSpot).area || null,
+        latitude: lat,
+        longitude: lng,
+        accuracy: acc
+      });
+      if (ok) {
+        state.activeTrip.spot = fullSpot;
+        state.activeTrip.spotArea = getSpotInfo(detectedSpot).area || '';
+        state.activeTrip.latitude = lat;
+        state.activeTrip.longitude = lng;
+        state.activeTrip.accuracy = acc;
+        window.tripsLib.saveActiveTrip(state.activeTrip);
+        state.trips = await dbLoadTrips();
+        renderTripDetailView(state.activeTrip.id);
+        renderActiveTripBanner();
+        toast('🎯 已更新：' + fullSpot);
+      } else {
+        toast('更新失敗');
+      }
+    },
+    (err) => {
+      let msg = '無法取得位置';
+      if (err.code === 1) msg = '已拒絕位置權限';
+      else if (err.code === 2) msg = '位置不可用';
+      else if (err.code === 3) msg = '取得位置逾時';
+      toast(msg);
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+  );
 }
 
 function onTripSpotChange(s) {
@@ -2214,7 +2277,7 @@ function tripGetGPS() {
   btn.disabled = true; btn.classList.add('loading'); btn.textContent = '⏳ 定位中...';
   status.textContent = '正在取得位置...'; status.className = 'gps-status';
   navigator.geolocation.getCurrentPosition(
-    (pos) => {
+    async (pos) => {
       const lat = Math.round(pos.coords.latitude * 1000) / 1000;
       const lng = Math.round(pos.coords.longitude * 1000) / 1000;
       const acc = Math.round(pos.coords.accuracy);
@@ -2223,14 +2286,62 @@ function tripGetGPS() {
       document.getElementById('trip-lng').value = lng;
       document.getElementById('trip-accuracy').value = acc;
       btn.disabled = false; btn.classList.remove('loading');
-      btn.textContent = '✓ 已取得位置';
       status.className = 'gps-status success';
-      status.innerHTML = '✓ 已記錄 <span class="gps-accuracy">（精度 ±' + acc + 'm，已模糊化）</span>';
+      status.innerHTML = '✓ 已記錄 GPS（精度 ±' + acc + 'm，已模糊化）<br><span class="gps-detect-status">🔍 正在自動識別釣點...</span>';
+      // 整合 autoDetectSpot 三層識別（與魚獲表單共用邏輯）
+      try {
+        const result = await autoDetectSpot(lat, lng);
+        const detectEl = status.querySelector('.gps-detect-status');
+        if (!detectEl) return;
+        let detectedSpot = '';
+        if (result.type === 'local') {
+          detectedSpot = result.spot;
+          detectEl.innerHTML = '🎯 自動匹配：<b>' + detectedSpot + '</b>（距離 ' + result.distance + 'm）';
+          detectEl.className = 'gps-detect-status success';
+        } else if (result.type === 'local-warn') {
+          detectedSpot = result.spot;
+          detectEl.innerHTML = '⚠️ 最近：<b>' + detectedSpot + '</b>（' + result.distance + 'm，請確認）';
+          detectEl.className = 'gps-detect-status warn';
+        } else if (result.type === 'nominatim') {
+          detectedSpot = result.spot;
+          detectEl.innerHTML = '📍 已識別：<b>' + detectedSpot + '</b>';
+          detectEl.className = 'gps-detect-status success';
+        } else {
+          detectedSpot = '其他';
+          detectEl.innerHTML = '📍 無法識別（離最近 ' + (result.distance >= 1000 ? (result.distance/1000).toFixed(1) + 'km' : result.distance + 'm）），請於下方輸入釣點';
+          detectEl.className = 'gps-detect-status muted';
+        }
+        state.tripPickingDetectedSpot = detectedSpot;
+        state.tripPickingSpot = detectedSpot;  // 同步到 picker state
+        btn.textContent = '🔄 重新定位';
+        // 將識別結果寫到 hidden field + 重新渲染潮汐預覽與按鈕狀態
+        const hiddenField = document.getElementById('trip-detected-spot');
+        if (hiddenField) hiddenField.value = detectedSpot;
+        try { onTripSpotChange(detectedSpot); } catch(e) {}
+        // 啟用「開始行程」按鈕
+        const confirmBtn = document.querySelector('button[onclick="confirmStartTrip();"]');
+        if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.style.opacity = '1'; }
+      } catch(e) {
+        console.warn('trip autoDetect failed', e);
+        const detectEl = status.querySelector('.gps-detect-status');
+        if (detectEl) { detectEl.textContent = '⚠️ 自動識別失敗，請手動輸入'; detectEl.className = 'gps-detect-status warn'; }
+        state.tripPickingDetectedSpot = '其他';
+        state.tripPickingSpot = '其他';
+        btn.textContent = '🔄 重新定位';
+        const confirmBtn = document.querySelector('button[onclick="confirmStartTrip();"]');
+        if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.style.opacity = '1'; }
+      }
     },
     (err) => {
-      btn.disabled = false; btn.classList.remove('loading'); btn.textContent = '📍 使用當前 GPS';
+      btn.disabled = false; btn.classList.remove('loading');
+      btn.textContent = '📍 啟用 GPS 自動識別';
+      let msg = '無法取得位置';
+      if (err.code === 1) msg = '已拒絕位置權限';
+      else if (err.code === 2) msg = '位置不可用';
+      else if (err.code === 3) msg = '取得位置逾時';
       status.className = 'gps-status error';
-      status.textContent = '✗ 定位失敗：' + (err.message || err.code);
+      status.innerHTML = '✗ ' + msg + '<br><span style="font-size:11px;color:var(--gray-5);">請到瀏覽器設置允許位置權限</span>';
+      toast(msg);
     },
     { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
   );
@@ -2249,10 +2360,10 @@ function getRecentSpots(limit) {
 }
 
 async function confirmStartTrip() {
-  const spot = state.tripPickingSpot;
-  if (!spot) { toast('請選擇釣點'); return; }
+  const spot = state.tripPickingDetectedSpot || state.tripPickingSpot;
+  if (!spot) { toast('請先啟用 GPS 自動識別'); return; }
   const custom = (state.tripPickingCustom || '').trim();
-  const fullSpot = custom ? spot + '（' + custom + '）' : spot;
+  const fullSpot = custom && !spot.includes('（') ? spot + '（' + custom + '）' : spot;
   const method = (state.tripPickingMethod || '').trim();
   const bait = (state.tripPickingBait || '').trim();
 
@@ -2264,7 +2375,8 @@ async function confirmStartTrip() {
       method: method || null,
       bait: bait || null,
       latitude: state.tripPickingLat,
-      longitude: state.tripPickingLng
+      longitude: state.tripPickingLng,
+      accuracy: state.tripPickingAccuracy
     });
     if (ok) {
       // 更新 state.activeTrip
@@ -2274,10 +2386,11 @@ async function confirmStartTrip() {
       state.activeTrip.bait = bait;
       state.activeTrip.latitude = state.tripPickingLat;
       state.activeTrip.longitude = state.tripPickingLng;
+      state.activeTrip.accuracy = state.tripPickingAccuracy;
       window.tripsLib.saveActiveTrip(state.activeTrip);
       state.tripPicking = false;
       state.editingActiveTrip = false;
-      state.tripPickingSpot = ''; state.tripPickingCustom = '';
+      state.tripPickingSpot = ''; state.tripPickingDetectedSpot = ''; state.tripPickingCustom = '';
       state.tripPickingMethod = ''; state.tripPickingBait = '';
       state.tripPickingLat = null; state.tripPickingLng = null;
       state.trips = await dbLoadTrips();
@@ -2296,19 +2409,21 @@ async function confirmStartTrip() {
     method: method || null,
     bait: bait || null,
     latitude: state.tripPickingLat,
-    longitude: state.tripPickingLng
+    longitude: state.tripPickingLng,
+    accuracy: state.tripPickingAccuracy
   });
   if (!trip) return;
   state.activeTrip = {
     id: trip.id, startedAt: trip.started_at, endedAt: null,
     spot: fullSpot, spotArea: getSpotInfo(spot).area || '',
     method: method, bait: bait,
-    latitude: state.tripPickingLat, longitude: state.tripPickingLng, notes: ''
+    latitude: state.tripPickingLat, longitude: state.tripPickingLng,
+    accuracy: state.tripPickingAccuracy, notes: ''
   };
   // 清掉 picker 狀態
   state.tripPicking = false;
   state.editingActiveTrip = false;
-  state.tripPickingSpot = ''; state.tripPickingCustom = '';
+  state.tripPickingSpot = ''; state.tripPickingDetectedSpot = ''; state.tripPickingCustom = '';
   state.tripPickingMethod = ''; state.tripPickingBait = '';
   state.tripPickingLat = null; state.tripPickingLng = null;
   window.tripsLib.saveActiveTrip(state.activeTrip);
@@ -2394,25 +2509,28 @@ function renderTripsView() {
   } else {
     // 沒有進行中行程 → 顯示開始行程 + spot picker
     if (state.tripPicking) {
-      // 內嵌 picker（開始 / 編輯都用）
+      // 內嵌 picker（開始 / 編輯都用）— GPS 自動識別釣點
       const recentSpots = getRecentSpots(5);
       const isEditing = state.editingActiveTrip;
       const titleIcon = isEditing ? '✏️' : '📍';
-      const titleText = isEditing ? '編輯這次行程' : '選擇這次行程的條件';
-      const subtitleText = isEditing ? '可改釣點/釣法/釣餌' : '填一次，後續加魚會自動沿用';
+      const titleText = isEditing ? '編輯這次行程' : 'GPS 自動識別這次行程';
+      const subtitleText = isEditing ? '可重新定位釣點或調整釣法/釣餌' : '點按下方按鈕，無需手動選擇釣點';
+      const detectedSpot = state.tripPickingDetectedSpot || (state.tripPickingLat && state.tripPickingSpot ? state.tripPickingSpot : '');
+      const spotHtml = detectedSpot
+        ? '<div class="gps-detected-spot">🎯 已識別：<b>' + escapeHtml(detectedSpot) + '</b></div>'
+        : (state.tripPickingLat ? '<div class="gps-detected-spot warn">⚠️ 座標已記錄但未識別到釣點</div>' : '');
       html += '<div class="card" style="padding:20px 16px;">'
         + '<div style="text-align:center;"><div style="font-size:36px;margin-bottom:8px;">' + titleIcon + '</div>'
         + '<div style="font-size:15px;color:var(--gray-6);font-weight:600;margin-bottom:4px;">' + titleText + '</div>'
         + '<div style="font-size:12px;color:var(--gray-4);margin-bottom:14px;">' + subtitleText + '</div></div>'
-        // 釣點
-        + '<div class="form-group"><label class="form-label">📍 釣點 <span class="req">*</span></label><select class="form-select" id="trip-spot-select" onchange="onTripSpotChange(this.value)"><option value="">選擇釣點...</option>'
-        + FISHING_SPOTS.map(s => '<option value="'+s.name+'"'+(state.tripPickingSpot===s.name?' selected':'')+'>'+s.name+'</option>').join('')
-        + (recentSpots.length ? '<optgroup label="━━ 最近釣點 ━━">'+recentSpots.map(s => '<option value="'+s+'"'+(state.tripPickingSpot===s?' selected':'')+'>'+s+'</option>').join('')+'</optgroup>' : '')
-        + '</select>'
-        + '<input type="text" class="form-input" id="trip-spot-custom" placeholder="具體位置備註（可選）..." value="'+(state.tripPickingCustom||'')+'" oninput="state.tripPickingCustom=this.value" style="margin-top:8px;">'
-        // Route I: 潮汐預覽
+        // GPS 自動定位（取代下拉選擇器）
+        + '<div class="gps-section"><button type="button" id="trip-gps-btn" class="gps-btn" onclick="tripGetGPS()">' + (state.tripPickingLat ? '🔄 重新定位' : '📍 啟用 GPS 自動識別') + '</button>'
+        + '<div class="gps-status" id="trip-gps-status">' + (state.tripPickingLat ? '✓ 已記錄（精度 ±' + (state.tripPickingAccuracy || '?') + 'm）' + spotHtml : '未取得位置') + '</div></div>'
+        + '<input type="hidden" id="trip-lat" value="'+(state.tripPickingLat||'')+'"><input type="hidden" id="trip-lng" value="'+(state.tripPickingLng||'')+'"><input type="hidden" id="trip-accuracy" value="'+(state.tripPickingAccuracy||'')+'"><input type="hidden" id="trip-detected-spot" value="' + escapeHtml(detectedSpot) + '">'
+        // 自訂備註（GPS 識別失敗或需要更精確位置時使用）
+        + '<input type="text" class="form-input" id="trip-spot-custom" placeholder="具體位置備註（可選，例如：西防波堤第 3 支竿位）..." value="'+(state.tripPickingCustom||'')+'" oninput="state.tripPickingCustom=this.value" style="margin-top:8px;">'
+        // Route I: 潮汐預覽（GPS 識別成功才顯示）
         + '<div id="trip-tide-preview" style="margin-top:8px;font-size:12px;color:var(--gray-5);"></div>'
-        + '</div>'
         // 釣法
         + '<div class="form-group" style="margin-top:12px;"><label class="form-label">🎣 釣法</label><select class="form-select" id="trip-method-select" onchange="onTripMethodChange(this.value)"><option value="">不指定</option>'
         + FISHING_METHODS.map(m => '<option value="'+m+'"'+(state.tripPickingMethod===m?' selected':'')+'>'+m+'</option>').join('')
@@ -2421,12 +2539,9 @@ function renderTripsView() {
         + '<div class="form-group" style="margin-top:12px;"><label class="form-label">🦐 釣餌</label><select class="form-select" id="trip-bait-select" onchange="onTripBaitChange(this.value)"><option value="">不指定</option>'
         + BAIT_TYPES.map(b => '<option value="'+b+'"'+(state.tripPickingBait===b?' selected':'')+'>'+b+'</option>').join('')
         + '</select></div>'
-        // GPS（行程層級定位）
-        + '<div class="gps-section" style="margin-top:10px;"><button type="button" id="trip-gps-btn" class="gps-btn" onclick="tripGetGPS()">📍 使用當前 GPS</button><div class="gps-status" id="trip-gps-status">'+(state.tripPickingLat ? '✓ 已記錄（精度 ±' + (state.tripPickingAccuracy || '?') + 'm）' : '未取得位置')+'</div></div>'
-        + '<input type="hidden" id="trip-lat" value="'+(state.tripPickingLat||'')+'"><input type="hidden" id="trip-lng" value="'+(state.tripPickingLng||'')+'"><input type="hidden" id="trip-accuracy" value="'+(state.tripPickingAccuracy||'')+'">'
         + '<div style="display:flex;gap:8px;margin-top:16px;">'
           + '<button class="btn" style="flex:1;background:var(--gray-2);color:var(--gray-6);" onclick="cancelTripPick();">取消</button>'
-          + '<button class="btn btn-primary" style="flex:2;" onclick="confirmStartTrip();">' + (isEditing ? '💾 儲存變更' : '▶ 開始行程') + '</button>'
+          + '<button class="btn btn-primary" style="flex:2;" onclick="confirmStartTrip();" ' + (!detectedSpot ? 'disabled style="opacity:0.5;flex:2;"' : 'style="flex:2;"') + '>' + (isEditing ? '💾 儲存變更' : '▶ 開始行程') + '</button>'
         + '</div></div>';
     } else {
       html += '<div class="card" style="text-align:center;padding:24px 16px;">'
@@ -2516,11 +2631,16 @@ function renderTripDetailView(id) {
   html += '<div class="trip-detail-header">'
     + '<div class="trip-detail-title">' + (trip.spot ? escapeHtml(trip.spot) : '未命名行程') + (isActive ? ' <span style="font-size:12px;color:var(--orange);">（進行中）</span>' : '') + '</div>'
     + '<div class="trip-detail-meta">📅 ' + dateStr + ' ' + timeStr + (trip.endedAt ? ' · 結束 ' + new Date(trip.endedAt).toTimeString().slice(0,5) : '') + '</div>';
-  // 行程條件 tags
+  // 行程條件 tags — GPS 自動檢測釣點
   const tags = [];
   if (trip.method) tags.push('<span class="trip-tag">🎣 ' + escapeHtml(trip.method) + '</span>');
   if (trip.bait) tags.push('<span class="trip-tag">🦐 ' + escapeHtml(trip.bait) + '</span>');
-  if (trip.latitude && trip.longitude) tags.push('<span class="trip-tag">📍 ' + trip.latitude.toFixed(3) + ', ' + trip.longitude.toFixed(3) + '</span>');
+  if (trip.latitude && trip.longitude) {
+    const acc = trip.accuracy ? '（±' + trip.accuracy + 'm）' : '';
+    tags.push('<span class="trip-tag" title="GPS 自動定位' + acc + '">📍 ' + trip.latitude.toFixed(3) + ', ' + trip.longitude.toFixed(3) + acc + '</span>');
+  } else {
+    tags.push('<span class="trip-tag" style="background:var(--orange-light);color:var(--orange);">📍 未啟用 GPS</span>');
+  }
   if (tags.length) html += '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;">' + tags.join('') + '</div>';
   html += '<div class="trip-stats-grid">'
       + '<div class="trip-stat-box"><div class="trip-stat-num">' + window.tripsLib.formatDuration(durationSec) + '</div><div class="trip-stat-label">總時長</div></div>'
@@ -2531,6 +2651,7 @@ function renderTripDetailView(id) {
   + '</div>';
   if (isActive) {
     html += '<div class="trip-actions">'
+      + '<button class="btn" style="background:var(--gray-2);color:var(--gray-6);" onclick="retripActiveGPS();">🔄 重新定位</button>'
       + '<button class="btn" style="background:var(--gray-2);color:var(--gray-6);" onclick="closeTripDetail();editActiveTrip();">✏️ 編輯行程</button>'
       + '<button class="btn btn-primary" onclick="addCatchInTrip();">➕ 加魚獲</button>'
       + '<button class="btn btn-outline" style="color:var(--orange);border-color:var(--orange);" onclick="endTrip(false);">🛑 結束行程</button>'
@@ -2586,6 +2707,7 @@ window.editActiveTrip = editActiveTrip;
 window.onTripMethodChange = onTripMethodChange;
 window.onTripBaitChange = onTripBaitChange;
 window.closeTripDetail = closeTripDetail;
+window.retripActiveGPS = retripActiveGPS;
 
 /* ===== My Catches View ===== */
 function getMyCatchRankings() {
