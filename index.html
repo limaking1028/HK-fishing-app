@@ -1342,11 +1342,11 @@ function renderRecordView() {
     + '<div class="gps-auto-box" id="gps-auto-box">'
     +   '<div class="gps-auto-icon">📡</div>'
     +   '<div class="gps-auto-content">'
-    +     '<div class="gps-auto-title">GPS 自動識別中...</div>'
-    +     '<div class="gps-auto-status" id="gps-status">點擊下方按鈕或等待系統定位</div>'
+    +     '<div class="gps-auto-title">點擊下方按鈕啟用自動定位</div>'
+    +     '<div class="gps-auto-status" id="gps-status">系統會自動識別最近釣點，無需手動輸入</div>'
     +   '</div>'
     + '</div>'
-    + '<button type="button" id="gps-btn" class="gps-btn" onclick="getCurrentLocation()" style="width:100%;margin-top:8px;">📍 取得當前位置</button>'
+    + '<button type="button" id="gps-btn" class="gps-btn" onclick="getCurrentLocation()" style="width:100%;margin-top:8px;">📍 啟用自動定位</button>'
     + '<input type="hidden" id="catch-lat" value="'+(state.catchLat||'')+'"><input type="hidden" id="catch-lng" value="'+(state.catchLng||'')+'"><input type="hidden" id="catch-accuracy" value="'+(state.catchAccuracy||'')+'">'
     + '<select id="catch-spot" style="display:none;">'
     + FISHING_SPOTS.map(s => '<option value="'+s.name+'"'+(state.selectedSpot===s.name?' selected':'')+'>'+s.name+'</option>').join('')
@@ -1359,10 +1359,9 @@ function renderRecordView() {
     + '<div class="form-group"><label class="form-label">備註</label><textarea class="form-textarea" id="catch-notes" placeholder="例如：黃昏流水好、風向、水溫等..."></textarea></div>'
     + '<div class="form-group"><label class="form-label">魚獲照片</label><div class="photo-upload" onclick="document.getElementById(\'catch-photo\').click()"><div class="upload-icon">📸</div><div class="upload-text">點擊上傳照片（可增強紀錄可信度）</div></div><input type="file" id="catch-photo" accept="image/*" style="display:none" onchange="previewPhoto(this)"><div id="photo-preview-container"></div></div>'
     + '<button class="btn btn-primary" onclick="submitCatch()">送出魚獲記錄</button></div>';
-  // Route A1: 表單渲染後初始化 astro 顯示（用預設日期時間）
+  // Route L+: 表單打開時不直接觸發 (iOS 政策需用戶操作),但記錄狀態讓按鈕更醒目
+  // 用戶點擊 [📍 啟用自動定位] 後,後續 GPS 自動運行無需再操作
   setTimeout(() => { try { onDateChange(); } catch(e) { console.warn('astro init failed', e); } }, 0);
-  // Route L+: 表單打開時自動觸發定位（不需用戶手動）
-  setTimeout(() => { try { getCurrentLocation(); } catch(e) { console.warn('auto gps trigger failed', e); } }, 500);
   // Route K: 渲染智能揀魚種 UI（Top 8 by 使用次數 + 摺疊展開）
   renderSpeciesSelector();
 }

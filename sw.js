@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v63';  // bump: 釣點改為完全自動 — 表單打開自動 GPS,隱藏手動選擇器
+const CACHE = 'hk-fishing-v64';  // bump: 自動定位按鈕文字改為「啟用自動定位」(iOS 政策需用戶操作觸發)
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js'
 ];
