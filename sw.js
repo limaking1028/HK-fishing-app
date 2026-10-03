@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v86';  // bump: 隱藏「啟用繁體中文」按鈕（App 已內建 default key）
+const CACHE = 'hk-fishing-v87';  // bump: 隱藏地圖 zoom control + layer control（只有一個圖層）
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js'  // Route L+
