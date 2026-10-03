@@ -2699,10 +2699,10 @@ function renderLeaderboardView() {
   } else {
     // 品種王者：統計每個用戶釣到多少種不同魚種，按數量排名
     const m = {};
-    filtered.forEach(c => { if (c.verified || c.isMine || c.imported) { m[c.user] = m[c.user] || {user:c.user, species:new Set(), catches:[]}; m[c.user].species.add(c.species); m[c.user].catches.push(c); } });
+    filtered.forEach(c => { if (c.verified || c.isMine || c.imported) { m[c.user] = m[c.user] || {user:c.user, species:new Set(), spots:new Set(), catches:[]}; m[c.user].species.add(c.species); m[c.user].spots.add(c.spot); m[c.user].catches.push(c); } });
     lbData = Object.values(m).map(u => {
       const biggest = u.catches.reduce((mx,c) => c.weight > mx.weight ? c : mx, u.catches[0]);
-      return { user:u.user, speciesCount:u.species.size, speciesList:[...u.species].join('·'), biggestWeight:biggest.weight, isMine:u.catches.some(c=>c.isMine) };
+      return { user:u.user, speciesCount:u.species.size, spotCount:u.spots.size, biggestWeight:biggest.weight, isMine:u.catches.some(c=>c.isMine) };
     }).sort((a,b) => b.speciesCount - a.speciesCount || b.biggestWeight - a.biggestWeight);
   }
   let listHtml = '';
@@ -2715,7 +2715,7 @@ function renderLeaderboardView() {
       let value='', detail='';
       if (state.lbType==='biggest') { value=item.weight+'<span class="unit">斤</span>'; detail=item.species+' · '+item.spot+' · '+daysAgo(item.date); }
       else if (state.lbType==='quantity') { value=item.count+'<span class="unit">條</span>'; detail=item.speciesCount+' 種魚 · '+item.spotCount+' 個釣點'; }
-      else { value=item.speciesCount+'<span class="unit">種</span>'; detail=item.speciesList+' · 最大'+item.biggestWeight+'斤'; }
+      else { value=item.speciesCount+'<span class="unit">種</span>'; detail='最大 '+item.biggestWeight+' 斤 · 釣過 '+item.spotCount+' 個釣點'; }
       // 第一名「全港霸主」徽章 + 詳情移至第二行
       let championInline = '';
       let detailBlock = '';
