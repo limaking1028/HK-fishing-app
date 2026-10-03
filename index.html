@@ -162,7 +162,8 @@
     background: white; border-radius: 10px; margin-bottom: 6px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   }
-  .trip-catch-mini-icon { width: 36px; height: 36px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .trip-catch-mini-icon { width: 56px; aspect-ratio: 16/9; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--teal-light); }
+  .trip-catch-mini-icon img, .trip-catch-mini-icon svg { width: 100%; height: 100%; object-fit: cover; display: block; }
   .trip-catch-mini-info { flex: 1; min-width: 0; }
   .trip-catch-mini-species { font-size: 14px; font-weight: 600; color: var(--dark); }
   .trip-catch-mini-meta { font-size: 11px; color: var(--gray-5); }
@@ -449,6 +450,7 @@
   .species-row-thumb { width: 50px; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden; background: var(--teal-light); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
   .species-row-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .species-row-thumb > svg { display: block; }
+  .species-row-thumb .species-row-thumb-img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .species-row-name { flex: 1; font-size: 14px; font-weight: 600; color: var(--dark); }
   .species-row-count { font-size: 13px; color: var(--teal-dark); font-weight: 700; background: var(--teal-light); padding: 3px 10px; border-radius: 10px; flex-shrink: 0; }
   .species-row-arrow { font-size: 11px; color: var(--gray-4); margin-left: 4px; }
@@ -516,8 +518,9 @@
   .pokedex-card.unlocked { border: 2px solid var(--teal); }
   .pokedex-card.unlocked::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--teal), var(--orange)); }
   .pokedex-icon { font-size: 36px; margin-bottom: 6px; }
-  .pokedex-photo { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; margin: 0 auto 6px; display: flex; align-items: center; justify-content: center; background: var(--gray-1); }
+  .pokedex-photo { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; margin: 0 auto 6px; display: flex; align-items: center; justify-content: center; background: var(--gray-1); overflow: hidden; }
   .pokedex-photo > svg { display: block; }
+  .pokedex-photo .pokedex-photo-img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .pokedex-card.locked .pokedex-photo { filter: brightness(0.4) grayscale(1); }
   .pokedex-card.locked .pokedex-icon { filter: brightness(0.5); }
   .pokedex-name { font-size: 14px; font-weight: 700; color: var(--dark); }
@@ -536,6 +539,7 @@
   .pokedex-catch-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--gray-1); border-radius: 8px; }
   .pokedex-catch-thumb { width: 48px; height: 30px; border-radius: 4px; overflow: hidden; background: var(--teal-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .pokedex-catch-thumb img, .pokedex-catch-thumb svg { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .pokedex-catch-thumb .pokedex-catch-thumb-img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .pokedex-catch-info { flex: 1; min-width: 0; }
   .pokedex-catch-weight { font-size: 15px; font-weight: 700; color: var(--teal-dark); line-height: 1.2; }
   .pokedex-catch-weight span { font-size: 11px; color: var(--gray-4); margin-left: 2px; font-weight: 500; }
@@ -1362,6 +1366,49 @@ window._fishPhotoNext = function(img) {
   img.dataset.idx = idx;
   img.src = base + '.' + FISH_PHOTO_EXTS[idx];
 };
+// ===== 真實魚照統一渲染（取代 SVG 簡筆風）=====
+// 優先順序：用戶上傳照片 → 魚種真實照片 (photos/{name}.jpg/png) → SVG 簡筆風 fallback
+// 用法：
+//   catchThumbHtml(c)                       → 魚獲卡片/列表/王者卡（catch-thumb class）
+//   catchThumbHtml(c, { klass: '其他' })     → 自訂 class
+//   speciesPhotoHtml('泥鯭')                → 圖鑑等純展示
+//   speciesPhotoHtml('泥鯭', { klass: 'X', size: 96 })
+function catchThumbHtml(c, opts) {
+  opts = opts || {};
+  const klass = opts.klass || 'catch-thumb';
+  const fishInfo = getFishInfo(c.species);
+  const fallbackSvg = window.fishIconSvg ? window.fishIconSvg(c.species, 80) : (fishInfo.icon || '🐟');
+  const safeAlt = escapeHtml(c.species);
+  // 1) 用戶上傳照片（最高優先）
+  if (c.photoUrl) {
+    const fallback = fishInfo.photo
+      ? fishPhotoImg(fishInfo.photo, fishInfo.icon, klass).replace('alt=""', 'alt="' + safeAlt + '"')
+      : fallbackSvg;
+    // 將 fallback HTML 內的單引號 escape（因為外層 onerror 用單引號包裹）
+    const safeFallback = fallback.replace(/'/g, "\\'");
+    return '<img class="' + klass + '" src="' + escapeHtml(c.photoUrl) + '" alt="' + safeAlt + '" loading="lazy" '
+      + 'onerror="this.outerHTML=\'' + safeFallback + '\'">';
+  }
+  // 2) 魚種真實照片
+  if (fishInfo.photo) {
+    return fishPhotoImg(fishInfo.photo, fishInfo.icon, klass).replace('alt=""', 'alt="' + safeAlt + '"');
+  }
+  // 3) SVG fallback
+  return fallbackSvg;
+}
+function speciesPhotoHtml(name, opts) {
+  opts = opts || {};
+  const klass = opts.klass || '';
+  const f = getFishInfo(name);
+  const safeAlt = escapeHtml(name);
+  if (f.photo) {
+    if (klass) {
+      return fishPhotoImg(f.photo, f.icon, klass).replace('alt=""', 'alt="' + safeAlt + '"');
+    }
+    return fishPhotoImg(f.photo, f.icon, 'pokedex-photo-img').replace('alt=""', 'alt="' + safeAlt + '"');
+  }
+  return window.fishIconSvg ? window.fishIconSvg(name, opts.size || 96) : '🐟';
+}
 function formatDate(d) { const date = new Date(d); const mm=(date.getMonth()+1).toString().padStart(2,'0'); const dd=date.getDate().toString().padStart(2,'0'); return date.getFullYear()+'/'+mm+'/'+dd; }
 function daysAgo(d) { const date = new Date(d); const now = new Date(); const diff = Math.floor((now-date)/86400000); if(diff===0) return '今天'; if(diff===1) return '昨天'; return diff+'日前'; }
 function toast(msg, duration) { let el = document.getElementById('toast'); if(!el){el=document.createElement('div');el.id='toast';el.className='toast';document.body.appendChild(el);} el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'), duration || 2000); }
@@ -2494,9 +2541,8 @@ function renderTripDetailView(id) {
     html += '<div class="section-title" style="margin-top:16px;">🐟 魚獲清單</div>';
     summary.catches.sort((a,b) => (b.time || '').localeCompare(a.time || ''));
     summary.catches.forEach(c => {
-      const iconHtml = c.photoUrl
-        ? '<img src="' + c.photoUrl + '" style="width:36px;height:36px;border-radius:8px;object-fit:cover;" onerror="this.outerHTML=\'' + (window.fishIconSvg ? window.fishIconSvg(c.species, 36) : c.speciesIcon || '🐟') + '\'">'
-        : (window.fishIconSvg ? window.fishIconSvg(c.species, 36) : (c.speciesIcon || '🐟'));
+      // Route Real-photo: 用戶上傳照片 → 魚種真實照片 → SVG fallback
+      const iconHtml = catchThumbHtml(c, { klass: 'catch-thumb-mini' });
       html += '<div class="trip-catch-mini">'
         + '<div class="trip-catch-mini-icon">' + iconHtml + '</div>'
         + '<div class="trip-catch-mini-info">'
@@ -2619,10 +2665,8 @@ function renderMyView() {
   let biggestHtml = '';
   if (biggest) {
     const bi = getFishInfo(biggest.species);
-    // Route D: 用戶上傳照片優先，否則用 SVG icon（避免 AI 生成圖）
-    const biIcon = biggest.photoUrl
-      ? '<img class="catch-thumb" src="'+biggest.photoUrl+'" alt="'+biggest.species+'" loading="lazy" onerror="this.outerHTML=\''+(window.fishIconSvg?window.fishIconSvg(biggest.species,80):(biggest.speciesIcon||'🐟'))+'\'">'
-      : (window.fishIconSvg ? window.fishIconSvg(biggest.species, 80) : (biggest.speciesIcon || (bi ? bi.icon : '🐟')));
+    // Route Real-photo: 用戶上傳照片 → 魚種真實照片 → SVG fallback
+    const biIcon = catchThumbHtml(biggest, { klass: 'catch-thumb' });
     biggestHtml = '<div class="biggest-card"><div class="biggest-card-header"><span class="biggest-badge">👑 重量王者紀錄</span></div><div class="biggest-card-body"><div class="catch-fish-icon">'+biIcon+'</div><div class="biggest-info"><div class="biggest-species">'+biggest.species+'</div><div class="biggest-weight">'+biggest.weight+' <span>斤</span></div><div class="biggest-meta">'+(biggest.length?biggest.length+'cm · ':'')+biggest.spot+' · '+formatDate(biggest.date)+' '+biggest.time+'</div></div></div></div>';
   }
   // 各魚種數量（摺疊）
@@ -2633,8 +2677,8 @@ function renderMyView() {
     let rows = '';
     allBreakdown.forEach(([sp, n]) => {
       const f = getFishInfo(sp);
-      // Route D: 用 SVG icon 取代 AI 生成魚照
-      const thumb = window.fishIconSvg ? window.fishIconSvg(sp, 40) : (f ? f.icon : '🐟');
+      // Route Real-photo: 用魚種真實照片
+      const thumb = speciesPhotoHtml(sp, { klass: 'species-row-thumb-img' });
       const spKey = secKey+'_'+sp;
       const spExpanded = !!state.ui.expandedSpecies[spKey];
       let catchesHtml = '';
@@ -2702,11 +2746,8 @@ function renderCatchCard(c, rankings) {
   if (rankings && rankings[c.id]) {
     rankBadges = rankings[c.id].map(r => '<span class="rank-badge">🏆 '+r.lb+' #'+r.rank+'</span>').join('');
   }
-  const fishInfo = getFishInfo(c.species);
-  // Route D: 用戶上傳照片優先，否則用 SVG icon（避免 AI 生成圖）
-  const iconHtml = c.photoUrl
-    ? '<img class="catch-thumb" src="'+c.photoUrl+'" alt="'+c.species+'" loading="lazy" onerror="this.outerHTML=\''+(window.fishIconSvg?window.fishIconSvg(c.species,80):(c.speciesIcon||'🐟'))+'\'">'
-    : (window.fishIconSvg ? window.fishIconSvg(c.species, 80) : (c.speciesIcon || '🐟'));
+  // Route Real-photo: 用戶上傳照片 → 魚種真實照片 → SVG fallback
+  const iconHtml = catchThumbHtml(c, { klass: 'catch-thumb' });
   const unsyncedTag = c.unsynced ? '<span class="catch-tag" style="background:#fff4e8;color:#b06820;border:1px solid #f5a623;" title="未同步到雲端,將在網絡恢復時自動補傳">☁️ 未同步</span>' : '';
   return '<div class="catch-card"><div class="catch-card-top"><div class="catch-fish-icon">'+iconHtml+'</div><div class="catch-info"><div class="catch-species">'+escapeHtml(c.species)+'</div><div class="catch-meta">'+escapeHtml(c.spot)+' · '+formatDate(c.date)+' '+c.time+'</div></div><div class="catch-weight-badge"><div class="catch-weight">'+c.weight+'</div><div class="catch-weight-unit">斤</div></div></div><div class="catch-card-bottom">'+rankBadges+unsyncedTag+(c.length?'<span class="catch-tag">'+c.length+'cm</span>':'')+'<span class="catch-tag">🎣 '+escapeHtml(c.method)+'</span><span class="catch-tag">🪱 '+escapeHtml(c.bait)+'</span>'+(c.verified?'<span class="verified-badge">✓ 有效紀錄</span>':'')+'<span class="catch-tag share-btn" data-share-id="'+c.id+'">📤 分享</span></div>'+(c.notes?'<div style="padding:6px 14px 10px;font-size:13px;color:var(--gray-5);border-top:1px solid var(--gray-1);">'+escapeHtml(c.notes)+'</div>':'')+'</div>';
 }
@@ -3661,7 +3702,7 @@ function getPokedexHTML() {
       return '<div class="pokedex-card unlocked' + (isExpanded ? ' expanded' : '') + '">'
         + (f.custom ? '<span class="pokedex-custom-tag">自訂</span>' : '')
         + '<span class="pokedex-rarity ' + rarityClass + '">' + rarityLabels[f.rarity||'common'] + '</span>'
-        + '<div class="pokedex-photo">' + (window.fishIconSvg ? window.fishIconSvg(f.name, 96) : '🐟') + '</div>'
+        + '<div class="pokedex-photo">' + speciesPhotoHtml(f.name, { klass: 'pokedex-photo-img', size: 96 }) + '</div>'
         + '<div class="pokedex-name">' + f.name + '</div>'
         + '<div class="pokedex-sci">' + (f.sci||'') + '</div>'
         + '<div class="pokedex-habitat">' + (f.habitat||'') + '</div>'
@@ -3691,9 +3732,8 @@ function getPokedexHTML() {
 
 // Route G: 圖鑑展開用的簡化版 catch card
 function renderPokedexCatchCard(c) {
-  const thumb = c.photoUrl
-    ? '<img src="' + c.photoUrl + '" alt="" loading="lazy" onerror="this.outerHTML=\'' + (window.fishIconSvg ? window.fishIconSvg(c.species, 40) : '🐟') + '\'">'
-    : (window.fishIconSvg ? window.fishIconSvg(c.species, 40) : '🐟');
+  // Route Real-photo: 用戶上傳照片 → 魚種真實照片 → SVG fallback
+  const thumb = catchThumbHtml(c, { klass: 'pokedex-catch-thumb-img' });
   return '<div class="pokedex-catch-row">'
     + '<div class="pokedex-catch-thumb">' + thumb + '</div>'
     + '<div class="pokedex-catch-info">'
