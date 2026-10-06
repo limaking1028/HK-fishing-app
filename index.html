@@ -2446,7 +2446,8 @@ function renderActiveTripBanner() {
         + tideChip
       + '</div>'
       + '<button class="atb-btn" onclick="event.stopPropagation();addCatchInTrip();">➕ 加魚</button>'
-      + '<button class="atb-end" onclick="event.stopPropagation();endTrip(false);">結束</button>'
+      + '<button class="atb-btn" style="font-size:14px;padding:6px 10px;" onclick="event.stopPropagation();editActiveTrip();">✏️ 編輯</button>'
+      + '<button class="atb-end" onclick="event.stopPropagation();endTrip(false);">🛑 結束</button>'
     + '</div>';
 }
 
@@ -2844,32 +2845,15 @@ function renderTripsView() {
   const active = state.activeTrip;
   const trips = (state.trips || []).filter(t => !t.isDemo && t.endedAt);  // 歷史 = 已結束的
   let html = '<div class="section-title">⏱️ 釣魚行程</div>';
-  // 進行中區塊（強調）
+  // 進行中行程的詳情由頂部 sticky banner 統一顯示（含加魚/編輯/結束按鈕）
+  // 此處只顯示一個小提示引導用戶看頂部
   if (active) {
-    const sec = window.tripsLib.tripDurationSec(active);
-    const summary = window.tripsLib.summarizeTripCatches(active, state.catches);
     const tags = [];
-    if (active.spot) tags.push('📍 ' + escapeHtml(active.spot));
     if (active.method) tags.push('🎣 ' + escapeHtml(active.method));
     if (active.bait) tags.push('🦐 ' + escapeHtml(active.bait));
-    html += '<div class="card" style="background:linear-gradient(135deg,var(--orange),#ff8c5a);color:white;">'
-      + '<div style="display:flex;align-items:center;gap:12px;">'
-        + '<span class="atb-dot"></span>'
-        + '<div style="flex:1;min-width:0;">'
-          + '<div style="font-size:13px;opacity:0.95;font-weight:600;">行程進行中</div>'
-          + '<div id="trips-active-timer" style="font-size:24px;font-weight:700;font-family:monospace;letter-spacing:1px;">' + window.tripsLib.formatTimerDisplay(sec) + '</div>'
-          + '<div style="font-size:12px;opacity:0.9;">' + summary.count + ' 條魚 · ' + summary.totalWeight.toFixed(2) + ' 斤</div>'
-        + '</div>'
-        + '<button class="atb-btn" onclick="event.stopPropagation();addCatchInTrip();">➕ 加魚</button>'
-      + '</div>'
-      + (tags.length ? '<div style="margin-top:10px;font-size:12px;opacity:0.95;line-height:1.5;">' + tags.join(' · ') + '</div>' : '')
-      + '<div style="margin-top:12px;display:flex;gap:8px;">'
-        + '<button class="atb-end" style="flex:1;background:rgba(255,255,255,0.2);color:white;border-color:rgba(255,255,255,0.35);" onclick="event.stopPropagation();editActiveTrip();">✏️ 編輯</button>'
-        + '<button class="atb-end" style="flex:1;background:rgba(255,255,255,0.25);color:white;border-color:rgba(255,255,255,0.4);" onclick="event.stopPropagation();endTrip(false);">🛑 結束</button>'
-      + '</div>'
+    html += '<div class="card" style="background:var(--orange-light);border:1px solid var(--orange);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--gray-6);line-height:1.5;">'
+      + '<b style="color:var(--orange);">行程進行中</b> · 計時和操作按鈕在頂部橫幅' + (tags.length ? '<br>' + tags.join(' · ') : '')
     + '</div>';
-    // 給當前 timer 也加 tick
-    setTimeout(tickTripsActiveTimer, 0);
   } else {
     // 沒有進行中行程 → 顯示開始行程 + spot picker
     if (state.tripPicking) {
@@ -2918,7 +2902,7 @@ function renderTripsView() {
   }
   // 歷史行程
   if (trips.length > 0) {
-    html += '<div class="section-title" style="margin-top:18px;">📜 歷史行程（' + trips.length + '）</div>';
+    html += '<div class="section-title" style="margin-top:18px;">📜 已結束行程（' + trips.length + '）</div>';
     trips.forEach(t => {
       const sec = window.tripsLib.tripDurationSec(t);
       html += renderTripCard(t, sec);
@@ -2936,15 +2920,6 @@ function renderTripsView() {
     console.error('renderTripsView error:', e);
     const view = document.getElementById('view-trips');
     if (view) view.innerHTML = '<div style="background:#fee;color:#c00;padding:16px;border-radius:8px;font-size:12px;margin:12px;">⚠️ 行程頁面錯誤<br><br>' + (e.message || e) + '<br><br>請截圖傳給我</div>';
-  }
-}
-
-function tickTripsActiveTimer() {
-  if (!state.activeTrip) return;
-  const el = document.getElementById('trips-active-timer');
-  if (el) {
-    const sec = window.tripsLib.tripDurationSec(state.activeTrip);
-    el.textContent = window.tripsLib.formatTimerDisplay(sec);
   }
 }
 
@@ -4639,7 +4614,7 @@ function setupGlobalHandlers() {
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=v96').catch(()=>{});
+    navigator.serviceWorker.register('sw.js?v=v97').catch(()=>{});
   }
   checkSharedCatch();
   renderRecordView();
