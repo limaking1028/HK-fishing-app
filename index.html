@@ -2506,6 +2506,7 @@ function editActiveTrip() {
   state.tripPickingLng = state.activeTrip.longitude;
   state.tripPickingAccuracy = state.activeTrip.accuracy || null;
   state.editingActiveTrip = true;
+  goToView('trips');
   renderTripsView();
 }
 
@@ -2846,17 +2847,16 @@ function renderTripsView() {
   const trips = (state.trips || []).filter(t => !t.isDemo && t.endedAt);  // 歷史 = 已結束的
   let html = '<div class="section-title">⏱️ 釣魚行程</div>';
   // 進行中行程的詳情由頂部 sticky banner 統一顯示（含加魚/編輯/結束按鈕）
-  // 此處只顯示一個小提示引導用戶看頂部
-  if (active) {
+  // 此處只顯示一個小提示引導用戶看頂部；如果是編輯模式，則顯示 picker
+  if (active && !state.editingActiveTrip) {
     const tags = [];
     if (active.method) tags.push('🎣 ' + escapeHtml(active.method));
     if (active.bait) tags.push('🦐 ' + escapeHtml(active.bait));
     html += '<div class="card" style="background:var(--orange-light);border:1px solid var(--orange);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--gray-6);line-height:1.5;">'
       + '<b style="color:var(--orange);">行程進行中</b> · 計時和操作按鈕在頂部橫幅' + (tags.length ? '<br>' + tags.join(' · ') : '')
     + '</div>';
-  } else {
-    // 沒有進行中行程 → 顯示開始行程 + spot picker
-    if (state.tripPicking) {
+  } else if (state.tripPicking) {
+    // 進入 picker（開始新行程 或 編輯進行中行程）
       // 內嵌 picker（開始 / 編輯都用）— GPS 自動識別釣點
       const recentSpots = getRecentSpots(5);
       const isEditing = state.editingActiveTrip;
@@ -4614,7 +4614,7 @@ function setupGlobalHandlers() {
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=v97').catch(()=>{});
+    navigator.serviceWorker.register('sw.js?v=v98').catch(()=>{});
   }
   checkSharedCatch();
   renderRecordView();

@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v97';  // bump: 行程頁移除重複進行中卡片，banner 加編輯按鈕，統一計時器
+const CACHE = 'hk-fishing-v98';  // bump: 修正 banner 編輯按鈕無法開啟編輯 picker
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
@@ -6,30 +6,30 @@ const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon
 ];
 
 self.addEventListener('install', e => {
-  console.log('[SW v97] Installing...');
+  console.log('[SW v98] Installing...');
   e.waitUntil(
     caches.open(CACHE)
       .then(c => c.addAll(CORE))
-      .catch(err => console.warn('[SW v97] cache addAll failed:', err))
+      .catch(err => console.warn('[SW v98] cache addAll failed:', err))
       .then(() => {
-        console.log('[SW v97] skipWaiting');
+        console.log('[SW v98] skipWaiting');
         return self.skipWaiting();
       })
   );
 });
 
 self.addEventListener('activate', e => {
-  console.log('[SW v97] Activating, removing old caches...');
+  console.log('[SW v98] Activating, removing old caches...');
   e.waitUntil(
     caches.keys().then(keys => {
       return Promise.all(
         keys.filter(k => k !== CACHE).map(k => {
-          console.log('[SW v97] Deleting old cache:', k);
+          console.log('[SW v98] Deleting old cache:', k);
           return caches.delete(k);
         })
       );
     }).then(() => {
-      console.log('[SW v97] claim clients');
+      console.log('[SW v98] claim clients');
       return self.clients.claim();
     })
   );
