@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v94';  // bump: auth.js 加入 ensureSb，自動重新初始化 Supabase client
+const CACHE = 'hk-fishing-v95';  // bump: 雲端模式下 saveName 可更新 Supabase users.display_name
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
@@ -6,30 +6,30 @@ const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon
 ];
 
 self.addEventListener('install', e => {
-  console.log('[SW v94] Installing...');
+  console.log('[SW v95] Installing...');
   e.waitUntil(
     caches.open(CACHE)
       .then(c => c.addAll(CORE))
-      .catch(err => console.warn('[SW v94] cache addAll failed:', err))
+      .catch(err => console.warn('[SW v95] cache addAll failed:', err))
       .then(() => {
-        console.log('[SW v94] skipWaiting');
+        console.log('[SW v95] skipWaiting');
         return self.skipWaiting();
       })
   );
 });
 
 self.addEventListener('activate', e => {
-  console.log('[SW v94] Activating, removing old caches...');
+  console.log('[SW v95] Activating, removing old caches...');
   e.waitUntil(
     caches.keys().then(keys => {
       return Promise.all(
         keys.filter(k => k !== CACHE).map(k => {
-          console.log('[SW v94] Deleting old cache:', k);
+          console.log('[SW v95] Deleting old cache:', k);
           return caches.delete(k);
         })
       );
     }).then(() => {
-      console.log('[SW v94] claim clients');
+      console.log('[SW v95] claim clients');
       return self.clients.claim();
     })
   );

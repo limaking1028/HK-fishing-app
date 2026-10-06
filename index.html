@@ -1443,12 +1443,32 @@ try {
   if (pinnedJson) state.pinnedSpecies = JSON.parse(pinnedJson);
 } catch(e) { state.pinnedSpecies = []; }
 function getUserName() { return state.user ? (state.user.display_name || state.user.username) : (localStorage.getItem(USERNAME_KEY) || '我'); }
-function setUserName(name) {
-  if (SB_ENABLED && state.user) return;  // 雲端模式由 display_name 管理
-  name = name.trim() || '我';
+async function setUserName(name) {
+  name = (name || '').trim() || '我';
+  if (SB_ENABLED && state.user) {
+    // 雲端模式：同步更新 Supabase users.display_name
+    try {
+      const { error } = await sb.from('users')
+        .update({ display_name: name })
+        .eq('id', state.user.id);
+      if (error) {
+        console.warn('更新 display_name 失敗:', error);
+        toast('名稱同步失敗：' + error.message);
+        return false;
+      }
+      state.user.display_name = name;
+      return true;
+    } catch (e) {
+      console.warn('setUserName error:', e);
+      toast('名稱同步失敗');
+      return false;
+    }
+  }
+  // 離線模式：只存 localStorage
   localStorage.setItem(USERNAME_KEY, name);
   state.catches.forEach(c => { if (c.isMine) c.user = name; });
   saveCatches(state.catches);
+  return true;
 }
 async function loadCatches() {
   if (SB_ENABLED && state.user) {
@@ -3227,10 +3247,11 @@ function openNameDialog() {
   refreshAnalyticsToggleUI();  // Route M: 確保 toggle 顯示當前狀態
 }
 function closeNameDialog() { document.getElementById('name-modal').classList.remove('show'); }
-function saveName() {
+async function saveName() {
   const name = document.getElementById('name-input').value.trim() || '我';
-  setUserName(name);
-  document.getElementById('header-username').textContent = name;
+  const ok = await setUserName(name);
+  if (!ok) return; // 更新失敗時保持對話框開啟
+  document.getElementById('header-username').textContent = getUserName();
   closeNameDialog();
   renderAll();
   showToast('名稱已更新為「' + name + '」');
@@ -4620,7 +4641,7 @@ function setupGlobalHandlers() {
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=v94').catch(()=>{});
+    navigator.serviceWorker.register('sw.js?v=v95').catch(()=>{});
   }
   checkSharedCatch();
   renderRecordView();
