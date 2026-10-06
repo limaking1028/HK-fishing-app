@@ -1630,10 +1630,8 @@ function renderRecordView() {
   const now = new Date();
   const today = now.toISOString().slice(0,10);
   const nowTime = now.toTimeString().slice(0,5);
-  // Route H: 若有進行中行程，在表單頂部提示這條魚會歸入該行程
-  const tripBadge = state.activeTrip
-    ? '<div style="background:var(--orange-light);border:1px solid var(--orange);border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">⏱️</span><div style="flex:1;font-size:12px;color:var(--gray-6);line-height:1.4;"><b style="color:var(--orange);">進行中行程</b><br>這條魚獲會自動加入當前行程</div><button type="button" class="atb-end" onclick="event.stopPropagation();endTrip(true);">結束行程</button></div>'
-    : '';
+  // Route H: 進行中行程的提示由頂部 banner 統一顯示，表單內不再重複
+  const tripBadge = '';
   view.innerHTML = '<div class="card"><div class="section-title">🎣 記錄新魚獲</div>'
     + tripBadge
     + '<div class="form-group"><label class="form-label">魚種 <span class="req">*</span></label><div id="species-selector"></div>'
@@ -4641,7 +4639,7 @@ function setupGlobalHandlers() {
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=v95').catch(()=>{});
+    navigator.serviceWorker.register('sw.js?v=v96').catch(()=>{});
   }
   checkSharedCatch();
   renderRecordView();
