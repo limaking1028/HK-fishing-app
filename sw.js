@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v91';  // bump: Email Magic Link 認證(取代 WhatsApp OTP)+ 新登入 UI
+const CACHE = 'hk-fishing-v92';  // bump: 加強制 skipWaiting + clientsClaim,確保 SW 立即生效
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
@@ -6,40 +6,55 @@ const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon
 ];
 
 self.addEventListener('install', e => {
+  console.log('[SW v92] Installing...');
   e.waitUntil(
     caches.open(CACHE)
       .then(c => c.addAll(CORE))
-      .catch(() => {})
-      .then(() => self.skipWaiting())
+      .catch(err => console.warn('[SW v92] cache addAll failed:', err))
+      .then(() => {
+        console.log('[SW v92] skipWaiting');
+        return self.skipWaiting();
+      })
   );
 });
 
 self.addEventListener('activate', e => {
-  // 清掉所有舊 cache（包括 hk-fishing-v1）
+  console.log('[SW v92] Activating, removing old caches...');
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => {
-        console.log('SW clearing old cache:', k);
-        return caches.delete(k);
-      }))
-    ).then(() => self.clients.claim())
+    caches.keys().then(keys => {
+      return Promise.all(
+        keys.filter(k => k !== CACHE).map(k => {
+          console.log('[SW v92] Deleting old cache:', k);
+          return caches.delete(k);
+        })
+      );
+    }).then(() => {
+      console.log('[SW v92] claim clients');
+      return self.clients.claim();
+    })
   );
 });
 
 // 網絡優先，離線用快取
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-  // index.html 永遠唔快取，確保最新版本
-  if (e.request.url.includes('index.html') || e.request.url.endsWith('/')) {
+  const url = new URL(e.request.url);
+  // index.html (任何 query string) 永遠走網絡,確保最新版本
+  if (url.pathname.endsWith('/index.html') || url.pathname.endsWith('/')) {
     e.respondWith(
-      fetch(e.request).catch(() => caches.match('./index.html'))
+      fetch(e.request, { cache: 'no-store' })
+        .catch(() => caches.match('./index.html'))
     );
     return;
   }
+  // 其他檔案:網絡優先,失敗用快取
   e.respondWith(
     fetch(e.request).then(res => {
-      const copy = res.clone();
-      caches.open(CACHE).then(c => c.put(e.request, copy));
+      // 只 cache 成功嘅 2xx response
+      if (res.ok) {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, copy));
+      }
       return res;
     }).catch(() => caches.match(e.request).then(r => r || caches.match('./')))
   );
