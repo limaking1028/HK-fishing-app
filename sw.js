@@ -1,7 +1,8 @@
-const CACHE = 'hk-fishing-v89';  // bump: 行程詳情標籤「魚獲」→「總魚獲」、「斤」→「總重量（斤）」
+const CACHE = 'hk-fishing-v91';  // bump: Email Magic Link 認證(取代 WhatsApp OTP)+ 新登入 UI
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
-  './lib/catchStats.js'  // Route L+
+  './lib/catchStats.js',  // Route L+
+  './lib/auth.js'         // Email Magic Link
 ];
 
 self.addEventListener('install', e => {
