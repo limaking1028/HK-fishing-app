@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v92';  // bump: 加強制 skipWaiting + clientsClaim,確保 SW 立即生效
+const CACHE = 'hk-fishing-v93';  // bump: 修復 authLib.getRememberedPhone 缺失導致白屏
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
@@ -6,30 +6,30 @@ const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon
 ];
 
 self.addEventListener('install', e => {
-  console.log('[SW v92] Installing...');
+  console.log('[SW v93] Installing...');
   e.waitUntil(
     caches.open(CACHE)
       .then(c => c.addAll(CORE))
-      .catch(err => console.warn('[SW v92] cache addAll failed:', err))
+      .catch(err => console.warn('[SW v93] cache addAll failed:', err))
       .then(() => {
-        console.log('[SW v92] skipWaiting');
+        console.log('[SW v93] skipWaiting');
         return self.skipWaiting();
       })
   );
 });
 
 self.addEventListener('activate', e => {
-  console.log('[SW v92] Activating, removing old caches...');
+  console.log('[SW v93] Activating, removing old caches...');
   e.waitUntil(
     caches.keys().then(keys => {
       return Promise.all(
         keys.filter(k => k !== CACHE).map(k => {
-          console.log('[SW v92] Deleting old cache:', k);
+          console.log('[SW v93] Deleting old cache:', k);
           return caches.delete(k);
         })
       );
     }).then(() => {
-      console.log('[SW v92] claim clients');
+      console.log('[SW v93] claim clients');
       return self.clients.claim();
     })
   );
