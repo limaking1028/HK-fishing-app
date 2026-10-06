@@ -4613,8 +4613,23 @@ function setupGlobalHandlers() {
   window.closeShareModal = closeShareModal;
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
+  // Service Worker：註冊不加 query string，由 sw.js 內 CACHE 名稱觸發更新
+  // 偵測到新版本並啟動後，自動刷新一次，避免舊 SW 繼續控制頁面
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=v98').catch(()=>{});
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+              console.log('[App] New service worker activated, reloading...');
+              window.location.reload();
+            }
+          });
+        });
+      })
+      .catch(()=>{});
   }
   checkSharedCatch();
   renderRecordView();
