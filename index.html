@@ -1096,9 +1096,23 @@ button { touch-action: manipulation; }
 const SB_URL  = 'https://lucizjohiycxdynrkjus.supabase.co';
 const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1Y2l6am9oaXljeGR5bnJranVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0NTA2MjgsImV4cCI6MjEwNjAyNjYyOH0.O_fpj_TK9d1zDHHc5SciYaQkB_-meuFfpbrIQbsJboU';
 const SB_ENABLED = SB_URL.startsWith('https://') && SB_KEY.length > 20;
-const sb = SB_ENABLED ? window.supabase.createClient(SB_URL, SB_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, storage: window.localStorage }
-}) : null;
+
+// 安全初始化 Supabase client：如果 CDN 還沒載入，不會崩潰
+// auth.js 的 ensureSb() 會在需要時重新嘗試初始化
+let sb = null;
+if (SB_ENABLED) {
+  try {
+    if (window.supabase && typeof window.supabase.createClient === 'function') {
+      sb = window.supabase.createClient(SB_URL, SB_KEY, {
+        auth: { persistSession: true, autoRefreshToken: true, storage: window.localStorage }
+      });
+    } else {
+      console.warn('[init] window.supabase 未就緒，將在 init() 時重試');
+    }
+  } catch (e) {
+    console.error('[init] Supabase createClient 失敗:', e);
+  }
+}
 
 /* ===== 預載數據 ===== */
 const FISH_SPECIES = [
@@ -4522,6 +4536,35 @@ window.switchAuthMode = function() { /* deprecated */ };
 window.handleAuthSubmit = function() { /* deprecated */ };
 async function init() {
   if (SB_ENABLED) {
+    // 安全重試：如果頁面載入時 window.supabase 還沒就緒，這裡再試一次
+    if (!sb && window.supabase && typeof window.supabase.createClient === 'function') {
+      try {
+        sb = window.supabase.createClient(SB_URL, SB_KEY, {
+          auth: { persistSession: true, autoRefreshToken: true, storage: window.localStorage }
+        });
+        console.log('[init] Supabase client 延遲初始化成功');
+      } catch (e) {
+        console.error('[init] Supabase 延遲初始化失敗:', e);
+      }
+    }
+    // 如果 sb 仍然為 null，顯示重試提示而不是白屏
+    if (!sb) {
+      console.error('[init] Supabase client 無法初始化');
+      const screen = document.getElementById('login-screen');
+      if (screen) {
+        screen.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;text-align:center;font-family:-apple-system,sans-serif;">'
+          + '<div style="font-size:48px;margin-bottom:16px;">🎣</div>'
+          + '<div style="font-size:18px;font-weight:600;color:#333;margin-bottom:8px;">香港釣魚數據平台</div>'
+          + '<div style="font-size:14px;color:#999;margin-bottom:24px;">雲端服務正在連接中</div>'
+          + '<button onclick="location.reload()" style="padding:12px 32px;background:#0a6e7a;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">🔄 重新載入</button>'
+          + '</div>';
+        screen.style.display = 'block';
+        document.getElementById('header').style.display = 'none';
+        document.getElementById('bottom-nav').style.display = 'none';
+        document.getElementById('main').style.display = 'none';
+      }
+      return;
+    }
     // Email Magic Link:用 Supabase Auth session 取代 localStorage hack
     try {
       const profile = await authLib.getCurrentUser();
