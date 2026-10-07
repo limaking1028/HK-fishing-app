@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v101';  // bump: 強制清理舊 SW 與 Cache，根治反覆白屏
+const CACHE = 'hk-fishing-v102';  // bump: 暫時停用 SW 註冊，專注診斷 init 流程
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+

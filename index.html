@@ -9,14 +9,14 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <link rel="manifest" href="manifest.json?v=101">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=101">
+  <link rel="manifest" href="manifest.json?v=102">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=102">
   <meta name="apple-mobile-web-app-title" content="釣魚HK">
   <title>香港釣魚數據平台</title>
   <script>
-  // v101: 強制清除舊 Service Worker 與 Cache，解決反覆白屏
+  // v102: 強制清除舊 Service Worker 與 Cache，並暫時停用 SW 註冊
   (function(){
-    const FLAG = 'sw-cleared-v101';
+    const FLAG = 'sw-cleared-v102';
     if (localStorage.getItem(FLAG)) return;
     if (!('serviceWorker' in navigator)) { localStorage.setItem(FLAG,'1'); return; }
     navigator.serviceWorker.getRegistrations().then(function(regs){
@@ -33,7 +33,7 @@
         window.location.reload();
       }
     }).catch(function(e){
-      console.error('[v101] SW clear failed:', e);
+      console.error('[v102] SW clear failed:', e);
       localStorage.setItem(FLAG,'1');
     });
   })();
@@ -1018,7 +1018,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v101</span></div>
+    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v102</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -4347,12 +4347,17 @@ function switchView(name) {
   state.view = name;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const viewEl = document.getElementById('view-'+name);
+  if (!viewEl) throw new Error('找不到 view 元素: view-' + name);
   viewEl.classList.add('active', 'fade-in');
   setTimeout(() => viewEl.classList.remove('fade-in'), 300);
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.querySelector('.nav-item[data-view="'+name+'"]').classList.add('active');
+  const navBtn = document.querySelector('.nav-item[data-view="'+name+'"]');
+  if (navBtn) navBtn.classList.add('active');
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
-  document.getElementById('header-title').textContent = titles[name];
+  const headerTitle = document.getElementById('header-title');
+  if (headerTitle) {
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v102</span>';
+  }
   renderView(name);
 }
 function goToView(name) { switchView(name); }
@@ -4562,9 +4567,38 @@ window.handleAuthVerifyOtp = function() { /* deprecated: 改用 Email Magic Link
 window.handleAuthSendOtp = function() { /* deprecated: 改用 Email Magic Link */ };
 window.switchAuthMode = function() { /* deprecated */ };
 window.handleAuthSubmit = function() { /* deprecated */ };
+function setInitStatus(step, detail) {
+  const screen = document.getElementById('login-screen');
+  if (!screen) return;
+  screen.innerHTML = '<div id="init-status" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;text-align:center;font-family:-apple-system,sans-serif;">'
+    + '<div style="font-size:48px;margin-bottom:16px;">🎣</div>'
+    + '<div style="font-size:18px;font-weight:600;color:#333;margin-bottom:8px;">香港釣魚數據平台</div>'
+    + '<div style="font-size:14px;color:#666;margin-bottom:6px;">' + (step || '初始化中...') + '</div>'
+    + '<div style="font-size:12px;color:#999;max-width:280px;word-break:break-word;">' + (detail || '') + '</div>'
+    + '<div style="margin-top:24px;width:40px;height:40px;border:4px solid #e0f5f8;border-top-color:#0a6e7a;border-radius:50%;animation:spin 1s linear infinite;"></div>'
+    + '</div>'
+    + '<style>@keyframes spin{to{transform:rotate(360deg)}}</style>';
+  screen.style.display = 'block';
+  const header = document.getElementById('header');
+  const nav = document.getElementById('bottom-nav');
+  const main = document.getElementById('main');
+  if (header) header.style.display = 'none';
+  if (nav) nav.style.display = 'none';
+  if (main) main.style.display = 'none';
+}
+
+function withTimeout(promise, ms, label) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error((label || '操作') + ' 逾時（' + ms + 'ms）')), ms);
+    Promise.resolve(promise).then(res => { clearTimeout(timer); resolve(res); }, err => { clearTimeout(timer); reject(err); });
+  });
+}
+
 async function init() {
   try {
+    setInitStatus('v102 啟動中', '正在初始化核心元件');
     if (SB_ENABLED) {
+      setInitStatus('正在連接雲端服務', 'Supabase 載入中...');
       // 安全重試：如果頁面載入時 window.supabase 還沒就緒，這裡再試一次
       if (!sb && window.supabase && typeof window.supabase.createClient === 'function') {
         try {
@@ -4579,12 +4613,13 @@ async function init() {
       // 如果 sb 仍然為 null，顯示重試提示而不是白屏
       if (!sb) {
         console.error('[init] Supabase client 無法初始化');
-        showInitError('雲端服務正在連接中', '請檢查網絡或按下方按鈕重新載入');
+        showInitError('雲端服務未能載入', 'Supabase 函式庫未就緒，請檢查網絡或按下方按鈕重新載入');
         return;
       }
+      setInitStatus('正在檢查登入狀態', 'getCurrentUser...');
       // Email Magic Link:用 Supabase Auth session 取代 localStorage hack
       try {
-        const profile = await authLib.getCurrentUser();
+        const profile = await withTimeout(authLib.getCurrentUser(), 8000, '檢查登入狀態');
         if (profile) state.user = profile;
       } catch (e) {
         console.warn('getCurrentUser failed', e);
@@ -4610,8 +4645,10 @@ async function init() {
       }
       await completeSignIn(state.user);
     } else {
+      setInitStatus('正在載入本地資料', '離線模式');
       state.catches = await loadCatches();
     }
+    setInitStatus('正在完成初始化', 'setupGlobalHandlers + switchView');
     setupGlobalHandlers();
     document.getElementById('header-username').textContent = getUserName();
     checkSharedCatch();
@@ -4631,7 +4668,7 @@ function showInitError(title, message) {
       + '<div style="font-size:15px;font-weight:600;color:#ea4335;margin-bottom:4px;">' + (title || '載入失敗') + '</div>'
       + '<div style="font-size:13px;color:#999;margin-bottom:24px;">' + (message || '') + '</div>'
       + '<button onclick="location.reload()" style="padding:12px 32px;background:#0a6e7a;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">🔄 重新載入</button>'
-      + '<button onclick="localStorage.removeItem(\'sw-cleared-v101\');location.reload()" style="margin-top:12px;padding:10px 24px;background:#ea4335;color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;">🧹 清除緩存並重載</button>'
+      + '<button onclick="localStorage.removeItem(\'sw-cleared-v102\');location.reload()" style="margin-top:12px;padding:10px 24px;background:#ea4335;color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;">🧹 清除緩存並重載</button>'
       + '</div>';
     screen.style.display = 'block';
     const header = document.getElementById('header');
@@ -4647,23 +4684,28 @@ function showInitError(title, message) {
 async function completeSignIn(userProfile) {
   state.user = userProfile;
   try {
-    const migrated = await migrateLocalCatches();
+    setInitStatus('正在遷移本地資料', 'migrateLocalCatches...');
+    const migrated = await withTimeout(migrateLocalCatches(), 8000, '遷移本地資料');
     if (migrated > 0) toast('已從本地匯入 ' + migrated + ' 條舊記錄');
-    await seedDemoDataIfNeeded();
-    state.catches = await dbLoadCatches();
+    setInitStatus('正在初始化示範資料', 'seedDemoDataIfNeeded...');
+    await withTimeout(seedDemoDataIfNeeded(), 8000, '初始化示範資料');
+    setInitStatus('正在載入魚獲記錄', 'dbLoadCatches...');
+    state.catches = await withTimeout(dbLoadCatches(), 8000, '載入魚獲記錄');
     retryUnsyncedCatches();
   } catch (e) {
     console.error('completeSignIn failed', e);
-    toast('雲端載入失敗：' + e.message);
-    renderLoginScreen();
+    showInitError('雲端載入失敗', e.message || '請重新載入頁面');
     return;
   }
   // Route H: 載入行程
   if (SB_ENABLED && state.user) {
-    try { state.trips = await dbLoadTrips(); } catch(e) { console.warn('dbLoadTrips init failed', e); }
-    try { await resumeActiveTrip(); } catch(e) { console.warn('resumeActiveTrip failed', e); }
+    setInitStatus('正在載入行程', 'dbLoadTrips...');
+    try { state.trips = await withTimeout(dbLoadTrips(), 8000, '載入行程'); } catch(e) { console.warn('dbLoadTrips init failed', e); }
+    setInitStatus('正在恢復進行中行程', 'resumeActiveTrip...');
+    try { await withTimeout(resumeActiveTrip(), 8000, '恢復進行中行程'); } catch(e) { console.warn('resumeActiveTrip failed', e); }
   }
   // 關閉 login screen + 顯示 app
+  setInitStatus('正在顯示主畫面', 'switchView(my)...');
   document.getElementById('login-screen').innerHTML = '';
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('header').style.display = '';
@@ -4672,7 +4714,16 @@ async function completeSignIn(userProfile) {
   document.getElementById('header-username').textContent = getUserName();
   setupGlobalHandlers();
   checkSharedCatch();
-  switchView('my');
+  safeSwitchView('my');
+}
+
+function safeSwitchView(name) {
+  try {
+    switchView(name);
+  } catch (e) {
+    console.error('[safeSwitchView] failed:', e);
+    showInitError('切換頁面失敗', e.message || 'switchView 出錯');
+  }
 }
 function setupGlobalHandlers() {
   document.querySelectorAll('.nav-item').forEach(btn => {
@@ -4698,8 +4749,9 @@ function setupGlobalHandlers() {
   window.closeShareModal = closeShareModal;
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
-  // Service Worker：註冊不加 query string，由 sw.js 內 CACHE 名稱觸發更新
-  // 偵測到新版本並啟動後，自動刷新一次，避免舊 SW 繼續控制頁面
+  // v102: 暫時停用 Service Worker，避免舊 cache 干擾診斷與載入
+  // 等問題解決後可以重新啟用
+  /*
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js')
       .then(reg => {
@@ -4716,6 +4768,7 @@ function setupGlobalHandlers() {
       })
       .catch(()=>{});
   }
+  */
   checkSharedCatch();
   renderRecordView();
   maybeShowConsentModal();  // Route M: 首次啟動彈同意窗(已選過的不再打擾)
