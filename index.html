@@ -6,10 +6,38 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0a6e7a">
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <link rel="manifest" href="manifest.json?v=101">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=101">
   <meta name="apple-mobile-web-app-title" content="釣魚HK">
   <title>香港釣魚數據平台</title>
+  <script>
+  // v101: 強制清除舊 Service Worker 與 Cache，解決反覆白屏
+  (function(){
+    const FLAG = 'sw-cleared-v101';
+    if (localStorage.getItem(FLAG)) return;
+    if (!('serviceWorker' in navigator)) { localStorage.setItem(FLAG,'1'); return; }
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      return Promise.all(regs.map(function(r){ return r.unregister(); }));
+    }).then(function(){
+      if ('caches' in window) {
+        return caches.keys().then(function(names){
+          return Promise.all(names.map(function(n){ return caches.delete(n); }));
+        });
+      }
+    }).then(function(){
+      localStorage.setItem(FLAG,'1');
+      if (navigator.serviceWorker.controller) {
+        window.location.reload();
+      }
+    }).catch(function(e){
+      console.error('[v101] SW clear failed:', e);
+      localStorage.setItem(FLAG,'1');
+    });
+  })();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -990,7 +1018,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 香港釣魚數據平台</div>
+    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v101</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -4535,70 +4563,84 @@ window.handleAuthSendOtp = function() { /* deprecated: 改用 Email Magic Link *
 window.switchAuthMode = function() { /* deprecated */ };
 window.handleAuthSubmit = function() { /* deprecated */ };
 async function init() {
-  if (SB_ENABLED) {
-    // 安全重試：如果頁面載入時 window.supabase 還沒就緒，這裡再試一次
-    if (!sb && window.supabase && typeof window.supabase.createClient === 'function') {
-      try {
-        sb = window.supabase.createClient(SB_URL, SB_KEY, {
-          auth: { persistSession: true, autoRefreshToken: true, storage: window.localStorage }
-        });
-        console.log('[init] Supabase client 延遲初始化成功');
-      } catch (e) {
-        console.error('[init] Supabase 延遲初始化失敗:', e);
-      }
-    }
-    // 如果 sb 仍然為 null，顯示重試提示而不是白屏
-    if (!sb) {
-      console.error('[init] Supabase client 無法初始化');
-      const screen = document.getElementById('login-screen');
-      if (screen) {
-        screen.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;text-align:center;font-family:-apple-system,sans-serif;">'
-          + '<div style="font-size:48px;margin-bottom:16px;">🎣</div>'
-          + '<div style="font-size:18px;font-weight:600;color:#333;margin-bottom:8px;">香港釣魚數據平台</div>'
-          + '<div style="font-size:14px;color:#999;margin-bottom:24px;">雲端服務正在連接中</div>'
-          + '<button onclick="location.reload()" style="padding:12px 32px;background:#0a6e7a;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">🔄 重新載入</button>'
-          + '</div>';
-        screen.style.display = 'block';
-        document.getElementById('header').style.display = 'none';
-        document.getElementById('bottom-nav').style.display = 'none';
-        document.getElementById('main').style.display = 'none';
-      }
-      return;
-    }
-    // Email Magic Link:用 Supabase Auth session 取代 localStorage hack
-    try {
-      const profile = await authLib.getCurrentUser();
-      if (profile) state.user = profile;
-    } catch (e) {
-      console.warn('getCurrentUser failed', e);
-    }
-    // 偵聽 SIGNED_IN(用戶撳 email link 回來時觸發)
-    authLib.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session && session.user) {
-        // 用戶剛撳 email link 回來 → 自動完成登入流程
-        const profile = await authLib.getCurrentUser();
-        if (profile && !state.user) {
-          await completeSignIn(profile);
+  try {
+    if (SB_ENABLED) {
+      // 安全重試：如果頁面載入時 window.supabase 還沒就緒，這裡再試一次
+      if (!sb && window.supabase && typeof window.supabase.createClient === 'function') {
+        try {
+          sb = window.supabase.createClient(SB_URL, SB_KEY, {
+            auth: { persistSession: true, autoRefreshToken: true, storage: window.localStorage }
+          });
+          console.log('[init] Supabase client 延遲初始化成功');
+        } catch (e) {
+          console.error('[init] Supabase 延遲初始化失敗:', e);
         }
-      } else if (event === 'SIGNED_OUT') {
-        state.user = null;
-        state.catches = [];
-        renderLoginScreen();
       }
-    });
-    if (!state.user) {
-      renderLoginScreen();
-      setupGlobalHandlers();
-      return;
+      // 如果 sb 仍然為 null，顯示重試提示而不是白屏
+      if (!sb) {
+        console.error('[init] Supabase client 無法初始化');
+        showInitError('雲端服務正在連接中', '請檢查網絡或按下方按鈕重新載入');
+        return;
+      }
+      // Email Magic Link:用 Supabase Auth session 取代 localStorage hack
+      try {
+        const profile = await authLib.getCurrentUser();
+        if (profile) state.user = profile;
+      } catch (e) {
+        console.warn('getCurrentUser failed', e);
+      }
+      // 偵聽 SIGNED_IN(用戶撳 email link 回來時觸發)
+      authLib.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session && session.user) {
+          // 用戶剛撳 email link 回來 → 自動完成登入流程
+          const profile = await authLib.getCurrentUser();
+          if (profile && !state.user) {
+            await completeSignIn(profile);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          state.user = null;
+          state.catches = [];
+          renderLoginScreen();
+        }
+      });
+      if (!state.user) {
+        renderLoginScreen();
+        setupGlobalHandlers();
+        return;
+      }
+      await completeSignIn(state.user);
+    } else {
+      state.catches = await loadCatches();
     }
-    await completeSignIn(state.user);
-  } else {
-    state.catches = await loadCatches();
+    setupGlobalHandlers();
+    document.getElementById('header-username').textContent = getUserName();
+    checkSharedCatch();
+    switchView('my');
+  } catch (e) {
+    console.error('[init] 初始化失敗:', e);
+    showInitError('載入時發生錯誤', e.message || '請重新載入頁面');
   }
-  setupGlobalHandlers();
-  document.getElementById('header-username').textContent = getUserName();
-  checkSharedCatch();
-  switchView('my');
+}
+
+function showInitError(title, message) {
+  const screen = document.getElementById('login-screen');
+  if (screen) {
+    screen.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;text-align:center;font-family:-apple-system,sans-serif;">'
+      + '<div style="font-size:48px;margin-bottom:16px;">🎣</div>'
+      + '<div style="font-size:18px;font-weight:600;color:#333;margin-bottom:8px;">香港釣魚數據平台</div>'
+      + '<div style="font-size:15px;font-weight:600;color:#ea4335;margin-bottom:4px;">' + (title || '載入失敗') + '</div>'
+      + '<div style="font-size:13px;color:#999;margin-bottom:24px;">' + (message || '') + '</div>'
+      + '<button onclick="location.reload()" style="padding:12px 32px;background:#0a6e7a;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">🔄 重新載入</button>'
+      + '<button onclick="localStorage.removeItem(\'sw-cleared-v101\');location.reload()" style="margin-top:12px;padding:10px 24px;background:#ea4335;color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;">🧹 清除緩存並重載</button>'
+      + '</div>';
+    screen.style.display = 'block';
+    const header = document.getElementById('header');
+    const nav = document.getElementById('bottom-nav');
+    const main = document.getElementById('main');
+    if (header) header.style.display = 'none';
+    if (nav) nav.style.display = 'none';
+    if (main) main.style.display = 'none';
+  }
 }
 
 /** 完成登入後嘅統一初始化流程 */

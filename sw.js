@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v100';  // bump: 根本性修復白屏——Supabase 初始化改為安全模式
+const CACHE = 'hk-fishing-v101';  // bump: 強制清理舊 SW 與 Cache，根治反覆白屏
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
@@ -6,30 +6,30 @@ const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon
 ];
 
 self.addEventListener('install', e => {
-  console.log('[SW v100] Installing...');
+  console.log('[SW v101] Installing...');
   e.waitUntil(
     caches.open(CACHE)
       .then(c => c.addAll(CORE))
-      .catch(err => console.warn('[SW v100] cache addAll failed:', err))
+      .catch(err => console.warn('[SW v101] cache addAll failed:', err))
       .then(() => {
-        console.log('[SW v100] skipWaiting');
+        console.log('[SW v101] skipWaiting');
         return self.skipWaiting();
       })
   );
 });
 
 self.addEventListener('activate', e => {
-  console.log('[SW v100] Activating, removing old caches...');
+  console.log('[SW v101] Activating, removing old caches...');
   e.waitUntil(
     caches.keys().then(keys => {
       return Promise.all(
         keys.filter(k => k !== CACHE).map(k => {
-          console.log('[SW v100] Deleting old cache:', k);
+          console.log('[SW v101] Deleting old cache:', k);
           return caches.delete(k);
         })
       );
     }).then(() => {
-      console.log('[SW v100] claim clients');
+      console.log('[SW v101] claim clients');
       return self.clients.claim();
     })
   );
