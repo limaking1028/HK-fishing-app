@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v105c';  // bump: 修正重量顯示為1位小數，統一兩/斤顯示邏輯
+const CACHE = 'hk-fishing-v106';  // bump: 移除兩/斤切換，恢復純斤制，顯示統一1位小數
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+

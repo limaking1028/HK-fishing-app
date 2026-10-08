@@ -23,7 +23,7 @@
   });
   // 強制清除舊 Service Worker 與 Cache，並暫時停用 SW 註冊
   (function(){
-    const FLAG = 'sw-cleared-v105c';
+    const FLAG = 'sw-cleared-v106';
     if (localStorage.getItem(FLAG)) return;
     if (!('serviceWorker' in navigator)) { localStorage.setItem(FLAG,'1'); return; }
     navigator.serviceWorker.getRegistrations().then(function(regs){
@@ -288,9 +288,6 @@ button { touch-action: manipulation; }
   .input-suffix { display: flex; align-items: center; border: 1.5px solid var(--gray-2); border-radius: var(--radius-sm); overflow: hidden; }
   .input-suffix .form-input { border: none; border-radius: 0; }
   .input-suffix .suffix { padding: 0 12px; font-size: 14px; color: var(--gray-4); font-weight: 600; background: var(--gray-1); height: 100%; display: flex; align-items: center; }
-  .unit-toggle { display: flex; background: var(--gray-1); border-left: 1.5px solid var(--gray-2); }
-  .unit-btn { border: none; background: transparent; padding: 10px 12px; font-size: 14px; font-weight: 600; color: var(--gray-4); cursor: pointer; font-family: inherit; }
-  .unit-btn.active { background: var(--teal); color: white; }
   .species-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .species-chip { text-align: center; padding: 8px 4px; border: 1.5px solid var(--gray-2); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s; font-size: 12px; background: var(--white); position: relative; }
   .species-chip > svg { display: block; margin: 0 auto 3px; }
@@ -1032,7 +1029,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v105c</span></div>
+    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v106</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -1491,7 +1488,7 @@ function genSampleCatches() {
 /* ===== State & Persistence ===== */
 const STORAGE_KEY = 'hk_fishing_catches_v5';
 const USERNAME_KEY = 'hk_fishing_username';
-let state = { view:'my', mapTab:'map', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{}, expandedPokedex:{} }, trips:[], activeTrip:null, tripDetailId:null, tripTickHandle:null, tripPicking:false, tripPickingSpot:'', tripPickingDetectedSpot:'', tripPickingCustom:'', tripPickingMethod:'', tripPickingBait:'', tripPickingLat:null, tripPickingLng:null, tripPickingAccuracy:null, geoStatus:'idle', userLocation:null, nearestStations:[], geoError:null, geoRequestedAt:0, pinnedSpecies:[], speciesExpanded:false, weightUnit:'tael' };
+let state = { view:'my', mapTab:'map', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{}, expandedPokedex:{} }, trips:[], activeTrip:null, tripDetailId:null, tripTickHandle:null, tripPicking:false, tripPickingSpot:'', tripPickingDetectedSpot:'', tripPickingCustom:'', tripPickingMethod:'', tripPickingBait:'', tripPickingLat:null, tripPickingLng:null, tripPickingAccuracy:null, geoStatus:'idle', userLocation:null, nearestStations:[], geoError:null, geoRequestedAt:0, pinnedSpecies:[], speciesExpanded:false };
 
 // 載入用戶 pin 嘅魚種（持久化）
 try {
@@ -1692,7 +1689,7 @@ function renderRecordView() {
     + tripBadge
     + '<div class="form-group"><label class="form-label">魚種 <span class="req">*</span></label><div id="species-selector"></div>'
     + '</div></div>'
-    + '<div class="form-row"><div class="form-group"><label class="form-label">重量 <span class="req">*</span></label><div class="input-suffix"><input type="number" class="form-input" id="catch-weight" placeholder="0.0" step="0.1" min="0"><div class="unit-toggle" id="weight-unit-toggle"><button type="button" class="unit-btn active" data-unit="tael" onclick="setWeightUnit(\'tael\')">兩</button><button type="button" class="unit-btn" data-unit="catty" onclick="setWeightUnit(\'catty\')">斤</button></div></div></div><div class="form-group"><label class="form-label">長度</label><div class="input-suffix"><input type="number" class="form-input" id="catch-length" placeholder="0" step="0.5" min="0"><span class="suffix">cm</span></div></div></div>'
+    + '<div class="form-row"><div class="form-group"><label class="form-label">重量 <span class="req">*</span></label><div class="input-suffix"><input type="number" class="form-input" id="catch-weight" placeholder="0.0" step="0.1" min="0"><span class="suffix">斤</span></div></div><div class="form-group"><label class="form-label">長度</label><div class="input-suffix"><input type="number" class="form-input" id="catch-length" placeholder="0" step="0.5" min="0"><span class="suffix">cm</span></div></div></div>'
     // Route L+: 釣點自動定位模式 — 用戶不需手動輸入
     // Route H+: 進行中行程預填 — 永遠從 activeTrip 帶入 spot 名稱(就算 GPS 未啟用都顯示)
     + (function(){
@@ -2242,19 +2239,12 @@ function previewPhoto(input) {
   const c = document.getElementById('photo-preview-container');
   if (input.files && input.files[0]) { const r = new FileReader(); r.onload = e => { c.innerHTML = '<img class="photo-preview" src="'+e.target.result+'" alt="preview">'; }; r.readAsDataURL(input.files[0]); }
 }
-function setWeightUnit(unit) {
-  state.weightUnit = unit;
-  const buttons = document.querySelectorAll('#weight-unit-toggle .unit-btn');
-  buttons.forEach(btn => btn.classList.toggle('active', btn.dataset.unit === unit));
-}
-window.setWeightUnit = setWeightUnit;
 
 function submitCatch() {
   if (state.selectedSpecies === null) { toast('請選擇魚種'); return; }
   const weightInput = parseFloat(document.getElementById('catch-weight').value);
   if (!weightInput || weightInput <= 0) { toast('請輸入重量'); return; }
-  const weightUnit = state.weightUnit || 'tael';
-  const weight = weightUnit === 'tael' ? weightInput / 16 : weightInput;
+  const weight = weightInput;
   // Route H+: 行程中自動帶入 activeTrip.spot/method/bait（用戶未填時）
   if (state.activeTrip) {
     if (state.activeTrip.spot && !state.selectedSpot) {
@@ -2309,7 +2299,7 @@ function submitCatch() {
   const catchItem = {
     id: SB_ENABLED && state.user ? 'temp-' + Date.now() : Date.now(),
     user: getUserName(), species: speciesName, speciesIcon: speciesIcon,
-    weight: weight, weightUnit: weightUnit, displayWeight: weightInput,
+    weight: weight,
     length: parseFloat(document.getElementById('catch-length').value) || 0,
     spot: spot, spotArea: getSpotInfo(spotRaw).area,
     date: document.getElementById('catch-date').value, time: document.getElementById('catch-time').value,
@@ -2410,7 +2400,6 @@ function resetForm() {
   state.selectedBait = ''; state.customBait = '';
   state.selectedSpot = ''; state.customSpot = '';
   state.catchLat = null; state.catchLng = null; state.catchAccuracy = null;
-  state.weightUnit = 'tael';
   renderRecordView();
 }
 
@@ -3266,13 +3255,6 @@ function toggleSection(key) { state.ui.expandedSections[key] = !state.ui.expande
 function toggleSpecies(key) { state.ui.expandedSpecies[key] = !state.ui.expandedSpecies[key]; renderMyView(); }
 function weightDisplay(c) {
   if (!c || typeof c.weight !== 'number') return { value: '0', unit: '斤' };
-  if (c.weightUnit === 'tael') {
-    // 直接使用用戶輸入的原始值，避免浮點精度問題
-    const displayVal = (typeof c.displayWeight === 'number' && c.displayWeight > 0)
-      ? c.displayWeight
-      : c.weight * 16;
-    return { value: displayVal.toFixed(1), unit: '兩' };
-  }
   return { value: c.weight.toFixed(1), unit: '斤' };
 }
 
@@ -3531,7 +3513,7 @@ function renderLeaderboardView() {
     filtered.forEach(c => { if (c.verified || c.isMine || c.imported) { m[c.user] = m[c.user] || {user:c.user, species:new Set(), spots:new Set(), catches:[]}; m[c.user].species.add(c.species); m[c.user].spots.add(c.spot); m[c.user].catches.push(c); } });
     lbData = Object.values(m).map(u => {
       const biggest = u.catches.reduce((mx,c) => c.weight > mx.weight ? c : mx, u.catches[0]);
-      return { user:u.user, speciesCount:u.species.size, spotCount:u.spots.size, biggestWeight:biggest.weight, biggestWeightUnit:biggest.weightUnit, isMine:u.catches.some(c=>c.isMine) };
+      return { user:u.user, speciesCount:u.species.size, spotCount:u.spots.size, biggestWeight:biggest.weight, isMine:u.catches.some(c=>c.isMine) };
     }).sort((a,b) => b.speciesCount - a.speciesCount || b.biggestWeight - a.biggestWeight);
   }
   let listHtml = '';
@@ -3544,7 +3526,7 @@ function renderLeaderboardView() {
       let value='', detail='';
       if (state.lbType==='biggest') { const lbWd=weightDisplay(item); value=lbWd.value+'<span class="unit">'+lbWd.unit+'</span>'; detail=item.species+' · '+item.spot+' · '+daysAgo(item.date); }
       else if (state.lbType==='quantity') { value=item.count+'<span class="unit">條</span>'; detail=item.speciesCount+' 種魚 · '+item.spotCount+' 個釣點'; }
-      else { var spWd = weightDisplay({weight:item.biggestWeight, weightUnit:item.biggestWeightUnit}); value=item.speciesCount+'<span class="unit">種</span>'; detail='最大 '+spWd.value+' '+spWd.unit+' · 釣過 '+item.spotCount+' 個釣點'; }
+      else { var spWd = weightDisplay({weight:item.biggestWeight}); value=item.speciesCount+'<span class="unit">種</span>'; detail='最大 '+spWd.value+' '+spWd.unit+' · 釣過 '+item.spotCount+' 個釣點'; }
       // 第一名「全港霸主」：用原本 flex 結構，只加金色背景 + 徽章跨行 + detail 跨行
       let championTitle = '';
       if (state.lbType === 'biggest') championTitle = '全港重量霸主';
@@ -4392,7 +4374,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v105c</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v106</span>';
   }
   renderView(name);
 }
@@ -4715,7 +4697,7 @@ function showInitError(title, message) {
       + '<div style="font-size:15px;font-weight:600;color:#ea4335;margin-bottom:4px;">' + (title || '載入失敗') + '</div>'
       + '<div style="font-size:13px;color:#999;margin-bottom:24px;">' + (message || '') + '</div>'
       + '<button onclick="location.reload()" style="padding:12px 32px;background:#0a6e7a;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">🔄 重新載入</button>'
-      + '<button onclick="localStorage.removeItem(\'sw-cleared-v105c\');location.reload()" style="margin-top:12px;padding:10px 24px;background:#ea4335;color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;">🧹 清除緩存並重載</button>'
+      + '<button onclick="localStorage.removeItem(\'sw-cleared-v106\');location.reload()" style="margin-top:12px;padding:10px 24px;background:#ea4335;color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;">🧹 清除緩存並重載</button>'
       + '</div>';
     screen.style.display = 'block';
     const header = document.getElementById('header');
