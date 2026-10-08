@@ -23,7 +23,7 @@
   });
   // 強制清除舊 Service Worker 與 Cache，並暫時停用 SW 註冊
   (function(){
-    const FLAG = 'sw-cleared-v105';
+    const FLAG = 'sw-cleared-v105c';
     if (localStorage.getItem(FLAG)) return;
     if (!('serviceWorker' in navigator)) { localStorage.setItem(FLAG,'1'); return; }
     navigator.serviceWorker.getRegistrations().then(function(regs){
@@ -1032,7 +1032,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v105</span></div>
+    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v105c</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -2509,7 +2509,7 @@ function renderActiveTripBanner() {
       + '<div class="atb-info">'
         + '<div class="atb-title">⏱️ 行程進行中' + (t.spot ? ' · ' + escapeHtml(t.spot) : '') + '</div>'
         + '<div class="atb-timer" id="atb-timer">' + window.tripsLib.formatTimerDisplay(sec) + '</div>'
-        + '<div class="atb-meta">' + summary.count + ' 條魚 · ' + summary.totalWeight.toFixed(2) + ' 斤</div>'
+        + '<div class="atb-meta">' + summary.count + ' 條魚 · ' + summary.totalWeight.toFixed(1) + ' 斤</div>'
         + tideChip
       + '</div>'
       + '<button class="atb-btn" onclick="event.stopPropagation();addCatchInTrip();">➕ 加魚</button>'
@@ -2834,7 +2834,7 @@ async function endTrip(skipConfirm) {
   if (!state.activeTrip) return;
   if (!skipConfirm) {
     const summary = window.tripsLib.summarizeTripCatches(state.activeTrip, state.catches);
-    if (!confirm('結束當前行程？\n\n已記錄 ' + summary.count + ' 條魚，共 ' + summary.totalWeight.toFixed(2) + ' 斤')) return;
+    if (!confirm('結束當前行程？\n\n已記錄 ' + summary.count + ' 條魚，共 ' + summary.totalWeight.toFixed(1) + ' 斤')) return;
   }
   const endedAt = new Date().toISOString();
   const stats = window.tripsLib.summarizeTripCatches(state.activeTrip, state.catches);
@@ -3001,7 +3001,7 @@ function renderTripCard(trip, durationSec) {
     + (tags.length ? '<div style="font-size:11px;color:var(--gray-5);margin-bottom:6px;">' + tags.join(' · ') + '</div>' : '')
     + '<div class="trip-card-stats">'
       + '<span>🐟 ' + (trip.catchCount || 0) + ' 條</span>'
-      + '<span>⚖️ ' + (trip.totalWeight || 0).toFixed(2) + ' 斤</span>'
+      + '<span>⚖️ ' + (trip.totalWeight || 0).toFixed(1) + ' 斤</span>'
     + '</div>'
   + '</div>';
 }
@@ -3044,7 +3044,7 @@ function renderTripDetailView(id) {
   html += '<div class="trip-stats-grid">'
       + '<div class="trip-stat-box"><div class="trip-stat-num">' + window.tripsLib.formatDuration(durationSec) + '</div><div class="trip-stat-label">總時長</div></div>'
       + '<div class="trip-stat-box"><div class="trip-stat-num">' + summary.count + '</div><div class="trip-stat-label">總魚獲</div></div>'
-      + '<div class="trip-stat-box"><div class="trip-stat-num">' + summary.totalWeight.toFixed(2) + '</div><div class="trip-stat-label">總重量（斤）</div></div>'
+      + '<div class="trip-stat-box"><div class="trip-stat-num">' + summary.totalWeight.toFixed(1) + '</div><div class="trip-stat-label">總重量（斤）</div></div>'
     + '</div>'
     + '<div style="font-size:12px;color:var(--gray-5);margin-top:10px;text-align:center;">共 ' + summary.speciesCount + ' 個魚種</div>'
   + '</div>';
@@ -3273,7 +3273,7 @@ function weightDisplay(c) {
       : c.weight * 16;
     return { value: displayVal.toFixed(1), unit: '兩' };
   }
-  return { value: String(c.weight), unit: '斤' };
+  return { value: c.weight.toFixed(1), unit: '斤' };
 }
 
 function renderCatchCard(c, rankings) {
@@ -4392,7 +4392,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v105</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v105c</span>';
   }
   renderView(name);
 }
@@ -4715,7 +4715,7 @@ function showInitError(title, message) {
       + '<div style="font-size:15px;font-weight:600;color:#ea4335;margin-bottom:4px;">' + (title || '載入失敗') + '</div>'
       + '<div style="font-size:13px;color:#999;margin-bottom:24px;">' + (message || '') + '</div>'
       + '<button onclick="location.reload()" style="padding:12px 32px;background:#0a6e7a;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">🔄 重新載入</button>'
-      + '<button onclick="localStorage.removeItem(\'sw-cleared-v105\');location.reload()" style="margin-top:12px;padding:10px 24px;background:#ea4335;color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;">🧹 清除緩存並重載</button>'
+      + '<button onclick="localStorage.removeItem(\'sw-cleared-v105c\');location.reload()" style="margin-top:12px;padding:10px 24px;background:#ea4335;color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;">🧹 清除緩存並重載</button>'
       + '</div>';
     screen.style.display = 'block';
     const header = document.getElementById('header');
