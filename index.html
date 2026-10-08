@@ -9,8 +9,8 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <link rel="manifest" href="manifest.json?v=103">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=103">
+  <link rel="manifest" href="manifest.json?v=104">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=104">
   <meta name="apple-mobile-web-app-title" content="釣魚HK">
   <title>香港釣魚數據平台</title>
   <script>
@@ -23,7 +23,7 @@
   });
   // 強制清除舊 Service Worker 與 Cache，並暫時停用 SW 註冊
   (function(){
-    const FLAG = 'sw-cleared-v103';
+    const FLAG = 'sw-cleared-v104';
     if (localStorage.getItem(FLAG)) return;
     if (!('serviceWorker' in navigator)) { localStorage.setItem(FLAG,'1'); return; }
     navigator.serviceWorker.getRegistrations().then(function(regs){
@@ -1029,7 +1029,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v103</span></div>
+    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v104</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -4360,7 +4360,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v103</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v104</span>';
   }
   renderView(name);
 }
@@ -4652,15 +4652,26 @@ async function init() {
       setInitStatus('正在載入本地資料', '離線模式');
       state.catches = await loadCatches();
     }
-    setInitStatus('正在完成初始化', 'setupGlobalHandlers + switchView');
     setupGlobalHandlers();
     document.getElementById('header-username').textContent = getUserName();
     checkSharedCatch();
     switchView('my');
+    showApp();
   } catch (e) {
     console.error('[init] 初始化失敗:', e);
     showInitError('載入時發生錯誤', e.message || '請重新載入頁面');
   }
+}
+
+function showApp() {
+  const screen = document.getElementById('login-screen');
+  if (screen) { screen.innerHTML = ''; screen.style.display = 'none'; }
+  const header = document.getElementById('header');
+  const nav = document.getElementById('bottom-nav');
+  const main = document.getElementById('main');
+  if (header) header.style.display = '';
+  if (nav) nav.style.display = '';
+  if (main) main.style.display = '';
 }
 
 function showInitError(title, message) {
@@ -4672,7 +4683,7 @@ function showInitError(title, message) {
       + '<div style="font-size:15px;font-weight:600;color:#ea4335;margin-bottom:4px;">' + (title || '載入失敗') + '</div>'
       + '<div style="font-size:13px;color:#999;margin-bottom:24px;">' + (message || '') + '</div>'
       + '<button onclick="location.reload()" style="padding:12px 32px;background:#0a6e7a;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">🔄 重新載入</button>'
-      + '<button onclick="localStorage.removeItem(\'sw-cleared-v103\');location.reload()" style="margin-top:12px;padding:10px 24px;background:#ea4335;color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;">🧹 清除緩存並重載</button>'
+      + '<button onclick="localStorage.removeItem(\'sw-cleared-v104\');location.reload()" style="margin-top:12px;padding:10px 24px;background:#ea4335;color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;">🧹 清除緩存並重載</button>'
       + '</div>';
     screen.style.display = 'block';
     const header = document.getElementById('header');
