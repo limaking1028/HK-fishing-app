@@ -3267,7 +3267,11 @@ function toggleSpecies(key) { state.ui.expandedSpecies[key] = !state.ui.expanded
 function weightDisplay(c) {
   if (!c || typeof c.weight !== 'number') return { value: '0', unit: '斤' };
   if (c.weightUnit === 'tael') {
-    return { value: (c.weight * 16).toFixed(1), unit: '兩' };
+    // 直接使用用戶輸入的原始值，避免浮點精度問題
+    const displayVal = (typeof c.displayWeight === 'number' && c.displayWeight > 0)
+      ? c.displayWeight
+      : c.weight * 16;
+    return { value: displayVal.toFixed(1), unit: '兩' };
   }
   return { value: String(c.weight), unit: '斤' };
 }
