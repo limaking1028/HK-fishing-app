@@ -9,14 +9,21 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <link rel="manifest" href="manifest.json?v=102">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=102">
+  <link rel="manifest" href="manifest.json?v=103">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=103">
   <meta name="apple-mobile-web-app-title" content="釣魚HK">
   <title>香港釣魚數據平台</title>
   <script>
-  // v102: 強制清除舊 Service Worker 與 Cache，並暫時停用 SW 註冊
+  // v103: 早期錯誤捕獲 — 即使主 script 語法錯誤也能顯示訊息
+  window.__bootErrors = [];
+  window.addEventListener('error', function(e){
+    window.__bootErrors.push((e.message || 'Unknown error') + ' @ ' + (e.filename || '') + ':' + (e.lineno || '?'));
+    const boot = document.getElementById('boot-log');
+    if (boot) boot.innerHTML += '<div style="color:#c00;font-size:12px;margin:2px 0;">❌ ' + (e.message || 'Unknown error') + '</div>';
+  });
+  // 強制清除舊 Service Worker 與 Cache，並暫時停用 SW 註冊
   (function(){
-    const FLAG = 'sw-cleared-v102';
+    const FLAG = 'sw-cleared-v103';
     if (localStorage.getItem(FLAG)) return;
     if (!('serviceWorker' in navigator)) { localStorage.setItem(FLAG,'1'); return; }
     navigator.serviceWorker.getRegistrations().then(function(regs){
@@ -33,7 +40,7 @@
         window.location.reload();
       }
     }).catch(function(e){
-      console.error('[v102] SW clear failed:', e);
+      console.error('[v103] SW clear failed:', e);
       localStorage.setItem(FLAG,'1');
     });
   })();
@@ -1015,10 +1022,14 @@ button { touch-action: manipulation; }
 </head>
 <body>
 
+<div id="boot-log" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#fff;padding:20px;font-family:-apple-system,sans-serif;font-size:14px;display:none;overflow:auto;">
+  <div style="font-weight:600;margin-bottom:12px;">🎣 香港釣魚數據平台 — 啟動診斷</div>
+</div>
+
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v102</span></div>
+    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v103</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -2877,7 +2888,6 @@ async function addCatchInTrip() {
 
 // ===== Trips View =====
 function renderTripsView() {
-  try {
   const view = document.getElementById('view-trips');
   if (!view) return;
   // 若正在檢視詳情
@@ -2899,48 +2909,47 @@ function renderTripsView() {
     + '</div>';
   } else if (state.tripPicking) {
     // 進入 picker（開始新行程 或 編輯進行中行程）
-      // 內嵌 picker（開始 / 編輯都用）— GPS 自動識別釣點
-      const recentSpots = getRecentSpots(5);
-      const isEditing = state.editingActiveTrip;
-      const titleIcon = isEditing ? '✏️' : '📍';
-      const titleText = isEditing ? '編輯這次行程' : 'GPS 自動識別這次行程';
-      const subtitleText = isEditing ? '可重新定位釣點或調整釣法/釣餌' : '點按下方按鈕，無需手動選擇釣點';
-      const detectedSpot = state.tripPickingDetectedSpot || (state.tripPickingLat && state.tripPickingSpot ? state.tripPickingSpot : '');
-      const spotHtml = detectedSpot
-        ? '<div class="gps-detected-spot">🎯 已識別：<b>' + escapeHtml(detectedSpot) + '</b></div>'
-        : (state.tripPickingLat ? '<div class="gps-detected-spot warn">⚠️ 座標已記錄但未識別到釣點</div>' : '');
-      html += '<div class="card" style="padding:20px 16px;">'
-        + '<div style="text-align:center;"><div style="font-size:36px;margin-bottom:8px;">' + titleIcon + '</div>'
-        + '<div style="font-size:15px;color:var(--gray-6);font-weight:600;margin-bottom:4px;">' + titleText + '</div>'
-        + '<div style="font-size:12px;color:var(--gray-4);margin-bottom:14px;">' + subtitleText + '</div></div>'
-        // GPS 自動定位（取代下拉選擇器）
-        + '<div class="gps-section"><button type="button" id="trip-gps-btn" class="gps-btn" onclick="tripGetGPS()">' + (state.tripPickingLat ? '🔄 重新定位' : '📍 啟用 GPS 自動識別') + '</button>'
-        + '<div class="gps-status" id="trip-gps-status">' + (state.tripPickingLat ? '✓ 已記錄（精度 ±' + (state.tripPickingAccuracy || '?') + 'm）' + spotHtml : '未取得位置') + '</div></div>'
-        + '<input type="hidden" id="trip-lat" value="'+(state.tripPickingLat||'')+'"><input type="hidden" id="trip-lng" value="'+(state.tripPickingLng||'')+'"><input type="hidden" id="trip-accuracy" value="'+(state.tripPickingAccuracy||'')+'"><input type="hidden" id="trip-detected-spot" value="' + escapeHtml(detectedSpot) + '">'
-        // 自訂備註（GPS 識別失敗或需要更精確位置時使用）
-        + '<input type="text" class="form-input" id="trip-spot-custom" placeholder="具體位置備註（可選，例如：西防波堤第 3 支竿位）..." value="'+(state.tripPickingCustom||'')+'" oninput="state.tripPickingCustom=this.value" style="margin-top:8px;">'
-        // Route I: 潮汐預覽（GPS 識別成功才顯示）
-        + '<div id="trip-tide-preview" style="margin-top:8px;font-size:12px;color:var(--gray-5);"></div>'
-        // 釣法
-        + '<div class="form-group" style="margin-top:12px;"><label class="form-label">🎣 釣法</label><select class="form-select" id="trip-method-select" onchange="onTripMethodChange(this.value)"><option value="">不指定</option>'
-        + FISHING_METHODS.map(m => '<option value="'+m+'"'+(state.tripPickingMethod===m?' selected':'')+'>'+m+'</option>').join('')
-        + '</select></div>'
-        // 釣餌
-        + '<div class="form-group" style="margin-top:12px;"><label class="form-label">🦐 釣餌</label><select class="form-select" id="trip-bait-select" onchange="onTripBaitChange(this.value)"><option value="">不指定</option>'
-        + BAIT_TYPES.map(b => '<option value="'+b+'"'+(state.tripPickingBait===b?' selected':'')+'>'+b+'</option>').join('')
-        + '</select></div>'
-        + '<div style="display:flex;gap:8px;margin-top:16px;">'
-          + '<button class="btn" style="flex:1;background:var(--gray-2);color:var(--gray-6);" onclick="cancelTripPick();">取消</button>'
-          + '<button class="btn btn-primary" style="flex:2;" onclick="confirmStartTrip();" ' + (!detectedSpot ? 'disabled style="opacity:0.5;flex:2;"' : 'style="flex:2;"') + '>' + (isEditing ? '💾 儲存變更' : '▶ 開始行程') + '</button>'
-        + '</div></div>';
-    } else {
-      html += '<div class="card" style="text-align:center;padding:24px 16px;">'
-        + '<div style="font-size:48px;margin-bottom:12px;">🎣</div>'
-        + '<div style="font-size:15px;color:var(--gray-6);margin-bottom:6px;font-weight:600;">準備好去釣魚？</div>'
-        + '<div style="font-size:13px;color:var(--gray-5);margin-bottom:18px;">開始行程後會自動計時，<br>釣到的魚會歸入這個行程</div>'
-        + '<button class="start-trip-btn" onclick="startTrip();">▶ 開始行程</button>'
-      + '</div>';
-    }
+    // 內嵌 picker（開始 / 編輯都用）— GPS 自動識別釣點
+    const recentSpots = getRecentSpots(5);
+    const isEditing = state.editingActiveTrip;
+    const titleIcon = isEditing ? '✏️' : '📍';
+    const titleText = isEditing ? '編輯這次行程' : 'GPS 自動識別這次行程';
+    const subtitleText = isEditing ? '可重新定位釣點或調整釣法/釣餌' : '點按下方按鈕，無需手動選擇釣點';
+    const detectedSpot = state.tripPickingDetectedSpot || (state.tripPickingLat && state.tripPickingSpot ? state.tripPickingSpot : '');
+    const spotHtml = detectedSpot
+      ? '<div class="gps-detected-spot">🎯 已識別：<b>' + escapeHtml(detectedSpot) + '</b></div>'
+      : (state.tripPickingLat ? '<div class="gps-detected-spot warn">⚠️ 座標已記錄但未識別到釣點</div>' : '');
+    html += '<div class="card" style="padding:20px 16px;">'
+      + '<div style="text-align:center;"><div style="font-size:36px;margin-bottom:8px;">' + titleIcon + '</div>'
+      + '<div style="font-size:15px;color:var(--gray-6);font-weight:600;margin-bottom:4px;">' + titleText + '</div>'
+      + '<div style="font-size:12px;color:var(--gray-4);margin-bottom:14px;">' + subtitleText + '</div></div>'
+      // GPS 自動定位（取代下拉選擇器）
+      + '<div class="gps-section"><button type="button" id="trip-gps-btn" class="gps-btn" onclick="tripGetGPS()">' + (state.tripPickingLat ? '🔄 重新定位' : '📍 啟用 GPS 自動識別') + '</button>'
+      + '<div class="gps-status" id="trip-gps-status">' + (state.tripPickingLat ? '✓ 已記錄（精度 ±' + (state.tripPickingAccuracy || '?') + 'm）' + spotHtml : '未取得位置') + '</div></div>'
+      + '<input type="hidden" id="trip-lat" value="'+(state.tripPickingLat||'')+'"><input type="hidden" id="trip-lng" value="'+(state.tripPickingLng||'')+'"><input type="hidden" id="trip-accuracy" value="'+(state.tripPickingAccuracy||'')+'"><input type="hidden" id="trip-detected-spot" value="' + escapeHtml(detectedSpot) + '">'
+      // 自訂備註（GPS 識別失敗或需要更精確位置時使用）
+      + '<input type="text" class="form-input" id="trip-spot-custom" placeholder="具體位置備註（可選，例如：西防波堤第 3 支竿位）..." value="'+(state.tripPickingCustom||'')+'" oninput="state.tripPickingCustom=this.value" style="margin-top:8px;">'
+      // Route I: 潮汐預覽（GPS 識別成功才顯示）
+      + '<div id="trip-tide-preview" style="margin-top:8px;font-size:12px;color:var(--gray-5);"></div>'
+      // 釣法
+      + '<div class="form-group" style="margin-top:12px;"><label class="form-label">🎣 釣法</label><select class="form-select" id="trip-method-select" onchange="onTripMethodChange(this.value)"><option value="">不指定</option>'
+      + FISHING_METHODS.map(m => '<option value="'+m+'"'+(state.tripPickingMethod===m?' selected':'')+'>'+m+'</option>').join('')
+      + '</select></div>'
+      // 釣餌
+      + '<div class="form-group" style="margin-top:12px;"><label class="form-label">🦐 釣餌</label><select class="form-select" id="trip-bait-select" onchange="onTripBaitChange(this.value)"><option value="">不指定</option>'
+      + BAIT_TYPES.map(b => '<option value="'+b+'"'+(state.tripPickingBait===b?' selected':'')+'>'+b+'</option>').join('')
+      + '</select></div>'
+      + '<div style="display:flex;gap:8px;margin-top:16px;">'
+        + '<button class="btn" style="flex:1;background:var(--gray-2);color:var(--gray-6);" onclick="cancelTripPick();">取消</button>'
+        + '<button class="btn btn-primary" style="flex:2;" onclick="confirmStartTrip();" ' + (!detectedSpot ? 'disabled style="opacity:0.5;flex:2;"' : 'style="flex:2;"') + '>' + (isEditing ? '💾 儲存變更' : '▶ 開始行程') + '</button>'
+      + '</div></div>';
+  } else {
+    html += '<div class="card" style="text-align:center;padding:24px 16px;">'
+      + '<div style="font-size:48px;margin-bottom:12px;">🎣</div>'
+      + '<div style="font-size:15px;color:var(--gray-6);margin-bottom:6px;font-weight:600;">準備好去釣魚？</div>'
+      + '<div style="font-size:13px;color:var(--gray-5);margin-bottom:18px;">開始行程後會自動計時，<br>釣到的魚會歸入這個行程</div>'
+      + '<button class="start-trip-btn" onclick="startTrip();">▶ 開始行程</button>'
+    + '</div>';
   }
   // 歷史行程
   if (trips.length > 0) {
@@ -2957,11 +2966,6 @@ function renderTripsView() {
   // Route I: 如果 picker 開住且有 spot，主動觸發潮汐預覽
   if (state.tripPicking && state.tripPickingSpot) {
     try { onTripSpotChange(state.tripPickingSpot); } catch(e) {}
-  }
-  } catch(e) {
-    console.error('renderTripsView error:', e);
-    const view = document.getElementById('view-trips');
-    if (view) view.innerHTML = '<div style="background:#fee;color:#c00;padding:16px;border-radius:8px;font-size:12px;margin:12px;">⚠️ 行程頁面錯誤<br><br>' + (e.message || e) + '<br><br>請截圖傳給我</div>';
   }
 }
 
@@ -4356,7 +4360,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v102</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v103</span>';
   }
   renderView(name);
 }
@@ -4668,7 +4672,7 @@ function showInitError(title, message) {
       + '<div style="font-size:15px;font-weight:600;color:#ea4335;margin-bottom:4px;">' + (title || '載入失敗') + '</div>'
       + '<div style="font-size:13px;color:#999;margin-bottom:24px;">' + (message || '') + '</div>'
       + '<button onclick="location.reload()" style="padding:12px 32px;background:#0a6e7a;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">🔄 重新載入</button>'
-      + '<button onclick="localStorage.removeItem(\'sw-cleared-v102\');location.reload()" style="margin-top:12px;padding:10px 24px;background:#ea4335;color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;">🧹 清除緩存並重載</button>'
+      + '<button onclick="localStorage.removeItem(\'sw-cleared-v103\');location.reload()" style="margin-top:12px;padding:10px 24px;background:#ea4335;color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;">🧹 清除緩存並重載</button>'
       + '</div>';
     screen.style.display = 'block';
     const header = document.getElementById('header');

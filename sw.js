@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v102';  // bump: 暫時停用 SW 註冊，專注診斷 init 流程
+const CACHE = 'hk-fishing-v103';  // bump: 修復 renderTripsView 語法錯誤導致整個 JS 不執行
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
