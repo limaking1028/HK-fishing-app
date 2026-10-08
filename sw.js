@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v104';  // bump: 修復 init 完成後未關閉進度畫面導致卡住
+const CACHE = 'hk-fishing-v105';  // bump: 新增重量單位切換（兩/斤）
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
