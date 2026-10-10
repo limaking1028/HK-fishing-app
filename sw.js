@@ -1,8 +1,9 @@
-const CACHE = 'hk-fishing-v107';  // bump: 移除兩/斤切換，恢復純斤制，顯示統一1位小數
+const CACHE = 'hk-fishing-v108';  // bump: 移除兩/斤切換，恢復純斤制，顯示統一1位小數
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
-  './lib/auth.js'         // Email Magic Link
+  './lib/auth.js',        // Email Magic Link
+  './lib/weight.js'       // v108 重量單位
 ];
 
 self.addEventListener('install', e => {

@@ -50,6 +50,8 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <!-- Route A1: 月相 + 日出日落（純前端、無 API） -->
   <script src="./lib/astronomy.js"></script>
+  <!-- v108: 重量單位換算 -->
+  <script src="./lib/weight.js"></script>
 <!-- Route D: 簡筆風魚類 SVG icon（取代 AI 生成 PNG） -->
   <script src="./lib/fish-icons.js"></script>
   <!-- Route H: 行程計時器 / 格式化 -->
@@ -287,6 +289,7 @@ button { touch-action: manipulation; }
   .form-row > .form-group { flex: 1; }
   .input-suffix { display: flex; align-items: center; border: 1.5px solid var(--gray-2); border-radius: var(--radius-sm); overflow: hidden; }
   .input-suffix .form-input { border: none; border-radius: 0; }
+  .weight-unit-select { border: none; background: var(--gray-1); font-size: 14px; font-weight: 600; color: var(--gray-5); padding: 0 6px; height: 100%; font-family: inherit; cursor: pointer; }
   .input-suffix .suffix { padding: 0 12px; font-size: 14px; color: var(--gray-4); font-weight: 600; background: var(--gray-1); height: 100%; display: flex; align-items: center; }
   .species-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .species-chip { text-align: center; padding: 8px 4px; border: 1.5px solid var(--gray-2); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s; font-size: 12px; background: var(--white); position: relative; }
@@ -1029,7 +1032,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v107</span></div>
+    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v108</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -1069,6 +1072,13 @@ button { touch-action: manipulation; }
       <div class="modal-btns">
         <button class="btn btn-outline" onclick="closeNameDialog()">取消</button>
         <button class="btn btn-primary" onclick="saveName()">保存</button>
+      </div>
+      <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
+        <div style="font-size:13px;color:var(--gray-5);margin-bottom:8px;font-weight:600;">⚖️ 預設重量單位</div>
+        <select class="modal-input" id="pref-weight-unit" onchange="setPrefWeightUnit(this.value)">
+          <option value="kg">公斤</option><option value="g">克</option><option value="jin">斤</option><option value="tael">兩</option>
+        </select>
+        <div style="font-size:11px;color:var(--gray-4);margin-top:4px;">用於輸入同顯示。1 斤 = 16 兩 = 604.79 克（香港市制）</div>
       </div>
       <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
         <div style="font-size:13px;color:var(--gray-5);margin-bottom:8px;font-weight:600;">🔑 設定 / 更改密碼</div>
@@ -1296,7 +1306,9 @@ async function dbLoadCatches() {
     return {
       id: c.id, user: owner?.display_name || (isDemo ? '示範' : '釣友'),
       userId: c.user_id, species: c.species, speciesIcon: c.species_icon || '🐟',
-      weight: parseFloat(c.weight), length: c.length ? parseFloat(c.length) : 0,
+      weight: (c.weight_kg != null ? parseFloat(c.weight_kg) : weightLib.jinToKg(c.weight)),
+      weightInput: c.weight_input != null ? parseFloat(c.weight_input) : null, weightUnit: c.weight_unit || null,
+      length: c.length ? parseFloat(c.length) : 0,
       spot: c.spot, spotArea: c.spot_area || '', date: c.date, time: c.time ? c.time.slice(0, 5) : '',
       method: c.method, bait: c.bait, verified: c.verified, notes: c.notes || '', isMine, isDemo,
       latitude: c.latitude || null, longitude: c.longitude || null,
@@ -1320,11 +1332,21 @@ async function uploadCatchPhoto(file) {
   return pub.publicUrl;
 }
 
+// 舊版本地資料（無 _wv）嘅 weight 係「斤」，轉為標準公斤
+function fixLegacyWeight(c) {
+  if (c._wv === 2) return c;
+  const o = Object.assign({}, c);
+  o.weightInput = o.weightInput != null ? o.weightInput : o.weight;
+  o.weightUnit = o.weightUnit || 'jin';
+  o.weight = weightLib.jinToKg(o.weight);
+  o._wv = 2;
+  return o;
+}
 // ===== 未同步魚獲：只存「還沒上傳成功」的記錄（不再把整個魚獲清單寫入本機）=====
 const UNSYNCED_KEY = 'hk_fishing_unsynced_v1';
 function persistUnsynced() {
   try {
-    const list = state.catches.filter(c => c.unsynced && c.isMine).map(c => { const o = Object.assign({}, c); delete o._photoFile; return o; });
+    const list = state.catches.filter(c => c.unsynced && c.isMine).map(c => { const o = Object.assign({}, c); delete o._photoFile; o._wv = 2; return o; });
     if (list.length) localStorage.setItem(UNSYNCED_KEY, JSON.stringify(list));
     else localStorage.removeItem(UNSYNCED_KEY);
   } catch (_) {}
@@ -1332,7 +1354,7 @@ function persistUnsynced() {
 function loadUnsyncedForUser() {
   try {
     const list = JSON.parse(localStorage.getItem(UNSYNCED_KEY) || '[]');
-    return list.filter(c => c && c.unsynced && c.userId === state.user.id);
+    return list.filter(c => c && c.unsynced && c.userId === state.user.id).map(fixLegacyWeight);
   } catch (e) { return []; }
 }
 // 啟動時自動補傳上次未同步的魚獲
@@ -1386,7 +1408,11 @@ async function dbAddCatch(c) {
   const payload = {
     id: c.cloudId,
     user_id: state.user.id, species: c.species, species_icon: c.speciesIcon,
-    weight: c.weight, length: c.length || null, spot: c.spot, spot_area: c.spotArea || null,
+    weight: weightLib.legacyJin(c.weight),                       // 舊欄位（斤），保持向後相容
+    weight_kg: c.weight,                                         // 標準重量（公斤）
+    weight_input: c.weightInput != null ? c.weightInput : c.weight,  // 原始輸入數值
+    weight_unit: c.weightUnit || 'kg',                           // 原始單位
+    length: c.length || null, spot: c.spot, spot_area: c.spotArea || null,
     date: c.date, time: c.time || null, method: c.method, bait: c.bait,
     verified: c.verified || false, notes: c.notes || null,
     latitude: c.latitude || null, longitude: c.longitude || null,
@@ -1396,7 +1422,13 @@ async function dbAddCatch(c) {
     stats: c.stats || null,  // Route L+: 統計維度 JSONB
     opted_in_analytics: c.optedInAnalytics || false,  // Route M: 同意旗標稽核軌跡
   };
-  const { data, error } = await sb.from('catches').upsert(payload, { onConflict: 'id' }).select().single();
+  let { data, error } = await sb.from('catches').upsert(payload, { onConflict: 'id' }).select().single();
+  if (error && /weight_kg|weight_input|weight_unit/.test(error.message || '')) {
+    // 資料庫未執行 migration-v108：退回舊欄位（斤），讀取時會自動換算
+    console.warn('[catches] 未有 v108 重量欄位，改用舊欄位寫入');
+    const legacy = Object.assign({}, payload); delete legacy.weight_kg; delete legacy.weight_input; delete legacy.weight_unit;
+    ({ data, error } = await sb.from('catches').upsert(legacy, { onConflict: 'id' }).select().single());
+  }
   if (error) {
     console.error('[catches insert 錯誤]', error);
     throw error;
@@ -1478,7 +1510,7 @@ function genSampleCatches() {
     const date = new Date(now); date.setDate(date.getDate() - d[5]);
     catches.push({
       id: id++, user: users[d[0]], species: FISH_SPECIES[d[1]].name, speciesIcon: FISH_SPECIES[d[1]].icon,
-      weight: d[2], length: d[3], spot: FISHING_SPOTS[d[4]].name, spotArea: FISHING_SPOTS[d[4]].area,
+      weight: weightLib.jinToKg(d[2]), length: d[3], spot: FISHING_SPOTS[d[4]].name, spotArea: FISHING_SPOTS[d[4]].area,
       date: localDateStr(date), time: d[6], method: FISHING_METHODS[d[7]], bait: BAIT_TYPES[d[8]],
       verified: d[9], notes: d[10], isMine: users[d[0]] === getUserName(),
     });
@@ -1489,7 +1521,7 @@ function genSampleCatches() {
 /* ===== State & Persistence ===== */
 const STORAGE_KEY = 'hk_fishing_catches_v5';
 const USERNAME_KEY = 'hk_fishing_username';
-let state = { view:'my', mapTab:'map', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{}, expandedPokedex:{} }, trips:[], activeTrip:null, tripDetailId:null, tripTickHandle:null, tripPicking:false, tripPickingSpot:'', tripPickingDetectedSpot:'', tripPickingCustom:'', tripPickingMethod:'', tripPickingBait:'', tripPickingLat:null, tripPickingLng:null, tripPickingAccuracy:null, geoStatus:'idle', userLocation:null, nearestStations:[], geoError:null, geoRequestedAt:0, pinnedSpecies:[], speciesExpanded:false };
+let state = { view:'my', mapTab:'map', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', lbUnit:'kg', weightInputUnit:null, myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{}, expandedPokedex:{} }, trips:[], activeTrip:null, tripDetailId:null, tripTickHandle:null, tripPicking:false, tripPickingSpot:'', tripPickingDetectedSpot:'', tripPickingCustom:'', tripPickingMethod:'', tripPickingBait:'', tripPickingLat:null, tripPickingLng:null, tripPickingAccuracy:null, geoStatus:'idle', userLocation:null, nearestStations:[], geoError:null, geoRequestedAt:0, pinnedSpecies:[], speciesExpanded:false };
 
 // 載入用戶 pin 嘅魚種（持久化）
 try {
@@ -1691,7 +1723,7 @@ function renderRecordView() {
     + tripBadge
     + '<div class="form-group"><label class="form-label">魚種 <span class="req">*</span></label><div id="species-selector"></div>'
     + '</div></div>'
-    + '<div class="form-row"><div class="form-group"><label class="form-label">重量 <span class="req">*</span></label><div class="input-suffix"><input type="number" class="form-input" id="catch-weight" placeholder="0.0" step="0.1" min="0"><span class="suffix">斤</span></div></div><div class="form-group"><label class="form-label">長度</label><div class="input-suffix"><input type="number" class="form-input" id="catch-length" placeholder="0" step="0.5" min="0"><span class="suffix">cm</span></div></div></div>'
+    + '<div class="form-row"><div class="form-group"><label class="form-label">重量 <span class="req">*</span></label><div class="input-suffix"><input type="number" class="form-input" id="catch-weight" placeholder="0.0" step="any" min="0" inputmode="decimal" oninput="updateWeightConv()"><select id="catch-weight-unit" class="weight-unit-select" onchange="onWeightUnitChange(this)">'+weightUnitOptionsHtml(state.weightInputUnit||weightLib.getPref())+'</select></div><div class="login-hint" id="catch-weight-conv" style="min-height:14px"></div></div><div class="form-group"><label class="form-label">長度</label><div class="input-suffix"><input type="number" class="form-input" id="catch-length" placeholder="0" step="0.5" min="0"><span class="suffix">cm</span></div></div></div>'
     // Route L+: 釣點自動定位模式 — 用戶不需手動輸入
     // Route H+: 進行中行程預填 — 永遠從 activeTrip 帶入 spot 名稱(就算 GPS 未啟用都顯示)
     + (function(){
@@ -2242,12 +2274,29 @@ function previewPhoto(input) {
   if (input.files && input.files[0]) { const r = new FileReader(); r.onload = e => { c.innerHTML = '<img class="photo-preview" src="'+e.target.result+'" alt="preview">'; }; r.readAsDataURL(input.files[0]); }
 }
 
+function weightUnitOptionsHtml(sel) {
+  return weightLib.UNITS.map(u => '<option value="' + u + '"' + (u === sel ? ' selected' : '') + '>' + weightLib.NAMES[u] + '</option>').join('');
+}
+function updateWeightConv() {
+  const el = document.getElementById('catch-weight-conv');
+  if (!el) return;
+  const u = state.weightInputUnit || weightLib.getPref();
+  const v = parseFloat((document.getElementById('catch-weight') || {}).value);
+  if (!v || v <= 0) { el.textContent = ''; return; }
+  const kg = weightLib.toKg(v, u);
+  el.textContent = '≈ ' + weightLib.describeOthers(kg, u);
+}
+function onWeightUnitChange(sel) { state.weightInputUnit = sel.value; updateWeightConv(); }
+window.updateWeightConv = updateWeightConv; window.onWeightUnitChange = onWeightUnitChange;
+function fmtWeight(kg, unit) { return weightLib.format(kg, unit || weightLib.getPref()).text; }
 function submitCatch() {
   if (state.selectedSpecies === null) { toast('請選擇魚種'); return; }
-  const weightInput = parseFloat(document.getElementById('catch-weight').value);
-  if (!weightInput || weightInput <= 0) { toast('請輸入重量'); return; }
-  if (weightInput >= 100) { toast('重量必須少於 100 斤'); return; }
-  const weight = weightInput;
+  const weightUnit = state.weightInputUnit || weightLib.getPref();
+  const weightRaw = parseFloat(document.getElementById('catch-weight').value);
+  if (!weightRaw || weightRaw <= 0) { toast('請輸入重量'); return; }
+  const weight = weightLib.toKg(weightRaw, weightUnit);   // 標準重量（公斤）
+  if (!(weight > 0)) { toast('重量太輕，請檢查單位'); return; }
+  if (weight >= weightLib.MAX_KG) { toast('重量必須少於 ' + weightLib.MAX_KG + ' 公斤（約 100 斤）'); return; }
   // Route H+: 行程中自動帶入 activeTrip.spot/method/bait（用戶未填時）
   if (state.activeTrip) {
     if (state.activeTrip.spot && !state.selectedSpot) {
@@ -2302,7 +2351,7 @@ function submitCatch() {
   const catchItem = {
     id: SB_ENABLED && state.user ? 'temp-' + Date.now() : Date.now(),
     user: getUserName(), species: speciesName, speciesIcon: speciesIcon,
-    weight: weight,
+    weight: weight, weightInput: weightRaw, weightUnit: weightUnit,
     length: parseFloat(document.getElementById('catch-length').value) || 0,
     spot: spot, spotArea: getSpotInfo(spotRaw).area,
     date: document.getElementById('catch-date').value, time: document.getElementById('catch-time').value,
@@ -2426,7 +2475,7 @@ async function dbLoadTrips() {
     longitude: t.longitude ? parseFloat(t.longitude) : null,
     notes: t.notes || '',
     catchCount: t.catch_count || 0,
-    totalWeight: t.total_weight ? parseFloat(t.total_weight) : 0,
+    totalWeight: t.total_weight_kg != null ? parseFloat(t.total_weight_kg) : weightLib.jinToKg(t.total_weight || 0),
     isDemo: t.user_id === null
   }));
 }
@@ -2460,11 +2509,17 @@ async function dbUpdateTrip(tripId, patch) {
 
 async function dbEndTrip(tripId, endedAt, stats) {
   if (!sb || !state.user) return false;
-  const { data, error } = await sb.from('fishing_trips').update({
+  const endPatch = {
     ended_at: endedAt,
     catch_count: stats.count || 0,
-    total_weight: stats.totalWeight || 0
-  }).eq('id', tripId).eq('user_id', state.user.id).select();
+    total_weight: Math.round(weightLib.fromKg(stats.totalWeight || 0, 'jin') * 100) / 100,  // 舊欄位（斤）
+    total_weight_kg: stats.totalWeight || 0                                                  // 標準重量（公斤）
+  };
+  let { data, error } = await sb.from('fishing_trips').update(endPatch).eq('id', tripId).eq('user_id', state.user.id).select();
+  if (error && /total_weight_kg/.test(error.message || '')) {
+    delete endPatch.total_weight_kg;   // 未執行 migration-v108：只寫舊欄位
+    ({ data, error } = await sb.from('fishing_trips').update(endPatch).eq('id', tripId).eq('user_id', state.user.id).select());
+  }
   if (error) { console.error('dbEndTrip failed', error); toast('結束行程失敗：' + error.message); return false; }
   if (!data || data.length === 0) {
     console.warn('[trips] dbEndTrip matched 0 rows - tripId:', tripId, 'userId:', state.user.id);
@@ -2498,7 +2553,7 @@ function renderActiveTripBanner() {
       + '<div class="atb-info">'
         + '<div class="atb-title">⏱️ 行程進行中' + (t.spot ? ' · ' + escapeHtml(t.spot) : '') + '</div>'
         + '<div class="atb-timer" id="atb-timer">' + window.tripsLib.formatTimerDisplay(sec) + '</div>'
-        + '<div class="atb-meta">' + summary.count + ' 條魚 · ' + summary.totalWeight.toFixed(1) + ' 斤</div>'
+        + '<div class="atb-meta">' + summary.count + ' 條魚 · ' + fmtWeight(summary.totalWeight) + '</div>'
         + tideChip
       + '</div>'
       + '<button class="atb-btn" onclick="event.stopPropagation();addCatchInTrip();">➕ 加魚</button>'
@@ -2821,7 +2876,7 @@ async function endTrip(skipConfirm) {
   if (!state.activeTrip) return;
   if (!skipConfirm) {
     const summary = window.tripsLib.summarizeTripCatches(state.activeTrip, state.catches);
-    if (!confirm('結束當前行程？\n\n已記錄 ' + summary.count + ' 條魚，共 ' + summary.totalWeight.toFixed(1) + ' 斤')) return;
+    if (!confirm('結束當前行程？\n\n已記錄 ' + summary.count + ' 條魚，共 ' + fmtWeight(summary.totalWeight))) return;
   }
   const endedAt = new Date().toISOString();
   const stats = window.tripsLib.summarizeTripCatches(state.activeTrip, state.catches);
@@ -2988,7 +3043,7 @@ function renderTripCard(trip, durationSec) {
     + (tags.length ? '<div style="font-size:11px;color:var(--gray-5);margin-bottom:6px;">' + tags.join(' · ') + '</div>' : '')
     + '<div class="trip-card-stats">'
       + '<span>🐟 ' + (trip.catchCount || 0) + ' 條</span>'
-      + '<span>⚖️ ' + (trip.totalWeight || 0).toFixed(1) + ' 斤</span>'
+      + '<span>⚖️ ' + fmtWeight(trip.totalWeight || 0) + '</span>'
     + '</div>'
   + '</div>';
 }
@@ -3031,7 +3086,7 @@ function renderTripDetailView(id) {
   html += '<div class="trip-stats-grid">'
       + '<div class="trip-stat-box"><div class="trip-stat-num">' + window.tripsLib.formatDuration(durationSec) + '</div><div class="trip-stat-label">總時長</div></div>'
       + '<div class="trip-stat-box"><div class="trip-stat-num">' + summary.count + '</div><div class="trip-stat-label">總魚獲</div></div>'
-      + '<div class="trip-stat-box"><div class="trip-stat-num">' + summary.totalWeight.toFixed(1) + '</div><div class="trip-stat-label">總重量（斤）</div></div>'
+      + '<div class="trip-stat-box"><div class="trip-stat-num">' + weightDisplay({weight: summary.totalWeight}).value + '</div><div class="trip-stat-label">總重量（' + weightDisplay({weight: 0}).unit + '）</div></div>'
     + '</div>'
     + '<div style="font-size:12px;color:var(--gray-5);margin-top:10px;text-align:center;">共 ' + summary.speciesCount + ' 個魚種</div>'
   + '</div>';
@@ -3219,7 +3274,7 @@ function renderMyView() {
   view.innerHTML = subTabsHtml
     + '<div class="stats-row">'
     + '<div class="stat-card"><div class="stat-value">'+totalCatches+'</div><div class="stat-label">總魚獲</div></div>'
-    + '<div class="stat-card"><div class="stat-value">'+(biggest?weightDisplay(biggest).value:0)+'<span style="font-size:13px">'+(biggest?weightDisplay(biggest).unit:'斤')+'</span></div><div class="stat-label">重量王者'+(biggest?' ('+escapeHtml(biggest.species)+')':'')+'</div></div>'
+    + '<div class="stat-card"><div class="stat-value">'+(biggest?weightDisplay(biggest).value:0)+'<span style="font-size:13px">'+(biggest?weightDisplay(biggest).unit:weightDisplay(null).unit)+'</span></div><div class="stat-label">重量王者'+(biggest?' ('+escapeHtml(biggest.species)+')':'')+'</div></div>'
     + '<div class="stat-card"><div class="stat-value">'+speciesCount+'</div><div class="stat-label">魚種數</div></div>'
     + '<div class="stat-card" id="stat-total-time"><div class="stat-value">'+totalTripValue+'<span style="font-size:13px">'+totalTripSub+'</span></div><div class="stat-label">總釣魚時間</div>'+(state.activeTrip?'<div class="stat-sub">⏱ 行程進行中</div>':'')+'</div>'
     + '</div>'
@@ -3251,9 +3306,11 @@ function setMySubTab(t) { state.mySubTab = t; renderMyView(); }
 function setMyFilter(f) { state.myFilter = f; renderMyView(); }
 function toggleSection(key) { state.ui.expandedSections[key] = !state.ui.expandedSections[key]; renderMyView(); }
 function toggleSpecies(key) { state.ui.expandedSpecies[key] = !state.ui.expandedSpecies[key]; renderMyView(); }
-function weightDisplay(c) {
-  if (!c || typeof c.weight !== 'number') return { value: '0', unit: '斤' };
-  return { value: c.weight.toFixed(1), unit: '斤' };
+// c.weight 一律係標準公斤；unit 不傳 = 用戶預設單位
+function weightDisplay(c, unit) {
+  const u = unit || weightLib.getPref();
+  const f = weightLib.format((c && typeof c.weight === 'number') ? c.weight : 0, u);
+  return { value: f.value, unit: f.unit };
 }
 
 function renderCatchCard(c, rankings) {
@@ -3265,15 +3322,24 @@ function renderCatchCard(c, rankings) {
   const iconHtml = catchThumbHtml(c, { klass: 'catch-thumb' });
   const unsyncedTag = c.unsynced ? '<span class="catch-tag" style="background:#fff4e8;color:#b06820;border:1px solid #f5a623;" title="未同步到雲端,將在網絡恢復時自動補傳">☁️ 未同步</span>' : '';
   const wd = weightDisplay(c);
-  return '<div class="catch-card"><div class="catch-card-top"><div class="catch-fish-icon">'+iconHtml+'</div><div class="catch-info"><div class="catch-species">'+escapeHtml(c.species)+'</div><div class="catch-meta">'+escapeHtml(c.spot)+' · '+formatDate(c.date)+' '+escapeHtml(c.time||'')+'</div></div><div class="catch-weight-badge"><div class="catch-weight">'+wd.value+'</div><div class="catch-weight-unit">'+wd.unit+'</div></div></div><div class="catch-card-bottom">'+rankBadges+unsyncedTag+(c.length?'<span class="catch-tag">'+c.length+'cm</span>':'')+'<span class="catch-tag">🎣 '+escapeHtml(c.method)+'</span><span class="catch-tag">🪱 '+escapeHtml(c.bait)+'</span>'+(c.verified?'<span class="verified-badge">✓ 有效紀錄</span>':'')+'<span class="catch-tag share-btn" data-share-id="'+escapeHtml(c.id)+'">📤 分享</span>'+(c.isMine && !c.imported?'<span class="catch-tag" style="color:#dc2626;" data-del-id="'+escapeHtml(c.id)+'">🗑️ 刪除</span>':'')+'</div>'+(c.notes?'<div style="padding:6px 14px 10px;font-size:13px;color:var(--gray-5);border-top:1px solid var(--gray-1);">'+escapeHtml(c.notes)+'</div>':'')+'</div>';
+  return '<div class="catch-card"><div class="catch-card-top"><div class="catch-fish-icon">'+iconHtml+'</div><div class="catch-info"><div class="catch-species">'+escapeHtml(c.species)+'</div><div class="catch-meta">'+escapeHtml(c.spot)+' · '+formatDate(c.date)+' '+escapeHtml(c.time||'')+'</div></div><div class="catch-weight-badge"><div class="catch-weight">'+wd.value+'</div><div class="catch-weight-unit">'+wd.unit+'</div>'+((c.weightUnit && c.weightInput!=null && weightLib.isUnit(c.weightUnit) && c.weightUnit!==weightLib.getPref())?'<div class="catch-weight-unit" style="opacity:.7">（輸入 '+weightLib.format(c.weight,c.weightUnit).text+'）</div>':'')+'</div></div><div class="catch-card-bottom">'+rankBadges+unsyncedTag+(c.length?'<span class="catch-tag">'+c.length+'cm</span>':'')+'<span class="catch-tag">🎣 '+escapeHtml(c.method)+'</span><span class="catch-tag">🪱 '+escapeHtml(c.bait)+'</span>'+(c.verified?'<span class="verified-badge">✓ 有效紀錄</span>':'')+'<span class="catch-tag share-btn" data-share-id="'+escapeHtml(c.id)+'">📤 分享</span>'+(c.isMine && !c.imported?'<span class="catch-tag" style="color:#dc2626;" data-del-id="'+escapeHtml(c.id)+'">🗑️ 刪除</span>':'')+'</div>'+(c.notes?'<div style="padding:6px 14px 10px;font-size:13px;color:var(--gray-5);border-top:1px solid var(--gray-1);">'+escapeHtml(c.notes)+'</div>':'')+'</div>';
 }
 /* ===== 名稱管理 ===== */
 function openNameDialog() {
   document.getElementById('name-input').value = getUserName();
+  document.getElementById('pref-weight-unit').value = weightLib.getPref();
   document.getElementById('name-modal').classList.add('show');
   setTimeout(() => document.getElementById('name-input').focus(), 300);
   refreshAnalyticsToggleUI();  // Route M: 確保 toggle 顯示當前狀態
 }
+function setPrefWeightUnit(u) {
+  if (!weightLib.isUnit(u)) return;
+  weightLib.setPref(u);
+  state.weightInputUnit = u;        // 新增魚獲預設用返呢個單位
+  renderView(state.view);
+  showToast('預設重量單位：' + weightLib.NAMES[u]);
+}
+window.setPrefWeightUnit = setPrefWeightUnit;
 function closeNameDialog() { document.getElementById('name-modal').classList.remove('show'); }
 async function saveName() {
   const name = document.getElementById('name-input').value.trim() || '我';
@@ -3404,7 +3470,7 @@ function shareCatch(id) {
   const catchRanks = (myRankings[c.id] || []);
   const rankText = catchRanks.map(r => r.lb+' #'+r.rank).join('、');
   const data = btoa(unescape(encodeURIComponent(JSON.stringify({
-    s: c.species, i: c.speciesIcon || '🐟', w: c.weight, l: c.length || 0,
+    s: c.species, i: c.speciesIcon || '🐟', w: c.weight, v: 2, l: c.length || 0,
     p: c.spot, d: c.date, t: c.time, m: c.method, b: c.bait, n: c.notes || '', u: c.user,
     r: catchRanks
   }))));
@@ -3439,7 +3505,7 @@ function shareCatch(id) {
 async function deleteCatch(id) {
   const c = state.catches.find(x => String(x.id) === String(id));
   if (!c || !c.isMine) return;
-  if (!confirm('刪除這條魚獲？\n\n' + c.species + ' ' + c.weight + ' 斤 · ' + c.spot + '\n此操作不可撤銷')) return;
+  if (!confirm('刪除這條魚獲？\n\n' + c.species + ' ' + fmtWeight(c.weight) + ' · ' + c.spot + '\n此操作不可撤銷')) return;
   try {
     if (SB_ENABLED && state.user && !String(c.id).startsWith('temp-')) await dbDeleteCatch(c.id);
   } catch (e) { toast('刪除失敗：' + (e.message || '網絡錯誤')); return; }
@@ -3454,7 +3520,7 @@ function nativeShare(data) {
   const url = base + '?share=' + data;
   const d = parseShareData(data);
   if (!d) return;
-  let text = '🎣 嚟【香港釣魚數據平台】睇下'+d.u+'嘅魚獲！\n'+(d.i||'🐟')+' '+d.s+' '+d.w+'斤\n📍 '+d.p+' · '+formatDate(d.d);
+  let text = '🎣 嚟【香港釣魚數據平台】睇下'+d.u+'嘅魚獲！\n'+(d.i||'🐟')+' '+d.s+' '+fmtWeight(d.w)+'\n📍 '+d.p+' · '+formatDate(d.d);
   if (d.r && d.r.length) text += '\n🏆 排行榜名次：'+d.r.map(r => r.lb+' #'+r.rank).join('、');
   if (navigator.share) {
     navigator.share({ title: '香港釣魚數據平台', text: text, url: url }).catch(()=>{});
@@ -3479,10 +3545,12 @@ function parseShareData(raw) {
   if (!raw || raw.length > 4000 || !/^[A-Za-z0-9+/=_-]+$/.test(raw)) return null;
   const j = JSON.parse(decodeURIComponent(escape(atob(raw))));
   const str = (v, n) => String(v == null ? '' : v).slice(0, n || 60);
-  const w = Number(j.w);
-  if (!isFinite(w) || w <= 0 || w >= 100) return null;
+  // v:2 = 公斤；舊連結（無 v）= 斤
+  const wRaw = Number(j.w);
+  const w = Number(j.v) === 2 ? wRaw : weightLib.jinToKg(wRaw);
+  if (!isFinite(w) || w <= 0 || w >= weightLib.MAX_KG) return null;
   return {
-    s: str(j.s, 30), i: str(j.i, 4) || '🐟', w: Math.round(w * 100) / 100,
+    s: str(j.s, 30), i: str(j.i, 4) || '🐟', w: Math.round(w * 1000) / 1000,
     l: Math.max(0, Math.min(500, Number(j.l) || 0)),
     p: str(j.p, 60), d: /^\d{4}-\d{2}-\d{2}$/.test(str(j.d, 10)) ? str(j.d, 10) : localDateStr(),
     t: /^\d{2}:\d{2}/.test(str(j.t, 8)) ? str(j.t, 5) : '', m: str(j.m, 20), b: str(j.b, 20),
@@ -3505,7 +3573,7 @@ function checkSharedCatch() {
       '<div style="text-align:center;padding:8px 0 16px;">'
       + '<div style="font-size:13px;color:var(--gray-4);margin-bottom:12px;">🎣 朋友分享的魚獲</div>'
       + '<div style="font-size:48px;">'+e(d.i)+'</div>'
-      + '<div style="font-size:20px;font-weight:700;margin:8px 0;">'+e(d.s)+' '+d.w+'斤</div>'
+      + '<div style="font-size:20px;font-weight:700;margin:8px 0;">'+e(d.s)+' '+fmtWeight(d.w)+'</div>'
       + '<div style="font-size:14px;color:var(--gray-5);">'+e(d.p)+' · '+formatDate(d.d)+' '+e(d.t)+'</div>'
       + (d.l ? '<div style="font-size:13px;color:var(--gray-4);margin-top:4px;">長度 '+d.l+'cm</div>' : '')
       + '</div>'
@@ -3533,7 +3601,7 @@ function checkSharedCatch() {
 }
 const IMPORTED_KEY = 'hk_fishing_imported_v1';
 function loadImportedCatches() {
-  try { return JSON.parse(localStorage.getItem(IMPORTED_KEY) || '[]').filter(c => c && c.imported); } catch (e) { return []; }
+  try { return JSON.parse(localStorage.getItem(IMPORTED_KEY) || '[]').filter(c => c && c.imported).map(fixLegacyWeight); } catch (e) { return []; }
 }
 function importCatch(shareData) {
   try {
@@ -3545,7 +3613,7 @@ function importCatch(shareData) {
       user: d.u, species: d.s, speciesIcon: d.i || fishInfo?.icon || '🐟',
       weight: d.w, length: d.l || 0, spot: d.p, spotArea: getSpotInfo(d.p)?.area || '',
       date: d.d, time: d.t, method: d.m, bait: d.b,
-      verified: false, notes: d.n, isMine: false, imported: true, shareKey: shareData
+      verified: false, notes: d.n, isMine: false, imported: true, shareKey: shareData, _wv: 2
     };
     // 朋友的魚獲只存本機：不會寫入雲端，也不會變成「我的魚獲」
     const saved = loadImportedCatches();
@@ -3595,9 +3663,9 @@ function renderLeaderboardView() {
       const rank = idx + 1; let rankClass = 'normal';
       if (rank===1) rankClass='gold'; else if (rank===2) rankClass='silver'; else if (rank===3) rankClass='bronze';
       let value='', detail='';
-      if (state.lbType==='biggest') { const lbWd=weightDisplay(item); value=lbWd.value+'<span class="unit">'+lbWd.unit+'</span>'; detail=escapeHtml(item.species)+' · '+escapeHtml(item.spot)+' · '+daysAgo(item.date); }
+      if (state.lbType==='biggest') { const lbWd=weightDisplay(item, state.lbUnit); value=lbWd.value+'<span class="unit">'+lbWd.unit+'</span>'; detail=escapeHtml(item.species)+' · '+escapeHtml(item.spot)+' · '+daysAgo(item.date); }
       else if (state.lbType==='quantity') { value=item.count+'<span class="unit">條</span>'; detail=item.speciesCount+' 種魚 · '+item.spotCount+' 個釣點'; }
-      else { var spWd = weightDisplay({weight:item.biggestWeight}); value=item.speciesCount+'<span class="unit">種</span>'; detail='最大 '+spWd.value+' '+spWd.unit+' · 釣過 '+item.spotCount+' 個釣點'; }
+      else { var spWd = weightDisplay({weight:item.biggestWeight}, state.lbUnit); value=item.speciesCount+'<span class="unit">種</span>'; detail='最大 '+spWd.value+' '+spWd.unit+' · 釣過 '+item.spotCount+' 個釣點'; }
       // 第一名「全港霸主」：用原本 flex 結構，只加金色背景 + 徽章跨行 + detail 跨行
       let championTitle = '';
       if (state.lbType === 'biggest') championTitle = '全港重量霸主';
@@ -3625,11 +3693,14 @@ function renderLeaderboardView() {
   }
   view.innerHTML = '<div class="lb-tabs"><button class="lb-tab '+(state.lbType==='biggest'?'active':'')+'" onclick="setLbType(\'biggest\')">重量王者</button><button class="lb-tab '+(state.lbType==='quantity'?'active':'')+'" onclick="setLbType(\'quantity\')">數量王者</button><button class="lb-tab '+(state.lbType==='species'?'active':'')+'" onclick="setLbType(\'species\')">品種王者</button></div>'
     + '<div class="lb-period-row"><button class="lb-period '+(state.lbPeriod==='all'?'active':'')+'" onclick="setLbPeriod(\'all\')">全部</button><button class="lb-period '+(state.lbPeriod==='year'?'active':'')+'" onclick="setLbPeriod(\'year\')">年度</button><button class="lb-period '+(state.lbPeriod==='quarter'?'active':'')+'" onclick="setLbPeriod(\'quarter\')">季度</button><button class="lb-period '+(state.lbPeriod==='month'?'active':'')+'" onclick="setLbPeriod(\'month\')">月度</button></div>'
+    + '<div class="lb-period-row" style="align-items:center;"><span style="font-size:12px;color:var(--gray-4);flex-shrink:0;">⚖️ 單位</span>'+weightLib.UNITS.map(u => '<button class="lb-period '+(state.lbUnit===u?'active':'')+'" onclick="setLbUnit(\''+u+'\')">'+weightLib.NAMES[u]+'</button>').join('')+'</div>'
     + '<div class="lb-list">'+listHtml+'</div>'
     + '<div style="font-size:12px;color:var(--gray-4);text-align:center;padding:12px;">排行榜只計有效紀錄（附照片/GPS）<br>規則公開透明，可追溯至原始紀錄</div>';
 }
 function setLbType(t) { state.lbType = t; renderLeaderboardView(); }
 function setLbPeriod(p) { state.lbPeriod = p; renderLeaderboardView(); }
+function setLbUnit(u) { if (!weightLib.isUnit(u)) return; state.lbUnit = u; renderLeaderboardView(); }
+window.setLbUnit = setLbUnit;
 
 /* ===== Map View ===== */
 let mapInstance = null;
@@ -4376,7 +4447,7 @@ function getPokedexHTML() {
         + '<div class="pokedex-sci">' + (f.sci||'') + '</div>'
         + '<div class="pokedex-habitat">' + (f.habitat||'') + '</div>'
         + '<div class="pokedex-desc">' + (f.desc||'') + '</div>'
-        + '<div class="pokedex-pb"><span class="pb-label">最大</span> ' + stats.biggest + '斤 <span class="pb-label">· ' + stats.count + '條</span></div>'
+        + '<div class="pokedex-pb"><span class="pb-label">最大</span> ' + fmtWeight(stats.biggest) + ' <span class="pb-label">· ' + stats.count + '條</span></div>'
         + '<div class="pokedex-meta-row">'
         +   '<span class="pokedex-recent">最近：' + formatDate(stats.lastDate) + '</span>'
         +   '<button class="pokedex-expand-btn" onclick="togglePokedexSpecies(\'' + f.name.replace(/'/g, "\\'") + '\')">'
@@ -4436,7 +4507,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v107</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v108</span>';
   }
   renderView(name);
 }
