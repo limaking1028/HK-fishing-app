@@ -1071,6 +1071,11 @@ button { touch-action: manipulation; }
         <button class="btn btn-primary" onclick="saveName()">保存</button>
       </div>
       <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
+        <div style="font-size:13px;color:var(--gray-5);margin-bottom:8px;font-weight:600;">🔑 設定 / 更改密碼</div>
+        <input type="password" class="modal-input" id="settings-new-pw" placeholder="新密碼（最少 8 個字元）" autocomplete="new-password">
+        <button class="btn btn-outline" style="width:100%;margin-top:8px;" onclick="changeMyPassword()">儲存密碼</button>
+      </div>
+      <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
         <button class="btn btn-outline" style="width:100%;color:#dc2626;border-color:#dc2626;" onclick="confirmClearAll()">🗑️ 清除所有記錄</button>
         <button class="btn btn-outline" style="width:100%;margin-top:8px;color:#fff;background:#dc2626;border-color:#dc2626;" onclick="deleteAccount()">⚠️ 永久刪除帳戶</button>
         <button class="btn btn-outline" style="width:100%;margin-top:8px;color:var(--gray-5);border-color:var(--gray-3);" onclick="closeNameDialog();sbLogout()">🚪 登出</button>
@@ -3320,6 +3325,15 @@ function closeConsentModal() {
   document.getElementById('consent-modal').classList.remove('show');
 }
 /* ===== 刪除帳戶（Google Play 要求）===== */
+async function changeMyPassword() {
+  const el = document.getElementById('settings-new-pw');
+  try {
+    await authLib.updatePassword(el.value);
+    el.value = '';
+    showToast('密碼已更新');
+  } catch (e) { showToast(e.message || '更新失敗'); }
+}
+window.changeMyPassword = changeMyPassword;
 async function deleteAccount() {
   if (!SB_ENABLED || !state.user) { toast('請先登入'); return; }
   if (!confirm('永久刪除帳戶？\n\n你的帳戶、所有魚獲、行程和照片都會被永久刪除，無法復原。')) return;
@@ -4461,14 +4475,16 @@ function showToast(msg) {
  *   - 唔使 WhatsApp / SMS 設定(零成本)
  *   - 完全免費(Supabase 內建,每月 50,000 用戶免費額)
  */
-let authStep = 'email';        // 'email' | 'sent'
+let authStep = 'pw';           // 'pw' | 'email' | 'sent'
+let authMode = 'login';        // 'login' | 'register'
 let authEmail = '';            // 已 send 嘅 email
 let authCooldownTimer = null;
 
 function renderLoginScreen() {
   const screen = document.getElementById('login-screen');
   if (!SB_ENABLED) { screen.innerHTML = ''; screen.style.display = 'none'; return; }
-  authStep = 'email';
+  authStep = 'pw';
+  authMode = 'login';
   authEmail = '';
   const remembered = window.authLib ? authLib.getRememberedPhone() : '';
   screen.innerHTML = `
@@ -4478,8 +4494,25 @@ function renderLoginScreen() {
         <div class="login-title">香港釣魚數據平台</div>
         <div class="login-subtitle">雲端同步 · 多裝置共享</div>
 
-        <!-- 步驟 1:輸入 email -->
-        <div id="auth-step-email" class="auth-step active">
+        <!-- 密碼登入 / 註冊(預設) -->
+        <div id="auth-step-pw" class="auth-step active">
+          <div class="login-field">
+            <label>📧 電郵地址</label>
+            <input type="email" class="login-input" id="auth-pw-email" placeholder="you@example.com" inputmode="email" autocomplete="email">
+          </div>
+          <div class="login-field">
+            <label>🔑 密碼</label>
+            <input type="password" class="login-input" id="auth-pw-pass" placeholder="最少 8 個字元" autocomplete="current-password"
+              onkeydown="if(event.key==='Enter')handleAuthPassword()">
+          </div>
+          <button class="login-btn" id="auth-pw-btn" onclick="handleAuthPassword()">🔓 登入</button>
+          <button class="login-link" id="auth-mode-btn" onclick="toggleAuthMode()">還未有帳號？註冊新帳號</button>
+          <button class="login-link" id="auth-forgot-btn" onclick="handleAuthForgot()">忘記密碼？</button>
+          <button class="login-link" onclick="showAuthEmailStep()">改用電郵驗證碼登入</button>
+        </div>
+
+        <!-- 步驟 1:輸入 email（驗證碼登入） -->
+        <div id="auth-step-email" class="auth-step">
           <div class="login-field">
             <label>📧 電郵地址</label>
             <input type="email" class="login-input" id="auth-email"
@@ -4490,6 +4523,7 @@ function renderLoginScreen() {
           <button class="login-btn" id="auth-send-btn" onclick="handleAuthSendMagicLink()">
             🟢 發送登入連結
           </button>
+          <button class="login-link" onclick="showAuthPwStep()">← 返回密碼登入</button>
         </div>
 
         <!-- 步驟 2:已 send,等 email 撳 -->
@@ -4520,7 +4554,7 @@ function renderLoginScreen() {
         </div>
 
         <div class="login-msg" id="auth-msg"></div>
-        <div class="login-footer">透過 email 登入連結 · 唔需要記密碼</div>
+        <div class="login-footer">電郵 + 密碼登入 · 亦可用電郵驗證碼</div>
         ${SB_ENABLED && state.user ? '<button class="btn btn-outline" style="width:100%;margin-top:12px;color:var(--gray-5);border-color:var(--gray-3);" onclick="sbLogout()">🚪 登出</button>' : ''}
       </div>
     </div>
@@ -4550,10 +4584,36 @@ function showAuthEmailStep() {
   if (authEmail) authLib.clearCooldown(authEmail);
   authEmail = '';
   document.getElementById('auth-step-sent').classList.remove('active');
+  document.getElementById('auth-step-pw').classList.remove('active');
   document.getElementById('auth-step-email').classList.add('active');
   document.getElementById('auth-msg').textContent = '';
+  const pwMail = (document.getElementById('auth-pw-email') || {}).value;
+  if (pwMail && !document.getElementById('auth-email').value) document.getElementById('auth-email').value = pwMail;
   setTimeout(() => document.getElementById('auth-email').focus(), 100);
 }
+
+/** 返回密碼登入畫面 */
+function showAuthPwStep() {
+  authStep = 'pw';
+  if (authCooldownTimer) { clearInterval(authCooldownTimer); authCooldownTimer = null; }
+  document.getElementById('auth-step-email').classList.remove('active');
+  document.getElementById('auth-step-sent').classList.remove('active');
+  document.getElementById('auth-step-pw').classList.add('active');
+  document.getElementById('auth-msg').textContent = '';
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  const reg = mode === 'register';
+  const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+  set('auth-pw-btn', reg ? '📝 註冊' : '🔓 登入');
+  set('auth-mode-btn', reg ? '已有帳號？返回登入' : '還未有帳號？註冊新帳號');
+  const forgot = document.getElementById('auth-forgot-btn'); if (forgot) forgot.style.display = reg ? 'none' : '';
+  const pass = document.getElementById('auth-pw-pass');
+  if (pass) pass.setAttribute('autocomplete', reg ? 'new-password' : 'current-password');
+  const msg = document.getElementById('auth-msg'); if (msg) msg.textContent = '';
+}
+window.toggleAuthMode = function() { setAuthMode(authMode === 'register' ? 'login' : 'register'); };
 
 /** 60 秒發送冷卻倒計時 */
 function startAuthCooldown() {
@@ -4625,6 +4685,94 @@ window.handleAuthResend = async function() {
 window.handleAuthBack = function() {
   if (authCooldownTimer) { clearInterval(authCooldownTimer); authCooldownTimer = null; }
   showAuthEmailStep();
+};
+
+/** 密碼登入 / 註冊 */
+window.handleAuthPassword = async function() {
+  const email = (document.getElementById('auth-pw-email').value || '').trim().toLowerCase();
+  const pw = document.getElementById('auth-pw-pass').value || '';
+  const msgEl = document.getElementById('auth-msg');
+  const btn = document.getElementById('auth-pw-btn');
+  if (!authLib.isValidEmail(email)) { msgEl.textContent = '請輸入有效嘅 email 地址(例:you@gmail.com)'; return; }
+  btn.disabled = true;
+  msgEl.style.color = '';
+  msgEl.textContent = authMode === 'register' ? '註冊中...' : '登入中...';
+  try {
+    if (authMode === 'register') {
+      const r = await authLib.signUpWithPassword(email, pw);
+      if (r.needsConfirm) {
+        setAuthMode('login');
+        msgEl.style.color = 'var(--green)';
+        msgEl.textContent = '✅ 已寄出確認信到 ' + authLib.maskEmail(email) + '，請按信入面嘅連結確認後再登入';
+        return;
+      }
+    } else {
+      await authLib.signInWithPassword(email, pw);
+    }
+    const profile = await authLib.getCurrentUser();
+    if (!profile) throw new Error('登入成功但未能載入用戶資料，請重試');
+    if (!state.user) await completeSignIn(profile);
+    msgEl.textContent = '';
+  } catch (e) {
+    msgEl.style.color = '';
+    msgEl.textContent = '❌ ' + (e.message || '操作失敗');
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+/** 忘記密碼：寄重設連結 */
+window.handleAuthForgot = async function() {
+  const email = (document.getElementById('auth-pw-email').value || '').trim().toLowerCase();
+  const msgEl = document.getElementById('auth-msg');
+  msgEl.style.color = '';
+  if (!authLib.isValidEmail(email)) { msgEl.textContent = '請先喺上面輸入你嘅 email，再撳「忘記密碼」'; return; }
+  msgEl.textContent = '發送中...';
+  try {
+    await authLib.sendPasswordReset(email);
+    msgEl.style.color = 'var(--green)';
+    msgEl.textContent = '✅ 如果呢個電郵已註冊，重設密碼連結已寄出，請查看信箱';
+  } catch (e) {
+    msgEl.textContent = '❌ ' + (e.message || '發送失敗');
+  }
+};
+
+/** 重設密碼連結返嚟之後：顯示設定新密碼畫面 */
+function renderRecoveryScreen() {
+  const screen = document.getElementById('login-screen');
+  window._recovering = true;
+  screen.innerHTML = `
+    <div class="login-screen"><div class="login-card">
+      <div class="login-logo">🔑</div>
+      <div class="login-title">設定新密碼</div>
+      <div class="login-field"><label>新密碼</label>
+        <input type="password" class="login-input" id="auth-new-pass" placeholder="最少 8 個字元" autocomplete="new-password"
+          onkeydown="if(event.key==='Enter')handleSetNewPassword()"></div>
+      <button class="login-btn" id="auth-new-btn" onclick="handleSetNewPassword()">✅ 儲存並登入</button>
+      <div class="login-msg" id="auth-msg"></div>
+    </div></div>`;
+  screen.style.display = 'block';
+  document.getElementById('header').style.display = 'none';
+  document.getElementById('bottom-nav').style.display = 'none';
+  document.getElementById('main').style.display = 'none';
+}
+window.handleSetNewPassword = async function() {
+  const msgEl = document.getElementById('auth-msg');
+  const btn = document.getElementById('auth-new-btn');
+  btn.disabled = true; msgEl.textContent = '儲存中...';
+  try {
+    await authLib.updatePassword(document.getElementById('auth-new-pass').value);
+    window._recovering = false;
+    try { history.replaceState({}, '', location.pathname + location.search); } catch (e) {}
+    const profile = await authLib.getCurrentUser();
+    if (!profile) throw new Error('密碼已更新，但未能載入用戶資料，請重新登入');
+    if (!state.user) await completeSignIn(profile);
+    showToast('密碼已更新');
+  } catch (e) {
+    msgEl.textContent = '❌ ' + (e.message || '儲存失敗');
+  } finally {
+    btn.disabled = false;
+  }
 };
 
 // DEPRECATED handlers(保留以防 hot reload 出問題,no-op)
@@ -4711,8 +4859,13 @@ async function init() {
         console.warn('getCurrentUser failed', e);
       }
       // 偵聽 SIGNED_IN(用戶撳 email link 回來時觸發)
+      if (/type=recovery/.test(location.hash + location.search)) window._recovering = true;
       authLib.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session && session.user) {
+        if (event === 'PASSWORD_RECOVERY') {
+          window._recovering = true;
+          renderRecoveryScreen();
+        } else if (event === 'SIGNED_IN' && session && session.user) {
+          if (window._recovering) return;   // 重設密碼流程：等用戶設定新密碼先進入 App
           // 用戶剛撳 email link 回來 → 自動完成登入流程
           const profile = await authLib.getCurrentUser();
           if (profile && !state.user) {
@@ -4724,6 +4877,11 @@ async function init() {
           renderLoginScreen();
         }
       });
+      if (window._recovering) {
+        renderRecoveryScreen();
+        setupGlobalHandlers();
+        return;
+      }
       if (!state.user) {
         renderLoginScreen();
         setupGlobalHandlers();
