@@ -705,7 +705,7 @@ button { touch-action: manipulation; }
   .gps-auto-status { font-size: 12px; color: var(--gray-5); line-height: 1.4; }
 
   /* ===== Map View ===== */
-  .map-container { position: relative; height: calc(100vh - 200px); min-height: 360px; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+  .map-container { position: relative; isolation: isolate; z-index: 0; height: calc(100vh - 260px); min-height: 320px; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
   #map-canvas { width: 100%; height: 100%; background: #e8f0e8; }
   .map-overlay { position: absolute; top: 10px; left: 10px; right: 10px; background: rgba(255,255,255,0.95); border-radius: 10px; padding: 10px 12px; z-index: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
   .map-overlay-title { font-size: 13px; font-weight: 700; color: var(--dark); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
@@ -1029,7 +1029,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v106</span></div>
+    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v107</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -1071,7 +1071,14 @@ button { touch-action: manipulation; }
         <button class="btn btn-primary" onclick="saveName()">保存</button>
       </div>
       <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
+        <div style="font-size:13px;color:var(--gray-5);margin-bottom:8px;font-weight:600;">🔑 設定 / 更改密碼</div>
+        <input type="password" class="modal-input" id="settings-new-pw" placeholder="新密碼（最少 8 個字元）" autocomplete="new-password">
+        <button class="btn btn-outline" style="width:100%;margin-top:8px;" onclick="changeMyPassword()">儲存密碼</button>
+      </div>
+      <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
         <button class="btn btn-outline" style="width:100%;color:#dc2626;border-color:#dc2626;" onclick="confirmClearAll()">🗑️ 清除所有記錄</button>
+        <button class="btn btn-outline" style="width:100%;margin-top:8px;color:#fff;background:#dc2626;border-color:#dc2626;" onclick="deleteAccount()">⚠️ 永久刪除帳戶</button>
+        <button class="btn btn-outline" style="width:100%;margin-top:8px;color:var(--gray-5);border-color:var(--gray-3);" onclick="closeNameDialog();sbLogout()">🚪 登出</button>
       </div>
       <!-- Route M: 隱私設定（隨時可改變主意）-->
       <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
@@ -1279,7 +1286,7 @@ async function dbLoadCatches() {
   const userIds = [...new Set((data || []).filter(c => c.user_id).map(c => c.user_id))];
   let userMap = {};
   if (userIds.length > 0) {
-    const { data: users } = await sb.from('users').select('id, username, display_name').in('id', userIds);
+    const { data: users } = await sb.from('users').select('id, display_name').in('id', userIds);
     (users || []).forEach(u => userMap[u.id] = u);
   }
   return (data || []).map(c => {
@@ -1287,7 +1294,7 @@ async function dbLoadCatches() {
     const isDemo = c.user_id === null;
     const owner = isDemo ? null : userMap[c.user_id];
     return {
-      id: c.id, user: owner?.display_name || owner?.username || (isDemo ? '示範' : '釣友'),
+      id: c.id, user: owner?.display_name || (isDemo ? '示範' : '釣友'),
       userId: c.user_id, species: c.species, speciesIcon: c.species_icon || '🐟',
       weight: parseFloat(c.weight), length: c.length ? parseFloat(c.length) : 0,
       spot: c.spot, spotArea: c.spot_area || '', date: c.date, time: c.time ? c.time.slice(0, 5) : '',
@@ -1313,52 +1320,71 @@ async function uploadCatchPhoto(file) {
   return pub.publicUrl;
 }
 
+// ===== 未同步魚獲：只存「還沒上傳成功」的記錄（不再把整個魚獲清單寫入本機）=====
+const UNSYNCED_KEY = 'hk_fishing_unsynced_v1';
+function persistUnsynced() {
+  try {
+    const list = state.catches.filter(c => c.unsynced && c.isMine).map(c => { const o = Object.assign({}, c); delete o._photoFile; return o; });
+    if (list.length) localStorage.setItem(UNSYNCED_KEY, JSON.stringify(list));
+    else localStorage.removeItem(UNSYNCED_KEY);
+  } catch (_) {}
+}
+function loadUnsyncedForUser() {
+  try {
+    const list = JSON.parse(localStorage.getItem(UNSYNCED_KEY) || '[]');
+    return list.filter(c => c && c.unsynced && c.userId === state.user.id);
+  } catch (e) { return []; }
+}
 // 啟動時自動補傳上次未同步的魚獲
 async function retryUnsyncedCatches() {
   if (!sb || !state.user) return;
-  const unsynced = state.catches.filter(c => c.isMine && c.unsynced && c.id && String(c.id).startsWith('temp-'));
-  if (unsynced.length === 0) return;
-  console.log('[補傳] 檢測到 ' + unsynced.length + ' 條未同步魚獲,正在重傳...');
+  const cloudIds = new Set(state.catches.map(c => c.id));
+  // 若上次其實已寫入雲端（只是回應遺失），不需要再傳
+  const pending = loadUnsyncedForUser().filter(c => !(c.cloudId && cloudIds.has(c.cloudId)));
+  if (pending.length === 0) { persistUnsynced(); return; }
+  pending.forEach(c => state.catches.unshift(c));
+  state.catches.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  console.log('[補傳] 檢測到 ' + pending.length + ' 條未同步魚獲,正在重傳...');
   let success = 0, failed = 0;
-  for (const c of unsynced) {
+  for (const c of pending) {
     try {
       const saved = await dbAddCatch(c);
       if (saved) {
         c.id = saved.id;
         c.photoUrl = saved.photo_url;
-        delete c.unsynced;
-        delete c.unsyncedReason;
-        delete c.unsyncedAt;
+        delete c.unsynced; delete c.unsyncedReason; delete c.unsyncedAt;
         success++;
-      } else {
-        failed++;
-      }
+      } else failed++;
     } catch (e) {
       console.warn('[補傳失敗]', c.species, e.message || e);
       failed++;
     }
   }
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.catches));
-  } catch(_) {}
+  persistUnsynced();
+  if (state.view === 'my') renderMyView();
   if (success > 0) toast('✓ 已補傳 ' + success + ' 條魚獲到雲端' + (failed > 0 ? ' (' + failed + ' 條仍失敗)' : ''), 3000);
   else if (failed > 0) toast('✗ 仍有 ' + failed + ' 條魚獲未同步', 3000);
 }
 
+function newUuid() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, ch => { const r = Math.random() * 16 | 0; return (ch === 'x' ? r : (r & 3 | 8)).toString(16); });
+}
 async function dbAddCatch(c) {
   if (!sb || !state.user) return null;
-  // Route E: 上傳照片到 Supabase Storage（先 upload 再 insert row）
-  let photoUrl = null;
-  const fileEl = document.getElementById('catch-photo');
-  if (fileEl && fileEl.files && fileEl.files[0]) {
-    try { photoUrl = await uploadCatchPhoto(fileEl.files[0]); }
+  // 照片：每條魚獲只上傳一次（重試時重用），失敗不阻擋魚獲本身儲存
+  let photoUrl = c._uploadedPhoto || c.photoUrl || null;
+  if (!photoUrl && typeof File !== 'undefined' && c._photoFile instanceof File) {
+    try { photoUrl = await uploadCatchPhoto(c._photoFile); c._uploadedPhoto = photoUrl; }
     catch (e) {
       console.error('[照片上傳失敗]', e);
-      toast('照片上傳失敗：' + (e.message || '網絡錯誤') + '（魚獲已存本地，稍後會自動補傳）');
-      throw e;
+      toast('照片上傳失敗（' + (e.message || '網絡錯誤') + '），魚獲仍會儲存', 4000);
     }
   }
+  // 固定 id：重試時用 upsert，即使上次其實已成功也不會產生重複記錄
+  if (!c.cloudId) c.cloudId = newUuid();
   const payload = {
+    id: c.cloudId,
     user_id: state.user.id, species: c.species, species_icon: c.speciesIcon,
     weight: c.weight, length: c.length || null, spot: c.spot, spot_area: c.spotArea || null,
     date: c.date, time: c.time || null, method: c.method, bait: c.bait,
@@ -1370,10 +1396,9 @@ async function dbAddCatch(c) {
     stats: c.stats || null,  // Route L+: 統計維度 JSONB
     opted_in_analytics: c.optedInAnalytics || false,  // Route M: 同意旗標稽核軌跡
   };
-  console.log('[dbAddCatch] payload:', payload);
-  const { data, error } = await sb.from('catches').insert(payload).select().single();
+  const { data, error } = await sb.from('catches').upsert(payload, { onConflict: 'id' }).select().single();
   if (error) {
-    console.error('[catches insert 錯誤]', error, 'payload:', payload);
+    console.error('[catches insert 錯誤]', error);
     throw error;
   }
   return data;
@@ -1402,44 +1427,20 @@ async function dbAddCatchWithRetry(c, maxAttempts) {
 
 async function dbDeleteCatch(id) {
   if (!sb || !state.user) return;
-  await sb.from('catches').delete().eq('id', id).eq('user_id', state.user.id);
-}
-
-async function migrateLocalCatches() {
-  const local = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  if (local.length === 0) return 0;
-  const username = state.user.username;
-  const mine = local.filter(c => c.user === username || c.user === getUserName());
-  if (mine.length === 0) return 0;
-  const rows = mine.map(c => ({
-    user_id: state.user.id, species: c.species, species_icon: c.speciesIcon || '🐟',
-    weight: c.weight, length: c.length || null, spot: c.spot, spot_area: c.spotArea || null,
-    date: c.date, time: c.time || null, method: c.method, bait: c.bait,
-    verified: c.verified || false, notes: c.notes || null,
-  }));
-  const { error } = await sb.from('catches').insert(rows);
+  const { error } = await sb.from('catches').delete().eq('id', id).eq('user_id', state.user.id);
   if (error) throw error;
-  localStorage.setItem(STORAGE_KEY + '_backup', JSON.stringify(local));
-  const remaining = local.filter(c => c.user !== username && c.user !== getUserName());
-  if (remaining.length > 0) localStorage.setItem(STORAGE_KEY, JSON.stringify(remaining));
-  else localStorage.removeItem(STORAGE_KEY);
-  return rows.length;
 }
 
+// 舊版（用戶名 + PIN 時代）本機資料遷移：已停用。
+// 原本會把本機整份魚獲重新上傳，導致重複記錄；現在改用 UNSYNCED_KEY 只補傳未同步的記錄。
+async function migrateLocalCatches() { return 0; }
+
+// 示範資料由資料庫一次性預載，客戶端不再寫入（失敗也不應阻擋登入）
 async function seedDemoDataIfNeeded() {
-  const { data: existing } = await sb.from('catches').select('id').is('user_id', null).limit(1);
-  if (existing && existing.length > 0) return 0;
-  const sample = genSampleCatches();
-  const demos = sample.filter(c => !c.isMine).map(c => ({
-    user_id: null, species: c.species, species_icon: c.speciesIcon || '🐟',
-    weight: c.weight, length: c.length || null, spot: c.spot, spot_area: c.spotArea || null,
-    date: c.date, time: c.time || null, method: c.method, bait: c.bait,
-    verified: c.verified || false, notes: c.notes || null,
-  }));
-  if (demos.length === 0) return 0;
-  const { error } = await sb.from('catches').insert(demos);
-  if (error) throw error;
-  return demos.length;
+  try {
+    const { data: existing } = await sb.from('catches').select('id').is('user_id', null).limit(1);
+    return (existing && existing.length) || 0;
+  } catch (e) { return 0; }
 }
 
 function genSampleCatches() {
@@ -1478,7 +1479,7 @@ function genSampleCatches() {
     catches.push({
       id: id++, user: users[d[0]], species: FISH_SPECIES[d[1]].name, speciesIcon: FISH_SPECIES[d[1]].icon,
       weight: d[2], length: d[3], spot: FISHING_SPOTS[d[4]].name, spotArea: FISHING_SPOTS[d[4]].area,
-      date: date.toISOString().slice(0,10), time: d[6], method: FISHING_METHODS[d[7]], bait: BAIT_TYPES[d[8]],
+      date: localDateStr(date), time: d[6], method: FISHING_METHODS[d[7]], bait: BAIT_TYPES[d[8]],
       verified: d[9], notes: d[10], isMine: users[d[0]] === getUserName(),
     });
   });
@@ -1495,7 +1496,7 @@ try {
   const pinnedJson = localStorage.getItem('hk-fishing-pinned-species');
   if (pinnedJson) state.pinnedSpecies = JSON.parse(pinnedJson);
 } catch(e) { state.pinnedSpecies = []; }
-function getUserName() { return state.user ? (state.user.display_name || state.user.username) : (localStorage.getItem(USERNAME_KEY) || '我'); }
+function getUserName() { return state.user ? (state.user.display_name || (state.user.email ? state.user.email.split('@')[0] : '釣友')) : (localStorage.getItem(USERNAME_KEY) || '我'); }
 async function setUserName(name) {
   name = (name || '').trim() || '我';
   if (SB_ENABLED && state.user) {
@@ -1618,6 +1619,7 @@ function speciesPhotoHtml(name, opts) {
   }
   return window.fishIconSvg ? window.fishIconSvg(name, opts.size || 96) : '🐟';
 }
+function localDateStr(d) { d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
 function formatDate(d) { const date = new Date(d); const mm=(date.getMonth()+1).toString().padStart(2,'0'); const dd=date.getDate().toString().padStart(2,'0'); return date.getFullYear()+'/'+mm+'/'+dd; }
 function daysAgo(d) { const date = new Date(d); const now = new Date(); const diff = Math.floor((now-date)/86400000); if(diff===0) return '今天'; if(diff===1) return '昨天'; return diff+'日前'; }
 function toast(msg, duration) { let el = document.getElementById('toast'); if(!el){el=document.createElement('div');el.id='toast';el.className='toast';document.body.appendChild(el);} el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'), duration || 2000); }
@@ -1681,7 +1683,7 @@ function renderRecordView() {
     }
   }
   const now = new Date();
-  const today = now.toISOString().slice(0,10);
+  const today = localDateStr(now);
   const nowTime = now.toTimeString().slice(0,5);
   // Route H: 進行中行程的提示由頂部 banner 統一顯示，表單內不再重複
   const tripBadge = '';
@@ -1779,7 +1781,7 @@ function renderRecordView() {
   // Route K: 渲染智能揀魚種 UI（Top 8 by 使用次數 + 摺疊展開）
   renderSpeciesSelector();
 }
-function selectSpecies(idx) { state.selectedSpecies = idx; if (idx !== FISH_SPECIES.length - 1) state.customSpecies = ''; renderRecordView(); }
+function selectSpecies(idx) { state.selectedSpecies = idx; if (idx !== FISH_SPECIES.length - 1) state.customSpecies = ''; renderSpeciesSelector(); }
 
 /* ============================================================
  * Route K: 智能揀魚種 UI（Top 8 by 使用次數 + 摺疊展開）
@@ -1867,7 +1869,7 @@ function selectSpeciesByName(name) {
   if (idx >= 0) {
     state.selectedSpecies = idx;
     state.customSpecies = '';
-    renderRecordView();
+    renderSpeciesSelector();  // 只更新魚種區，不重畫整個表單（避免清空已輸入的重量/備註/照片）
   }
 }
 
@@ -1912,7 +1914,7 @@ function renderSpeciesSelector() {
   let html = '<div class="sp-section-title">🔥 常用 (自動 by 使用次數)</div>';
   html += '<div class="sp-grid">';
   if (top.length === 0 || top.every(t => t.count === 0 && !t.pinned)) {
-    html += '<div class="sp-empty">尚未記錄魚獲 — 全部 ' + FISH_SPECIES.filter(f => !f.custom).length + ' 種魚都會顯示喺呢度 🎣</div>';
+    html += '<div class="sp-empty">尚未記錄魚獲 — 全部 ' + FISH_SPECIES.filter(f => !f.custom).length + ' 種魚可按下面「全部」展開揀選 🎣</div>';
   } else {
     top.forEach(item => { html += renderCard(item); });
   }
@@ -2047,7 +2049,7 @@ function onSpotChange(s) {
     window.tripsLib.saveActiveTrip(state.activeTrip);
   }
   // Route I: 更新潮汐預覽（用戶填表時間）
-  updateCatchTidePreview(s, state.catchDate || new Date().toISOString().split('T')[0], state.catchTime || new Date().toTimeString().slice(0,5));
+  updateCatchTidePreview(s, state.catchDate || localDateStr(), state.catchTime || new Date().toTimeString().slice(0,5));
 }
 
 // Route I: 加魚表單潮汐預覽（依用戶揀嘅日期/時間）
@@ -2244,6 +2246,7 @@ function submitCatch() {
   if (state.selectedSpecies === null) { toast('請選擇魚種'); return; }
   const weightInput = parseFloat(document.getElementById('catch-weight').value);
   if (!weightInput || weightInput <= 0) { toast('請輸入重量'); return; }
+  if (weightInput >= 100) { toast('重量必須少於 100 斤'); return; }
   const weight = weightInput;
   // Route H+: 行程中自動帶入 activeTrip.spot/method/bait（用戶未填時）
   if (state.activeTrip) {
@@ -2310,7 +2313,11 @@ function submitCatch() {
     tripId: state.activeTrip ? state.activeTrip.id : null,  // Route H: 帶入當前行程
     stats: null,  // Route L+: 統計維度數據（時間桶/潮汐/月相/太陽/地理/天氣），submitCatch 後異步填入
     optedInAnalytics: getAnalyticsConsent(),  // Route M: 帶入當下同意狀態(稽核軌跡)
+    userId: state.user ? state.user.id : null,
+    cloudId: newUuid(),
+    _photoFile: (document.getElementById('catch-photo') || {}).files ? document.getElementById('catch-photo').files[0] : null,
   };
+  let statsPromise = Promise.resolve();
   // Route M: 未同意就不做 enrichment(預設 false,GDPR 友善)
   // Route L+: 同步 enrichment（時間/月相/太陽/潮汐/地理）— 不阻塞送出，失敗不影響
   if (catchItem.optedInAnalytics) {
@@ -2327,24 +2334,18 @@ function submitCatch() {
     } catch (e) { console.warn('[stats enrichment failed]', e); }
     // Route L+: 異步天氣 enrichment（不阻塞，失敗設為 unavailable）
     if (window.catchStatsLib && catchItem.latitude != null && catchItem.longitude != null) {
-      window.catchStatsLib.enrichWeatherAsync(
+      // 天氣最多等 4 秒，之後連同魚獲一次寫入雲端（不再事後 update，避免 id 未就緒更新落空）
+      statsPromise = withTimeout(window.catchStatsLib.enrichWeatherAsync(
         catchItem.stats = catchItem.stats || {}, catchItem.latitude, catchItem.longitude, catchItem.date
-      ).then(stats => {
-        // 更新雲端 + 本地的 stats
-        catchItem.stats = stats;
-        if (SB_ENABLED && state.user && catchItem.id) {
-          sb.from('catches').update({ stats: stats }).eq('id', catchItem.id)
-            .then(({ error }) => { if (error) console.warn('[stats 雲端更新失敗]', error); })
-            .catch(e => console.warn('[stats 雲端更新失敗]', e));
-        }
-      }).catch(e => console.warn('[stats weather async failed]', e));
+      ), 4000, '天氣').then(stats => { catchItem.stats = stats; })
+        .catch(e => console.warn('[stats weather async failed]', e));
     }
   }
   state.catches.unshift(catchItem);
   state.catches.sort((a,b) => b.date.localeCompare(a.date));
   if (SB_ENABLED && state.user) {
     // 重試機制:網絡抖動(TypeError: Load failed)時自動重試 1 次
-    dbAddCatchWithRetry(catchItem, 2).then(saved => {
+    statsPromise.then(() => dbAddCatchWithRetry(catchItem, 2)).then(saved => {
       if (saved) {
         // Fix: 因為 catchItem 同 state.catches[i] by reference，
         // 改 catchItem.id = saved.id 之後，state.catches 嗰個 element 都會自動更新
@@ -2364,9 +2365,8 @@ function submitCatch() {
       catchItem.unsynced = true;
       catchItem.unsyncedReason = e.message || String(e);
       catchItem.unsyncedAt = Date.now();
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.catches));
-      } catch(_) {}
+      persistUnsynced();
+      if (state.view === 'my') renderMyView();
     });
   } else {
     saveCatches(state.catches);
@@ -2602,8 +2602,7 @@ async function retripActiveGPS() {
         spot: fullSpot,
         spot_area: getSpotInfo(detectedSpot).area || null,
         latitude: lat,
-        longitude: lng,
-        accuracy: acc
+        longitude: lng
       });
       if (ok) {
         state.activeTrip.spot = fullSpot;
@@ -2757,8 +2756,7 @@ async function confirmStartTrip() {
       method: method || null,
       bait: bait || null,
       latitude: state.tripPickingLat,
-      longitude: state.tripPickingLng,
-      accuracy: state.tripPickingAccuracy
+      longitude: state.tripPickingLng
     });
     if (ok) {
       // 更新 state.activeTrip
@@ -3179,7 +3177,7 @@ function renderMyView() {
     // Route Real-photo: 用戶上傳照片 → 魚種真實照片 → SVG fallback
     const biIcon = catchThumbHtml(biggest, { klass: 'catch-thumb' });
     const biWd = weightDisplay(biggest);
-    biggestHtml = '<div class="biggest-card"><div class="biggest-card-header"><span class="biggest-badge">👑 重量王者紀錄</span></div><div class="biggest-card-body"><div class="catch-fish-icon">'+biIcon+'</div><div class="biggest-info"><div class="biggest-species">'+biggest.species+'</div><div class="biggest-weight">'+biWd.value+' <span>'+biWd.unit+'</span></div><div class="biggest-meta">'+(biggest.length?biggest.length+'cm · ':'')+biggest.spot+' · '+formatDate(biggest.date)+' '+biggest.time+'</div></div></div></div>';
+    biggestHtml = '<div class="biggest-card"><div class="biggest-card-header"><span class="biggest-badge">👑 重量王者紀錄</span></div><div class="biggest-card-body"><div class="catch-fish-icon">'+biIcon+'</div><div class="biggest-info"><div class="biggest-species">'+escapeHtml(biggest.species)+'</div><div class="biggest-weight">'+biWd.value+' <span>'+biWd.unit+'</span></div><div class="biggest-meta">'+(biggest.length?biggest.length+'cm · ':'')+escapeHtml(biggest.spot)+' · '+formatDate(biggest.date)+' '+escapeHtml(biggest.time||'')+'</div></div></div></div>';
   }
   // 各魚種數量（摺疊）
   let speciesGroupHtml = '';
@@ -3197,7 +3195,7 @@ function renderMyView() {
       if (spExpanded) {
         catchesHtml = '<div class="species-catches-list">' + (catchesBySpecies[sp]||[]).map(c => renderCatchCard(c, myRankings)).join('') + '</div>';
       }
-      rows += '<div class="species-row" onclick="toggleSpecies(\''+spKey+'\')"><div class="species-row-thumb">'+thumb+'</div><div class="species-row-name">'+sp+'</div><div class="species-row-count">'+n+' 條</div><span class="species-row-arrow">'+(spExpanded?'▼':'▶')+'</span></div>' + catchesHtml;
+      rows += '<div class="species-row" onclick="toggleSpecies(decodeURIComponent(\''+encodeURIComponent(spKey)+'\'))"><div class="species-row-thumb">'+thumb+'</div><div class="species-row-name">'+escapeHtml(sp)+'</div><div class="species-row-count">'+n+' 條</div><span class="species-row-arrow">'+(spExpanded?'▼':'▶')+'</span></div>' + catchesHtml;
     });
     speciesGroupHtml = '<div class="collapsible '+(isExpanded?'expanded':'')+'">'
       + '<div class="collapsible-header" onclick="toggleSection(\''+secKey+'\')"><span class="collapsible-title">📊 各魚種數量（'+allBreakdown.length+' 種 · '+totalCatches+' 條）</span><span class="collapsible-arrow">▶</span></div>'
@@ -3221,7 +3219,7 @@ function renderMyView() {
   view.innerHTML = subTabsHtml
     + '<div class="stats-row">'
     + '<div class="stat-card"><div class="stat-value">'+totalCatches+'</div><div class="stat-label">總魚獲</div></div>'
-    + '<div class="stat-card"><div class="stat-value">'+(biggest?weightDisplay(biggest).value:0)+'<span style="font-size:13px">'+(biggest?weightDisplay(biggest).unit:'斤')+'</span></div><div class="stat-label">重量王者'+(biggest?' ('+biggest.species+')':'')+'</div></div>'
+    + '<div class="stat-card"><div class="stat-value">'+(biggest?weightDisplay(biggest).value:0)+'<span style="font-size:13px">'+(biggest?weightDisplay(biggest).unit:'斤')+'</span></div><div class="stat-label">重量王者'+(biggest?' ('+escapeHtml(biggest.species)+')':'')+'</div></div>'
     + '<div class="stat-card"><div class="stat-value">'+speciesCount+'</div><div class="stat-label">魚種數</div></div>'
     + '<div class="stat-card" id="stat-total-time"><div class="stat-value">'+totalTripValue+'<span style="font-size:13px">'+totalTripSub+'</span></div><div class="stat-label">總釣魚時間</div>'+(state.activeTrip?'<div class="stat-sub">⏱ 行程進行中</div>':'')+'</div>'
     + '</div>'
@@ -3267,7 +3265,7 @@ function renderCatchCard(c, rankings) {
   const iconHtml = catchThumbHtml(c, { klass: 'catch-thumb' });
   const unsyncedTag = c.unsynced ? '<span class="catch-tag" style="background:#fff4e8;color:#b06820;border:1px solid #f5a623;" title="未同步到雲端,將在網絡恢復時自動補傳">☁️ 未同步</span>' : '';
   const wd = weightDisplay(c);
-  return '<div class="catch-card"><div class="catch-card-top"><div class="catch-fish-icon">'+iconHtml+'</div><div class="catch-info"><div class="catch-species">'+escapeHtml(c.species)+'</div><div class="catch-meta">'+escapeHtml(c.spot)+' · '+formatDate(c.date)+' '+c.time+'</div></div><div class="catch-weight-badge"><div class="catch-weight">'+wd.value+'</div><div class="catch-weight-unit">'+wd.unit+'</div></div></div><div class="catch-card-bottom">'+rankBadges+unsyncedTag+(c.length?'<span class="catch-tag">'+c.length+'cm</span>':'')+'<span class="catch-tag">🎣 '+escapeHtml(c.method)+'</span><span class="catch-tag">🪱 '+escapeHtml(c.bait)+'</span>'+(c.verified?'<span class="verified-badge">✓ 有效紀錄</span>':'')+'<span class="catch-tag share-btn" data-share-id="'+c.id+'">📤 分享</span></div>'+(c.notes?'<div style="padding:6px 14px 10px;font-size:13px;color:var(--gray-5);border-top:1px solid var(--gray-1);">'+escapeHtml(c.notes)+'</div>':'')+'</div>';
+  return '<div class="catch-card"><div class="catch-card-top"><div class="catch-fish-icon">'+iconHtml+'</div><div class="catch-info"><div class="catch-species">'+escapeHtml(c.species)+'</div><div class="catch-meta">'+escapeHtml(c.spot)+' · '+formatDate(c.date)+' '+escapeHtml(c.time||'')+'</div></div><div class="catch-weight-badge"><div class="catch-weight">'+wd.value+'</div><div class="catch-weight-unit">'+wd.unit+'</div></div></div><div class="catch-card-bottom">'+rankBadges+unsyncedTag+(c.length?'<span class="catch-tag">'+c.length+'cm</span>':'')+'<span class="catch-tag">🎣 '+escapeHtml(c.method)+'</span><span class="catch-tag">🪱 '+escapeHtml(c.bait)+'</span>'+(c.verified?'<span class="verified-badge">✓ 有效紀錄</span>':'')+'<span class="catch-tag share-btn" data-share-id="'+escapeHtml(c.id)+'">📤 分享</span>'+(c.isMine && !c.imported?'<span class="catch-tag" style="color:#dc2626;" data-del-id="'+escapeHtml(c.id)+'">🗑️ 刪除</span>':'')+'</div>'+(c.notes?'<div style="padding:6px 14px 10px;font-size:13px;color:var(--gray-5);border-top:1px solid var(--gray-1);">'+escapeHtml(c.notes)+'</div>':'')+'</div>';
 }
 /* ===== 名稱管理 ===== */
 function openNameDialog() {
@@ -3326,6 +3324,44 @@ function maybeShowConsentModal() {
 function closeConsentModal() {
   document.getElementById('consent-modal').classList.remove('show');
 }
+/* ===== 刪除帳戶（Google Play 要求）===== */
+async function changeMyPassword() {
+  const el = document.getElementById('settings-new-pw');
+  try {
+    await authLib.updatePassword(el.value);
+    el.value = '';
+    showToast('密碼已更新');
+  } catch (e) { showToast(e.message || '更新失敗'); }
+}
+window.changeMyPassword = changeMyPassword;
+async function deleteAccount() {
+  if (!SB_ENABLED || !state.user) { toast('請先登入'); return; }
+  if (!confirm('永久刪除帳戶？\n\n你的帳戶、所有魚獲、行程和照片都會被永久刪除，無法復原。')) return;
+  const typed = prompt('請輸入「刪除」兩個字，確認永久刪除帳戶：');
+  if (typed === null || typed.trim() !== '刪除') { toast('已取消'); return; }
+  try {
+    try {  // Storage 不能用 SQL 直接刪，先由客戶端刪照片（盡力而為）
+      const uid = state.user.id;
+      const { data: files } = await sb.storage.from('catch-photos').list(uid, { limit: 1000 });
+      if (files && files.length) await sb.storage.from('catch-photos').remove(files.map(f => uid + '/' + f.name));
+    } catch (e) { console.warn('[deleteAccount] 照片清除失敗', e); }
+    const { error } = await sb.rpc('delete_my_account');
+    if (error) throw error;
+  } catch (e) {
+    toast('刪除失敗：' + (e.message || '請稍後再試'), 4000);
+    return;
+  }
+  window.tripsLib && (window.tripsLib.stopTimer(), window.tripsLib.clearActiveTrip());
+  try {
+    Object.keys(localStorage).filter(k => /^(hk[_-]fishing|sb-)/.test(k)).forEach(k => localStorage.removeItem(k));
+  } catch (e) {}
+  closeNameDialog();
+  state.activeTrip = null; state.trips = [];
+  sbLogout();
+  toast('帳戶已永久刪除', 4000);
+}
+window.deleteAccount = deleteAccount;
+
 function confirmClearAll() {
   if (!confirm('確定要清除所有記錄嗎？\n\n包括：你嘅魚獲、收藏嘅朋友魚獲、排行榜數據\n（你嘅名稱會保留）\n\n此操作不可撤銷！')) return;
   clearAllRecords();
@@ -3334,8 +3370,14 @@ async function clearAllRecords() {
   const name = getUserName();
   if (SB_ENABLED && state.user) {
     try {
-      await sb.from('catches').delete().eq('user_id', state.user.id);
-    } catch (e) { showToast('雲端清除失敗：' + e.message); return; }
+      const r1 = await sb.from('catches').delete().eq('user_id', state.user.id);
+      if (r1.error) throw r1.error;
+      const r2 = await sb.from('fishing_trips').delete().eq('user_id', state.user.id);
+      if (r2.error) throw r2.error;
+    } catch (e) { showToast('雲端清除失敗：' + (e.message || e)); return; }
+    window.tripsLib && window.tripsLib.stopTimer(); window.tripsLib && window.tripsLib.clearActiveTrip();
+    state.trips = []; state.activeTrip = null; renderActiveTripBanner();
+    try { localStorage.removeItem(UNSYNCED_KEY); } catch (e) {}
   }
   localStorage.removeItem(STORAGE_KEY);
   state.catches = [];
@@ -3372,23 +3414,18 @@ function shareCatch(id) {
   let text = '🎣 '+c.user+' 喺【香港釣魚數據平台】記錄咗一條魚獲：\n'+(c.speciesIcon||'🐟')+' '+c.species+' '+shareWd.value+shareWd.unit+'\n📍 '+c.spot+' · '+formatDate(c.date);
   if (rankText) text += '\n🏆 排行榜名次：'+rankText;
   text += '\n快嚟挑戰排行榜！';
-  const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=' + encodeURIComponent(shareUrl);
   const body = document.getElementById('share-modal-body');
   body.innerHTML =
     '<div style="text-align:center;margin-bottom:16px;">'
-    + '<div style="font-size:32px;margin-bottom:6px;">'+(c.speciesIcon||'🐟')+'</div>'
-    + '<div style="font-size:16px;font-weight:700;">'+c.species+' '+shareWd.value+shareWd.unit+'</div>'
-    + '<div style="font-size:13px;color:var(--gray-4);">'+c.spot+' · '+formatDate(c.date)+'</div>'
+    + '<div style="font-size:32px;margin-bottom:6px;">'+escapeHtml(c.speciesIcon||'🐟')+'</div>'
+    + '<div style="font-size:16px;font-weight:700;">'+escapeHtml(c.species)+' '+shareWd.value+shareWd.unit+'</div>'
+    + '<div style="font-size:13px;color:var(--gray-4);">'+escapeHtml(c.spot)+' · '+formatDate(c.date)+'</div>'
     + '</div>'
     + (catchRanks.length ? '<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:10px;padding:10px 14px;margin-bottom:16px;text-align:center;">'
       + '<div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:6px;">🏆 排行榜名次</div>'
       + '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">'
       + catchRanks.map(r => '<span style="background:#fff;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;color:#92400e;border:1px solid #fcd34d;">'+r.lb+' #'+r.rank+'</span>').join('')
       + '</div></div>' : '')
-    + '<div style="text-align:center;margin-bottom:16px;">'
-    + '<img src="'+qrUrl+'" style="width:200px;height:200px;border-radius:12px;border:1px solid var(--gray-2);" alt="QR">'
-    + '<div style="font-size:12px;color:var(--gray-4);margin-top:8px;">朋友掃碼即可查看同收藏</div>'
-    + '</div>'
     + '<div class="modal-btns" style="flex-direction:column;">'
     + '<button class="btn btn-primary" data-action="native-share" data-data="'+data+'">📤 用系統分享（WhatsApp/微信）</button>'
     + '<button class="btn btn-outline" data-action="copy-share" data-data="'+data+'">📋 複製分享連結</button>'
@@ -3399,10 +3436,24 @@ function shareCatch(id) {
     alert('分享功能出錯：' + e.message + '\n\n請截圖畀我');
   }
 }
+async function deleteCatch(id) {
+  const c = state.catches.find(x => String(x.id) === String(id));
+  if (!c || !c.isMine) return;
+  if (!confirm('刪除這條魚獲？\n\n' + c.species + ' ' + c.weight + ' 斤 · ' + c.spot + '\n此操作不可撤銷')) return;
+  try {
+    if (SB_ENABLED && state.user && !String(c.id).startsWith('temp-')) await dbDeleteCatch(c.id);
+  } catch (e) { toast('刪除失敗：' + (e.message || '網絡錯誤')); return; }
+  state.catches = state.catches.filter(x => x !== c);
+  persistUnsynced();
+  if (!(SB_ENABLED && state.user)) saveCatches(state.catches);
+  renderAll();
+  toast('已刪除');
+}
 function nativeShare(data) {
   const base = location.origin + location.pathname;
   const url = base + '?share=' + data;
-  const d = JSON.parse(decodeURIComponent(escape(atob(data))));
+  const d = parseShareData(data);
+  if (!d) return;
   let text = '🎣 嚟【香港釣魚數據平台】睇下'+d.u+'嘅魚獲！\n'+(d.i||'🐟')+' '+d.s+' '+d.w+'斤\n📍 '+d.p+' · '+formatDate(d.d);
   if (d.r && d.r.length) text += '\n🏆 排行榜名次：'+d.r.map(r => r.lb+' #'+r.rank).join('、');
   if (navigator.share) {
@@ -3423,69 +3474,89 @@ function copyShareLink(data) {
 function closeShareModal() { document.getElementById('share-modal').classList.remove('show'); }
 
 /* ===== 收藏朋友分享的魚獲 ===== */
+// 解析並清洗 ?share= 內容（外部輸入，絕不可信）
+function parseShareData(raw) {
+  if (!raw || raw.length > 4000 || !/^[A-Za-z0-9+/=_-]+$/.test(raw)) return null;
+  const j = JSON.parse(decodeURIComponent(escape(atob(raw))));
+  const str = (v, n) => String(v == null ? '' : v).slice(0, n || 60);
+  const w = Number(j.w);
+  if (!isFinite(w) || w <= 0 || w >= 100) return null;
+  return {
+    s: str(j.s, 30), i: str(j.i, 4) || '🐟', w: Math.round(w * 100) / 100,
+    l: Math.max(0, Math.min(500, Number(j.l) || 0)),
+    p: str(j.p, 60), d: /^\d{4}-\d{2}-\d{2}$/.test(str(j.d, 10)) ? str(j.d, 10) : localDateStr(),
+    t: /^\d{2}:\d{2}/.test(str(j.t, 8)) ? str(j.t, 5) : '', m: str(j.m, 20), b: str(j.b, 20),
+    n: str(j.n, 200), u: str(j.u, 20) || '朋友',
+    r: Array.isArray(j.r) ? j.r.slice(0, 5).map(x => ({ lb: str(x && x.lb, 12), rank: Math.max(0, Math.min(999, parseInt(x && x.rank, 10) || 0)) })) : []
+  };
+}
 function checkSharedCatch() {
   const params = new URLSearchParams(location.search);
-  const shareData = params.get('share');
+  // URLSearchParams 會將 base64 內嘅 '+' 變成空格，要還原
+  const shareData = (params.get('share') || '').replace(/ /g, '+');
   if (!shareData) return;
   try {
-    const d = JSON.parse(decodeURIComponent(escape(atob(shareData))));
+    const d = parseShareData(shareData);
+    if (!d) { console.warn('invalid share payload'); clearShareParam(); return; }
     const body = document.getElementById('import-modal-body');
     const has = state.catches.some(c => c.imported && c.shareKey === shareData);
+    const e = escapeHtml;
     body.innerHTML =
       '<div style="text-align:center;padding:8px 0 16px;">'
       + '<div style="font-size:13px;color:var(--gray-4);margin-bottom:12px;">🎣 朋友分享的魚獲</div>'
-      + '<div style="font-size:48px;">'+(d.i||'🐟')+'</div>'
-      + '<div style="font-size:20px;font-weight:700;margin:8px 0;">'+d.s+' '+d.w+'斤</div>'
-      + '<div style="font-size:14px;color:var(--gray-5);">'+d.p+' · '+formatDate(d.d)+' '+d.t+'</div>'
+      + '<div style="font-size:48px;">'+e(d.i)+'</div>'
+      + '<div style="font-size:20px;font-weight:700;margin:8px 0;">'+e(d.s)+' '+d.w+'斤</div>'
+      + '<div style="font-size:14px;color:var(--gray-5);">'+e(d.p)+' · '+formatDate(d.d)+' '+e(d.t)+'</div>'
       + (d.l ? '<div style="font-size:13px;color:var(--gray-4);margin-top:4px;">長度 '+d.l+'cm</div>' : '')
       + '</div>'
       + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;justify-content:center;">'
-      + '<span class="catch-tag">🎣 '+(d.m||'')+'</span>'
-      + '<span class="catch-tag">🪱 '+(d.b||'')+'</span>'
-      + '<span class="catch-tag">👤 '+d.u+'</span>'
+      + '<span class="catch-tag">🎣 '+e(d.m)+'</span>'
+      + '<span class="catch-tag">🪱 '+e(d.b)+'</span>'
+      + '<span class="catch-tag">👤 '+e(d.u)+'</span>'
       + '</div>'
       + (d.r && d.r.length ? '<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:10px;padding:10px 14px;margin-bottom:16px;text-align:center;">'
         + '<div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:6px;">🏆 排行榜名次</div>'
         + '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">'
-        + d.r.map(r => '<span style="background:#fff;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;color:#92400e;border:1px solid #fcd34d;">'+r.lb+' #'+r.rank+'</span>').join('')
+        + d.r.map(r => '<span style="background:#fff;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;color:#92400e;border:1px solid #fcd34d;">'+e(r.lb)+' #'+r.rank+'</span>').join('')
         + '</div></div>' : '')
-      + (d.n ? '<div style="padding:10px 14px;font-size:14px;color:var(--gray-5);background:var(--gray-1);border-radius:8px;margin-bottom:16px;">'+d.n+'</div>' : '')
+      + (d.n ? '<div style="padding:10px 14px;font-size:14px;color:var(--gray-5);background:var(--gray-1);border-radius:8px;margin-bottom:16px;">'+e(d.n)+'</div>' : '')
       + (has
         ? '<div style="text-align:center;color:var(--green);font-weight:600;padding:12px;">✓ 已收藏到你嘅記錄</div>'
         + '<button class="btn btn-outline" style="width:100%;" onclick="closeImportModal();clearShareParam();">打開 App</button>'
         : '<div class="modal-btns">'
-        + '<button class="btn btn-primary" onclick="importCatch(\''+shareData.replace(/'/g,"\\'")+'\')">📥 收藏到我手機</button>'
+        + '<button class="btn btn-primary" onclick="importCatch(\''+shareData+'\')">📥 收藏到我手機</button>'
         + '<button class="btn btn-outline" onclick="closeImportModal();clearShareParam();">稍後再講</button>'
         + '</div>'
       );
     document.getElementById('import-modal').classList.add('show');
   } catch(e) { console.warn('share parse error', e); }
 }
+const IMPORTED_KEY = 'hk_fishing_imported_v1';
+function loadImportedCatches() {
+  try { return JSON.parse(localStorage.getItem(IMPORTED_KEY) || '[]').filter(c => c && c.imported); } catch (e) { return []; }
+}
 function importCatch(shareData) {
   try {
-    const d = JSON.parse(decodeURIComponent(escape(atob(shareData))));
+    const d = parseShareData(shareData);
+    if (!d) { showToast('收藏失敗，數據有誤'); return; }
     const fishInfo = FISH_SPECIES.find(f => f.name === d.s);
     const catchItem = {
-      id: SB_ENABLED && state.user ? 'temp-' + Date.now() : Date.now(),
-      user: d.u || '朋友', species: d.s, speciesIcon: d.i || fishInfo?.icon || '🐟',
+      id: 'imp-' + Date.now(),
+      user: d.u, species: d.s, speciesIcon: d.i || fishInfo?.icon || '🐟',
       weight: d.w, length: d.l || 0, spot: d.p, spotArea: getSpotInfo(d.p)?.area || '',
-      date: d.d, time: d.t, method: d.m || '', bait: d.b || '',
-      verified: false, notes: d.n || '', isMine: false, imported: true, shareKey: shareData
+      date: d.d, time: d.t, method: d.m, bait: d.b,
+      verified: false, notes: d.n, isMine: false, imported: true, shareKey: shareData
     };
+    // 朋友的魚獲只存本機：不會寫入雲端，也不會變成「我的魚獲」
+    const saved = loadImportedCatches();
+    saved.unshift(catchItem);
+    try { localStorage.setItem(IMPORTED_KEY, JSON.stringify(saved.slice(0, 200))); } catch (e) {}
     state.catches.unshift(catchItem);
     state.catches.sort((a,b) => b.date.localeCompare(a.date));
-    if (SB_ENABLED && state.user) {
-      // 雲端模式：插到自己的 user_id 下
-      dbAddCatch({ ...catchItem, isMine: true, imported: false }).then(saved => {
-        if (saved) catchItem.id = saved.id;
-      }).catch(e => showToast('雲端寫入失敗：' + e.message));
-    } else {
-      saveCatches(state.catches);
-    }
     closeImportModal();
     clearShareParam();
     switchView('leaderboard');
-    showToast('已收藏！呢條魚獲已加入排行榜');
+    showToast('已收藏！呢條魚獲已加入排行榜（只存於本機）');
   } catch(e) { showToast('收藏失敗，數據有誤'); }
 }
 function clearShareParam() {
@@ -3524,7 +3595,7 @@ function renderLeaderboardView() {
       const rank = idx + 1; let rankClass = 'normal';
       if (rank===1) rankClass='gold'; else if (rank===2) rankClass='silver'; else if (rank===3) rankClass='bronze';
       let value='', detail='';
-      if (state.lbType==='biggest') { const lbWd=weightDisplay(item); value=lbWd.value+'<span class="unit">'+lbWd.unit+'</span>'; detail=item.species+' · '+item.spot+' · '+daysAgo(item.date); }
+      if (state.lbType==='biggest') { const lbWd=weightDisplay(item); value=lbWd.value+'<span class="unit">'+lbWd.unit+'</span>'; detail=escapeHtml(item.species)+' · '+escapeHtml(item.spot)+' · '+daysAgo(item.date); }
       else if (state.lbType==='quantity') { value=item.count+'<span class="unit">條</span>'; detail=item.speciesCount+' 種魚 · '+item.spotCount+' 個釣點'; }
       else { var spWd = weightDisplay({weight:item.biggestWeight}); value=item.speciesCount+'<span class="unit">種</span>'; detail='最大 '+spWd.value+' '+spWd.unit+' · 釣過 '+item.spotCount+' 個釣點'; }
       // 第一名「全港霸主」：用原本 flex 結構，只加金色背景 + 徽章跨行 + detail 跨行
@@ -3537,7 +3608,7 @@ function renderLeaderboardView() {
         listHtml += '<div class="lb-item lb-item-champion'+(item.isMine?' mine':'')+'">'
           +'<div class="lb-rank '+rankClass+'">'+rank+'</div>'
           +'<div class="lb-user">'
-            +'<div class="lb-username">'+item.user+meTag+'</div>'
+            +'<div class="lb-username">'+escapeHtml(item.user)+meTag+'</div>'
             +'<div class="lb-champion-badge">👑 '+championTitle+' 👑</div>'
             +'<div class="lb-detail">'+detail+'</div>'
           +'</div>'
@@ -3546,7 +3617,7 @@ function renderLeaderboardView() {
       } else {
         listHtml += '<div class="lb-item'+(item.isMine?' mine':'')+'">'
           +'<div class="lb-rank '+rankClass+'">'+rank+'</div>'
-          +'<div class="lb-user"><div class="lb-username">'+item.user+meTag+'<div class="lb-detail">'+detail+'</div></div></div>'
+          +'<div class="lb-user"><div class="lb-username">'+escapeHtml(item.user)+meTag+'<div class="lb-detail">'+detail+'</div></div></div>'
           +'<div class="lb-value">'+value+'</div>'
           +'</div>';
       }
@@ -3604,7 +3675,9 @@ function renderMapView() {
     + '</div>';
   // 首次 render 顯示 idle state
   renderLocationCard();
-  if (gpsCatches.length === 0) {
+  const stationFocus = !!state._stationFocus;
+  state._stationFocus = false;
+  if (gpsCatches.length === 0 && !stationFocus) {
     view.innerHTML = view.innerHTML.replace('<div id="map-canvas"></div>',
       '<div id="map-canvas" style="display:none"></div><div class="map-empty"><div class="map-empty-icon">🗺️</div>'
       + '<div style="font-size:16px;font-weight:700;color:var(--dark);margin-bottom:6px;">尚未有 GPS 記錄</div>'
@@ -3815,11 +3888,13 @@ function renderMapTideList(view) {
       <button class="tide-card-action" onclick="showStationOnMap('${st.code}')">🗺️ 在地圖上顯示位置</button>
     </div>`;
   }).join('');
+  const tideNotice = window.tidesLib.isDataValid(now) ? ''
+    : '<div style="margin:10px 12px;padding:10px 12px;background:#fff4e8;border:1px solid #f5a623;border-radius:10px;font-size:12px;color:#8a5a1c;line-height:1.5;">⚠️ 潮汐數據只涵蓋 ' + window.tidesLib.getDataYear() + ' 年，目前日期暫無潮汐預報。請更新 App 版本。</div>';
   view.innerHTML = '<div class="map-subtabs">'
     + '<button class="map-subtab" data-tab="map" onclick="switchMapTab(this.dataset.tab)">🗺️ 地圖</button>'
     + '<button class="map-subtab active" data-tab="tide" onclick="switchMapTab(this.dataset.tab)">🌊 潮汐</button>'
     + '<button class="map-subtab" data-tab="weather" onclick="switchMapTab(this.dataset.tab)">🌤️ 天氣</button>'
-    + '</div>'
+    + '</div>' + tideNotice
     + '<div class="tide-list"><div class="tide-list-grid">' + cards + '</div></div>';
 }
 
@@ -3962,7 +4037,9 @@ function initMap(items) {
   if (mapInstance) { try { mapInstance.remove(); } catch(e) {} mapInstance = null; }
   mapMarkers = [];
   // 計算中心點（取所有 GPS 點的平均，或香港中心）
-  const center = items.length === 1
+  const center = items.length === 0
+    ? [22.3193, 114.1694]
+    : items.length === 1
     ? [items[0].latitude, items[0].longitude]
     : [items.reduce((s,c)=>s+c.latitude,0)/items.length, items.reduce((s,c)=>s+c.longitude,0)/items.length];
 
@@ -4016,9 +4093,9 @@ function initMap(items) {
       radius, fillColor: color, color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.85
     }).addTo(mapInstance);
     const mapWd = weightDisplay(c);
-    const popupHtml = '<div class="map-popup-title">'+(c.speciesIcon||'🐟')+' '+c.species+'</div>'
+    const popupHtml = '<div class="map-popup-title">'+escapeHtml(c.speciesIcon||'🐟')+' '+escapeHtml(c.species)+'</div>'
       + '<div class="map-popup-weight">'+mapWd.value+' '+mapWd.unit+'</div>'
-      + '<div class="map-popup-meta">📍 '+c.spot+'<br>👤 '+c.user+'<br>📅 '+formatDate(c.date)+(c.time?' '+c.time:'')+(c.locationAccuracy?'<br>🎯 GPS ±'+c.locationAccuracy+'m':'')+'</div>';
+      + '<div class="map-popup-meta">📍 '+escapeHtml(c.spot)+'<br>👤 '+escapeHtml(c.user)+'<br>📅 '+formatDate(c.date)+(c.time?' '+escapeHtml(c.time):'')+(c.locationAccuracy?'<br>🎯 GPS ±'+c.locationAccuracy+'m':'')+'</div>';
     marker.bindPopup(popupHtml);
     mapMarkers.push(marker);
   });
@@ -4191,6 +4268,7 @@ function showStationOnMap(code) {
 
   // 切換到地圖 sub-tab
   state.mapTab = 'map';
+  state._stationFocus = true;  // 即使沒有 GPS 魚獲也要顯示地圖
   // 跳去地圖 view（如未喺度）
   if (state.view !== 'map') {
     goToView('map');
@@ -4202,25 +4280,8 @@ function showStationOnMap(code) {
   // 等 DOM 更新 + map init
   setTimeout(() => {
     // 如果地圖未初始化（用戶未有 GPS 魚獲），用空 list init
-    if (!mapInstance) {
-      try {
-        const dummyCatch = [{
-          latitude: meta.lat,
-          longitude: meta.lng,
-          species: meta.name_zh,
-          weight: 0,
-          spot: meta.name_zh,
-          user: '你',
-          date: new Date().toISOString().slice(0,10),
-          time: '',
-          locationAccuracy: 0,
-          speciesIcon: '📡',
-          isMine: false,
-          isDemo: true,
-          _highlightOnly: true
-        }];
-        initMap(dummyCatch);
-      } catch(e) { console.warn('initMap fail', e); }
+    if (!mapInstance && document.getElementById('map-canvas')) {
+      try { initMap((state.catches || []).filter(c => c.latitude && c.longitude)); } catch(e) { console.warn('initMap fail', e); }
     }
     if (!mapInstance) return;
 
@@ -4348,8 +4409,8 @@ function renderPokedexCatchCard(c) {
     +   '<div class="pokedex-catch-weight">' + pkWd.value + '<span>' + pkWd.unit + '</span>'
     +     (c.length ? '<span class="pokedex-catch-length">' + c.length + 'cm</span>' : '')
     +   '</div>'
-    +   '<div class="pokedex-catch-meta">' + c.spot + (c.method ? ' · 🎣 ' + c.method : '') + '</div>'
-    +   '<div class="pokedex-catch-date">📅 ' + formatDate(c.date) + ' ' + (c.time || '') + (c.verified ? ' <span class="pokedex-verified">✓ 有效</span>' : '') + '</div>'
+    +   '<div class="pokedex-catch-meta">' + escapeHtml(c.spot) + (c.method ? ' · 🎣 ' + escapeHtml(c.method) : '') + '</div>'
+    +   '<div class="pokedex-catch-date">📅 ' + formatDate(c.date) + ' ' + escapeHtml(c.time || '') + (c.verified ? ' <span class="pokedex-verified">✓ 有效</span>' : '') + '</div>'
     + '</div>'
     + '</div>';
 }
@@ -4374,7 +4435,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v106</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v107</span>';
   }
   renderView(name);
 }
@@ -4414,14 +4475,16 @@ function showToast(msg) {
  *   - 唔使 WhatsApp / SMS 設定(零成本)
  *   - 完全免費(Supabase 內建,每月 50,000 用戶免費額)
  */
-let authStep = 'email';        // 'email' | 'sent'
+let authStep = 'pw';           // 'pw' | 'email' | 'sent'
+let authMode = 'login';        // 'login' | 'register'
 let authEmail = '';            // 已 send 嘅 email
 let authCooldownTimer = null;
 
 function renderLoginScreen() {
   const screen = document.getElementById('login-screen');
   if (!SB_ENABLED) { screen.innerHTML = ''; screen.style.display = 'none'; return; }
-  authStep = 'email';
+  authStep = 'pw';
+  authMode = 'login';
   authEmail = '';
   const remembered = window.authLib ? authLib.getRememberedPhone() : '';
   screen.innerHTML = `
@@ -4431,8 +4494,25 @@ function renderLoginScreen() {
         <div class="login-title">香港釣魚數據平台</div>
         <div class="login-subtitle">雲端同步 · 多裝置共享</div>
 
-        <!-- 步驟 1:輸入 email -->
-        <div id="auth-step-email" class="auth-step active">
+        <!-- 密碼登入 / 註冊(預設) -->
+        <div id="auth-step-pw" class="auth-step active">
+          <div class="login-field">
+            <label>📧 電郵地址</label>
+            <input type="email" class="login-input" id="auth-pw-email" placeholder="you@example.com" inputmode="email" autocomplete="email">
+          </div>
+          <div class="login-field">
+            <label>🔑 密碼</label>
+            <input type="password" class="login-input" id="auth-pw-pass" placeholder="最少 8 個字元" autocomplete="current-password"
+              onkeydown="if(event.key==='Enter')handleAuthPassword()">
+          </div>
+          <button class="login-btn" id="auth-pw-btn" onclick="handleAuthPassword()">🔓 登入</button>
+          <button class="login-link" id="auth-mode-btn" onclick="toggleAuthMode()">還未有帳號？註冊新帳號</button>
+          <button class="login-link" id="auth-forgot-btn" onclick="handleAuthForgot()">忘記密碼？</button>
+          <button class="login-link" onclick="showAuthEmailStep()">改用電郵驗證碼登入</button>
+        </div>
+
+        <!-- 步驟 1:輸入 email（驗證碼登入） -->
+        <div id="auth-step-email" class="auth-step">
           <div class="login-field">
             <label>📧 電郵地址</label>
             <input type="email" class="login-input" id="auth-email"
@@ -4443,9 +4523,7 @@ function renderLoginScreen() {
           <button class="login-btn" id="auth-send-btn" onclick="handleAuthSendMagicLink()">
             🟢 發送登入連結
           </button>
-          <div class="login-link-wrap">
-            <a class="login-link" href="#" onclick="event.preventDefault(); window.open('https://github.com','_blank');">沒有 email?</a>
-          </div>
+          <button class="login-link" onclick="showAuthPwStep()">← 返回密碼登入</button>
         </div>
 
         <!-- 步驟 2:已 send,等 email 撳 -->
@@ -4456,10 +4534,14 @@ function renderLoginScreen() {
             <div class="auth-email-display" id="auth-email-display"></div>
           </div>
           <div class="login-hint" style="text-align:left;line-height:1.6">
-            1. 打開你嘅 email inbox<br>
-            2. 撳「香港釣魚數據平台」send 嘅連結<br>
-            3. 連結會自動打開 app,完成登入
+            打開你嘅 email inbox，睇封信入面嘅<b>驗證碼</b>，喺下面輸入就可以登入。<br>
+            （亦可以直接撳信入面嘅連結）
           </div>
+          <div class="login-field" style="margin-top:12px">
+            <label>🔢 電郵驗證碼</label>
+            <input type="text" class="login-input" id="auth-code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="123456">
+          </div>
+          <button class="login-btn" id="auth-verify-btn" onclick="handleAuthVerifyCode()">✅ 驗證並登入</button>
           <button class="login-btn login-btn-secondary" id="auth-resend-btn" onclick="handleAuthResend()" style="display:none">
             🔄 重新發送連結(<span id="auth-cooldown">60</span>s)
           </button>
@@ -4472,7 +4554,7 @@ function renderLoginScreen() {
         </div>
 
         <div class="login-msg" id="auth-msg"></div>
-        <div class="login-footer">透過 email 登入連結 · 唔需要記密碼</div>
+        <div class="login-footer">電郵 + 密碼登入 · 亦可用電郵驗證碼</div>
         ${SB_ENABLED && state.user ? '<button class="btn btn-outline" style="width:100%;margin-top:12px;color:var(--gray-5);border-color:var(--gray-3);" onclick="sbLogout()">🚪 登出</button>' : ''}
       </div>
     </div>
@@ -4502,10 +4584,36 @@ function showAuthEmailStep() {
   if (authEmail) authLib.clearCooldown(authEmail);
   authEmail = '';
   document.getElementById('auth-step-sent').classList.remove('active');
+  document.getElementById('auth-step-pw').classList.remove('active');
   document.getElementById('auth-step-email').classList.add('active');
   document.getElementById('auth-msg').textContent = '';
+  const pwMail = (document.getElementById('auth-pw-email') || {}).value;
+  if (pwMail && !document.getElementById('auth-email').value) document.getElementById('auth-email').value = pwMail;
   setTimeout(() => document.getElementById('auth-email').focus(), 100);
 }
+
+/** 返回密碼登入畫面 */
+function showAuthPwStep() {
+  authStep = 'pw';
+  if (authCooldownTimer) { clearInterval(authCooldownTimer); authCooldownTimer = null; }
+  document.getElementById('auth-step-email').classList.remove('active');
+  document.getElementById('auth-step-sent').classList.remove('active');
+  document.getElementById('auth-step-pw').classList.add('active');
+  document.getElementById('auth-msg').textContent = '';
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  const reg = mode === 'register';
+  const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+  set('auth-pw-btn', reg ? '📝 註冊' : '🔓 登入');
+  set('auth-mode-btn', reg ? '已有帳號？返回登入' : '還未有帳號？註冊新帳號');
+  const forgot = document.getElementById('auth-forgot-btn'); if (forgot) forgot.style.display = reg ? 'none' : '';
+  const pass = document.getElementById('auth-pw-pass');
+  if (pass) pass.setAttribute('autocomplete', reg ? 'new-password' : 'current-password');
+  const msg = document.getElementById('auth-msg'); if (msg) msg.textContent = '';
+}
+window.toggleAuthMode = function() { setAuthMode(authMode === 'register' ? 'login' : 'register'); };
 
 /** 60 秒發送冷卻倒計時 */
 function startAuthCooldown() {
@@ -4579,9 +4687,117 @@ window.handleAuthBack = function() {
   showAuthEmailStep();
 };
 
+/** 密碼登入 / 註冊 */
+window.handleAuthPassword = async function() {
+  const email = (document.getElementById('auth-pw-email').value || '').trim().toLowerCase();
+  const pw = document.getElementById('auth-pw-pass').value || '';
+  const msgEl = document.getElementById('auth-msg');
+  const btn = document.getElementById('auth-pw-btn');
+  if (!authLib.isValidEmail(email)) { msgEl.textContent = '請輸入有效嘅 email 地址(例:you@gmail.com)'; return; }
+  btn.disabled = true;
+  msgEl.style.color = '';
+  msgEl.textContent = authMode === 'register' ? '註冊中...' : '登入中...';
+  try {
+    if (authMode === 'register') {
+      const r = await authLib.signUpWithPassword(email, pw);
+      if (r.needsConfirm) {
+        setAuthMode('login');
+        msgEl.style.color = 'var(--green)';
+        msgEl.textContent = '✅ 已寄出確認信到 ' + authLib.maskEmail(email) + '，請按信入面嘅連結確認後再登入';
+        return;
+      }
+    } else {
+      await authLib.signInWithPassword(email, pw);
+    }
+    const profile = await authLib.getCurrentUser();
+    if (!profile) throw new Error('登入成功但未能載入用戶資料，請重試');
+    if (!state.user) await completeSignIn(profile);
+    msgEl.textContent = '';
+  } catch (e) {
+    msgEl.style.color = '';
+    msgEl.textContent = '❌ ' + (e.message || '操作失敗');
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+/** 忘記密碼：寄重設連結 */
+window.handleAuthForgot = async function() {
+  const email = (document.getElementById('auth-pw-email').value || '').trim().toLowerCase();
+  const msgEl = document.getElementById('auth-msg');
+  msgEl.style.color = '';
+  if (!authLib.isValidEmail(email)) { msgEl.textContent = '請先喺上面輸入你嘅 email，再撳「忘記密碼」'; return; }
+  msgEl.textContent = '發送中...';
+  try {
+    await authLib.sendPasswordReset(email);
+    msgEl.style.color = 'var(--green)';
+    msgEl.textContent = '✅ 如果呢個電郵已註冊，重設密碼連結已寄出，請查看信箱';
+  } catch (e) {
+    msgEl.textContent = '❌ ' + (e.message || '發送失敗');
+  }
+};
+
+/** 重設密碼連結返嚟之後：顯示設定新密碼畫面 */
+function renderRecoveryScreen() {
+  const screen = document.getElementById('login-screen');
+  window._recovering = true;
+  screen.innerHTML = `
+    <div class="login-screen"><div class="login-card">
+      <div class="login-logo">🔑</div>
+      <div class="login-title">設定新密碼</div>
+      <div class="login-field"><label>新密碼</label>
+        <input type="password" class="login-input" id="auth-new-pass" placeholder="最少 8 個字元" autocomplete="new-password"
+          onkeydown="if(event.key==='Enter')handleSetNewPassword()"></div>
+      <button class="login-btn" id="auth-new-btn" onclick="handleSetNewPassword()">✅ 儲存並登入</button>
+      <div class="login-msg" id="auth-msg"></div>
+    </div></div>`;
+  screen.style.display = 'block';
+  document.getElementById('header').style.display = 'none';
+  document.getElementById('bottom-nav').style.display = 'none';
+  document.getElementById('main').style.display = 'none';
+}
+window.handleSetNewPassword = async function() {
+  const msgEl = document.getElementById('auth-msg');
+  const btn = document.getElementById('auth-new-btn');
+  btn.disabled = true; msgEl.textContent = '儲存中...';
+  try {
+    await authLib.updatePassword(document.getElementById('auth-new-pass').value);
+    window._recovering = false;
+    try { history.replaceState({}, '', location.pathname + location.search); } catch (e) {}
+    const profile = await authLib.getCurrentUser();
+    if (!profile) throw new Error('密碼已更新，但未能載入用戶資料，請重新登入');
+    if (!state.user) await completeSignIn(profile);
+    showToast('密碼已更新');
+  } catch (e) {
+    msgEl.textContent = '❌ ' + (e.message || '儲存失敗');
+  } finally {
+    btn.disabled = false;
+  }
+};
+
 // DEPRECATED handlers(保留以防 hot reload 出問題,no-op)
 /* eslint-disable no-unused-vars */
-window.handleAuthVerifyOtp = function() { /* deprecated: 改用 Email Magic Link */ };
+window.handleAuthVerifyOtp = function() { /* deprecated */ };
+/** 用電郵驗證碼登入 */
+window.handleAuthVerifyCode = async function() {
+  const msgEl = document.getElementById('auth-msg');
+  const btn = document.getElementById('auth-verify-btn');
+  const code = (document.getElementById('auth-code') || {}).value;
+  if (!authEmail) { msgEl.textContent = '請先輸入 email'; return; }
+  btn.disabled = true;
+  msgEl.textContent = '驗證中...';
+  try {
+    await authLib.verifyCode(authEmail, code);
+    const profile = await authLib.getCurrentUser();
+    if (!profile) throw new Error('登入成功但未能載入用戶資料，請重試');
+    if (!state.user) await completeSignIn(profile);
+    msgEl.textContent = '';
+  } catch (e) {
+    msgEl.textContent = '❌ ' + (e.message || '驗證失敗');
+  } finally {
+    btn.disabled = false;
+  }
+};
 window.handleAuthSendOtp = function() { /* deprecated: 改用 Email Magic Link */ };
 window.switchAuthMode = function() { /* deprecated */ };
 window.handleAuthSubmit = function() { /* deprecated */ };
@@ -4643,8 +4859,13 @@ async function init() {
         console.warn('getCurrentUser failed', e);
       }
       // 偵聽 SIGNED_IN(用戶撳 email link 回來時觸發)
+      if (/type=recovery/.test(location.hash + location.search)) window._recovering = true;
       authLib.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session && session.user) {
+        if (event === 'PASSWORD_RECOVERY') {
+          window._recovering = true;
+          renderRecoveryScreen();
+        } else if (event === 'SIGNED_IN' && session && session.user) {
+          if (window._recovering) return;   // 重設密碼流程：等用戶設定新密碼先進入 App
           // 用戶剛撳 email link 回來 → 自動完成登入流程
           const profile = await authLib.getCurrentUser();
           if (profile && !state.user) {
@@ -4656,6 +4877,11 @@ async function init() {
           renderLoginScreen();
         }
       });
+      if (window._recovering) {
+        renderRecoveryScreen();
+        setupGlobalHandlers();
+        return;
+      }
       if (!state.user) {
         renderLoginScreen();
         setupGlobalHandlers();
@@ -4711,6 +4937,11 @@ function showInitError(title, message) {
 
 /** 完成登入後嘅統一初始化流程 */
 async function completeSignIn(userProfile) {
+  if (window._signingIn) return;
+  window._signingIn = true;
+  try { await completeSignInInner(userProfile); } finally { window._signingIn = false; }
+}
+async function completeSignInInner(userProfile) {
   state.user = userProfile;
   try {
     setInitStatus('正在遷移本地資料', 'migrateLocalCatches...');
@@ -4720,6 +4951,7 @@ async function completeSignIn(userProfile) {
     await withTimeout(seedDemoDataIfNeeded(), 8000, '初始化示範資料');
     setInitStatus('正在載入魚獲記錄', 'dbLoadCatches...');
     state.catches = await withTimeout(dbLoadCatches(), 8000, '載入魚獲記錄');
+    state.catches = state.catches.concat(loadImportedCatches());
     retryUnsyncedCatches();
   } catch (e) {
     console.error('completeSignIn failed', e);
@@ -4755,9 +4987,12 @@ function safeSwitchView(name) {
   }
 }
 function setupGlobalHandlers() {
-  document.querySelectorAll('.nav-item').forEach(btn => {
-    btn.addEventListener('click', () => switchView(btn.dataset.view));
-  });
+  if (!window._globalHandlersReady) {
+    window._globalHandlersReady = true;
+    document.querySelectorAll('.nav-item').forEach(btn => {
+      btn.addEventListener('click', () => switchView(btn.dataset.view));
+    });
+  }
   window.selectSpecies = selectSpecies;
   window.previewPhoto = previewPhoto;
   window.submitCatch = submitCatch;
@@ -4798,9 +5033,11 @@ function setupGlobalHandlers() {
       .catch(()=>{});
   }
   */
-  checkSharedCatch();
-  renderRecordView();
-  maybeShowConsentModal();  // Route M: 首次啟動彈同意窗(已選過的不再打擾)
+  if (!window._globalHandlersBooted) {
+    window._globalHandlersBooted = true;
+    renderRecordView();
+    maybeShowConsentModal();  // Route M: 首次啟動彈同意窗(已選過的不再打擾)
+  }
 }
 
 /* ===== Event Delegation（避免 inline onclick 嘅 escape 陷阱）===== */
@@ -4836,6 +5073,15 @@ document.addEventListener('click', function(e) {
       console.error('[share-last] error:', err);
       showToast('分享出錯：' + err.message);
     }
+    return;
+  }
+
+  // 0b. 刪除單條魚獲
+  const delBtn = e.target.closest('[data-del-id]');
+  if (delBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    deleteCatch(delBtn.dataset.delId);
     return;
   }
 
