@@ -3871,12 +3871,13 @@ function renderMapTideList(view) {
           const wd = wdNames[dd.getDay()];
           const rangeCls = d.range >= 1.5 ? 'lg' : d.range >= 1.0 ? 'md' : 'sm';
           const rangeIco = d.range >= 1.5 ? '🔥' : d.range >= 1.0 ? '✅' : '⚠️';
-          const hiHtml = d.highs.slice(0,2).map(h => `<span class="hi">▲${window.tidesLib.formatTime(h.ms)} ${h.height.toFixed(2)}</span>`).join(' ');
-          const loHtml = d.lows.slice(0,2).map(l => `<span class="lo">▼${window.tidesLib.formatTime(l.ms)} ${l.height.toFixed(2)}</span>`).join(' ');
+          // 高低潮按時間先後排列
+          const evHtml = (d.events || []).slice().sort((a, b) => a.ms - b.ms).map(e =>
+            `<span class="${e.type === 'high' ? 'hi' : 'lo'}">${e.type === 'high' ? '▲' : '▼'}${window.tidesLib.formatTime(e.ms)} ${e.height.toFixed(2)}</span>`).join(' ');
           return `<div class="tide-forecast-row">
             <div class="tide-forecast-date">${d.label ? `<span class="lbl">${d.label}</span>` : ''}${md}<span style="color:var(--gray-4);font-weight:400;"> ${wd}</span></div>
             <div class="tide-forecast-range ${rangeCls}">${rangeIco} ${d.range.toFixed(2)}m</div>
-            <div class="tide-forecast-events">${hiHtml} ${loHtml}</div>
+            <div class="tide-forecast-events">${evHtml}</div>
           </div>`;
         }).join('');
         return `<div class="tide-card-forecast">
