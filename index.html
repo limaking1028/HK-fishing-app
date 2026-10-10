@@ -52,6 +52,8 @@
   <script src="./lib/astronomy.js"></script>
   <!-- v108: 重量單位換算 -->
   <script src="./lib/weight.js"></script>
+  <!-- v109: 排行榜上榜條件 -->
+  <script src="./lib/leaderboard.js"></script>
 <!-- Route D: 簡筆風魚類 SVG icon（取代 AI 生成 PNG） -->
   <script src="./lib/fish-icons.js"></script>
   <!-- Route H: 行程計時器 / 格式化 -->
@@ -289,6 +291,12 @@ button { touch-action: manipulation; }
   .form-row > .form-group { flex: 1; }
   .input-suffix { display: flex; align-items: center; border: 1.5px solid var(--gray-2); border-radius: var(--radius-sm); overflow: hidden; }
   .input-suffix .form-input { border: none; border-radius: 0; }
+  .elig-box { background: var(--gray-1); border-radius: 10px; padding: 10px 12px; margin: 4px 0 12px; font-size: 12px; line-height: 1.7; }
+  .elig-box .elig-title { font-weight: 700; margin-bottom: 4px; font-size: 13px; }
+  .elig-box.ok { background: #ecfdf5; color: #047857; }
+  .elig-row.ok { color: #047857; } .elig-row.bad { color: #b45309; } .elig-row.pend { color: var(--gray-4); }
+  .lb-rules { font-size: 12px; color: var(--gray-5); background: var(--gray-1); border-radius: 10px; padding: 12px 14px; margin: 12px 0; line-height: 1.8; }
+  .lb-rules b { color: var(--gray-6); }
   .weight-unit-select { border: none; background: var(--gray-1); font-size: 14px; font-weight: 600; color: var(--gray-5); padding: 0 6px; height: 100%; font-family: inherit; cursor: pointer; }
   .input-suffix .suffix { padding: 0 12px; font-size: 14px; color: var(--gray-4); font-weight: 600; background: var(--gray-1); height: 100%; display: flex; align-items: center; }
   .species-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
@@ -1032,7 +1040,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v108</span></div>
+    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v109</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -1311,6 +1319,8 @@ async function dbLoadCatches() {
       length: c.length ? parseFloat(c.length) : 0,
       spot: c.spot, spotArea: c.spot_area || '', date: c.date, time: c.time ? c.time.slice(0, 5) : '',
       method: c.method, bait: c.bait, verified: c.verified, notes: c.notes || '', isMine, isDemo,
+      eligible: (c.leaderboard_eligible === undefined ? null : c.leaderboard_eligible), eligibleReason: c.ineligible_reason || null,
+      photoAgeSec: c.photo_age_sec != null ? c.photo_age_sec : null,
       latitude: c.latitude || null, longitude: c.longitude || null,
       locationAccuracy: c.location_accuracy || null, locationSource: c.location_source || null,
       photoUrl: c.photo_url || null,  // Route E: 用戶上傳的照片
@@ -1414,7 +1424,9 @@ async function dbAddCatch(c) {
     weight_unit: c.weightUnit || 'kg',                           // 原始單位
     length: c.length || null, spot: c.spot, spot_area: c.spotArea || null,
     date: c.date, time: c.time || null, method: c.method, bait: c.bait,
-    verified: c.verified || false, notes: c.notes || null,
+    verified: false,   // 由資料庫 trigger 判定（上榜條件），App 填咩都冇用
+    photo_age_sec: c.photoAgeSec != null ? Math.round(c.photoAgeSec) : null,
+    notes: c.notes || null,
     latitude: c.latitude || null, longitude: c.longitude || null,
     location_accuracy: c.locationAccuracy || null, location_source: c.locationSource || null,
     trip_id: c.tripId || c.trip_id || null,  // Route H: 行程關聯（nullable，向後相容）
@@ -1423,10 +1435,10 @@ async function dbAddCatch(c) {
     opted_in_analytics: c.optedInAnalytics || false,  // Route M: 同意旗標稽核軌跡
   };
   let { data, error } = await sb.from('catches').upsert(payload, { onConflict: 'id' }).select().single();
-  if (error && /weight_kg|weight_input|weight_unit/.test(error.message || '')) {
+  if (error && /weight_kg|weight_input|weight_unit|photo_age_sec/.test(error.message || '')) {
     // 資料庫未執行 migration-v108：退回舊欄位（斤），讀取時會自動換算
     console.warn('[catches] 未有 v108 重量欄位，改用舊欄位寫入');
-    const legacy = Object.assign({}, payload); delete legacy.weight_kg; delete legacy.weight_input; delete legacy.weight_unit;
+    const legacy = Object.assign({}, payload); delete legacy.weight_kg; delete legacy.weight_input; delete legacy.weight_unit; delete legacy.photo_age_sec;
     ({ data, error } = await sb.from('catches').upsert(legacy, { onConflict: 'id' }).select().single());
   }
   if (error) {
@@ -1521,7 +1533,7 @@ function genSampleCatches() {
 /* ===== State & Persistence ===== */
 const STORAGE_KEY = 'hk_fishing_catches_v5';
 const USERNAME_KEY = 'hk_fishing_username';
-let state = { view:'my', mapTab:'map', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', lbUnit:'kg', weightInputUnit:null, myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{}, expandedPokedex:{} }, trips:[], activeTrip:null, tripDetailId:null, tripTickHandle:null, tripPicking:false, tripPickingSpot:'', tripPickingDetectedSpot:'', tripPickingCustom:'', tripPickingMethod:'', tripPickingBait:'', tripPickingLat:null, tripPickingLng:null, tripPickingAccuracy:null, geoStatus:'idle', userLocation:null, nearestStations:[], geoError:null, geoRequestedAt:0, pinnedSpecies:[], speciesExpanded:false };
+let state = { view:'my', mapTab:'map', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', lbUnit:'kg', lbCache:{}, lbFetching:{}, lbServerFailed:false, photoAgeSec:null, weightInputUnit:null, myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{}, expandedPokedex:{} }, trips:[], activeTrip:null, tripDetailId:null, tripTickHandle:null, tripPicking:false, tripPickingSpot:'', tripPickingDetectedSpot:'', tripPickingCustom:'', tripPickingMethod:'', tripPickingBait:'', tripPickingLat:null, tripPickingLng:null, tripPickingAccuracy:null, geoStatus:'idle', userLocation:null, nearestStations:[], geoError:null, geoRequestedAt:0, pinnedSpecies:[], speciesExpanded:false };
 
 // 載入用戶 pin 嘅魚種（持久化）
 try {
@@ -1626,10 +1638,9 @@ function catchThumbHtml(c, opts) {
     const fallback = fishInfo.photo
       ? fishPhotoImg(fishInfo.photo, fishInfo.icon, klass).replace('alt=""', 'alt="' + safeAlt + '"')
       : fallbackSvg;
-    // 將 fallback HTML 內的單引號 escape（因為外層 onerror 用單引號包裹）
-    const safeFallback = fallback.replace(/'/g, "\\'");
+    // fallback HTML 放入 data 屬性（escape 後），載入失敗時由 photoFallback 還原
     return '<img class="' + klass + '" src="' + escapeHtml(c.photoUrl) + '" alt="' + safeAlt + '" loading="lazy" '
-      + 'onerror="this.outerHTML=\'' + safeFallback + '\'">';
+      + 'data-fallback="' + escapeHtml(fallback) + '" onerror="photoFallback(this)">';
   }
   // 2) 魚種真實照片
   if (fishInfo.photo) {
@@ -1651,6 +1662,12 @@ function speciesPhotoHtml(name, opts) {
   }
   return window.fishIconSvg ? window.fishIconSvg(name, opts.size || 96) : '🐟';
 }
+function photoFallback(img) {
+  img.onerror = null;
+  const f = img.getAttribute('data-fallback');
+  if (f) img.outerHTML = f;
+}
+window.photoFallback = photoFallback;
 function localDateStr(d) { d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
 function formatDate(d) { const date = new Date(d); const mm=(date.getMonth()+1).toString().padStart(2,'0'); const dd=date.getDate().toString().padStart(2,'0'); return date.getFullYear()+'/'+mm+'/'+dd; }
 function daysAgo(d) { const date = new Date(d); const now = new Date(); const diff = Math.floor((now-date)/86400000); if(diff===0) return '今天'; if(diff===1) return '昨天'; return diff+'日前'; }
@@ -1672,10 +1689,16 @@ function periodFilter(c, period) {
 }
 
 /* ===== Record View ===== */
+function successEligLine() {
+  const r = state.lastEligibility;
+  if (!r) return '你嘅紀錄已加入個人歷史';
+  if (r.eligible) return '🏆 符合上榜條件，已加入排行榜';
+  return '已加入個人歷史。未計入排行榜：' + r.reasons.map(c => escapeHtml(lbLib.reasonText(c))).join('、');
+}
 function renderRecordView() {
   const view = document.getElementById('view-record');
   if (state.formSuccess) {
-    view.innerHTML = '<div class="success-screen"><div class="success-circle">✓</div><div class="success-title">魚獲已記錄！</div><div class="success-sub">你嘅紀錄已加入個人歷史同排行榜</div></div><button class="btn btn-share" data-action="share-last">📤 即時分享這條魚獲</button><button class="btn btn-primary mt-2" onclick="resetForm()">記錄下一條</button><button class="btn btn-outline mt-2" onclick="goToView(\'my\')">查看我的魚獲</button><button class="btn btn-outline mt-2" onclick="goToView(\'leaderboard\')">查看排行榜</button>';
+    view.innerHTML = '<div class="success-screen"><div class="success-circle">✓</div><div class="success-title">魚獲已記錄！</div><div class="success-sub">'+successEligLine()+'</div></div><button class="btn btn-share" data-action="share-last">📤 即時分享這條魚獲</button><button class="btn btn-primary mt-2" onclick="resetForm()">記錄下一條</button><button class="btn btn-outline mt-2" onclick="goToView(\'my\')">查看我的魚獲</button><button class="btn btn-outline mt-2" onclick="goToView(\'leaderboard\')">查看排行榜</button>';
     return;
   }
   // Route H+: 行程中自動從 activeTrip 預填(用戶直接按「記錄」tab 都會自動帶入,不用每次按「加魚」)
@@ -1805,15 +1828,16 @@ function renderRecordView() {
     + '<div id="astro-info" class="astro-card"></div>'
     + '<div class="form-row"><div class="form-group"><label class="form-label">釣法</label><select class="form-select" id="catch-method" onchange="onMethodChange(this.value)">'+FISHING_METHODS.map(m=>'<option value="'+m+'"'+(state.selectedMethod===m?' selected':'')+'>'+m+'</option>').join('')+'</select><input type="text" class="form-input" id="custom-method" placeholder="輸入釣法名稱..." value="'+(state.customMethod||'')+'" oninput="state.customMethod=this.value" style="margin-top:8px;display:'+(state.selectedMethod==='其他'?'block':'none')+';"></div><div class="form-group"><label class="form-label">釣餌</label><select class="form-select" id="catch-bait" onchange="onBaitChange(this.value)">'+BAIT_TYPES.map(b=>'<option value="'+b+'"'+(state.selectedBait===b?' selected':'')+'>'+b+'</option>').join('')+'</select><input type="text" class="form-input" id="custom-bait" placeholder="輸入釣餌名稱..." value="'+(state.customBait||'')+'" oninput="state.customBait=this.value" style="margin-top:8px;display:'+(state.selectedBait==='其他'?'block':'none')+';"></div></div>'
     + '<div class="form-group"><label class="form-label">備註</label><textarea class="form-textarea" id="catch-notes" placeholder="例如：黃昏流水好、風向、水溫等..."></textarea></div>'
-    + '<div class="form-group"><label class="form-label">魚獲照片</label><div class="photo-upload" onclick="document.getElementById(\'catch-photo\').click()"><div class="upload-icon">📸</div><div class="upload-text">點擊上傳照片（可增強紀錄可信度）</div></div><input type="file" id="catch-photo" accept="image/*" style="display:none" onchange="previewPhoto(this)"><div id="photo-preview-container"></div></div>'
+    + '<div class="form-group"><label class="form-label">魚獲照片 <span style="font-size:11px;color:var(--gray-4);font-weight:400;">（即時影相先計排行榜）</span></label><div class="photo-upload" onclick="document.getElementById(\'catch-photo\').click()"><div class="upload-icon">📸</div><div class="upload-text">即時影相（可上榜）</div></div><input type="file" id="catch-photo" accept="image/*" capture="environment" style="display:none" onchange="previewPhoto(this)"><button type="button" class="login-link" onclick="document.getElementById(\'catch-photo-gallery\').click()">🖼️ 從相簿揀（拍攝超過 30 分鐘就唔計排行榜）</button><input type="file" id="catch-photo-gallery" accept="image/*" style="display:none" onchange="previewPhoto(this)"><div id="photo-preview-container"></div></div>'
+    + '<div id="elig-box" class="elig-box"></div>'
     + '<button class="btn btn-primary" onclick="submitCatch()">送出魚獲記錄</button></div>';
   // Route L+: 表單打開時不直接觸發 (iOS 政策需用戶操作),但記錄狀態讓按鈕更醒目
   // 用戶點擊 [📍 啟用自動定位] 後,後續 GPS 自動運行無需再操作
-  setTimeout(() => { try { onDateChange(); } catch(e) { console.warn('astro init failed', e); } }, 0);
+  setTimeout(() => { try { onDateChange(); } catch(e) { console.warn('astro init failed', e); } try { updateEligibilityHint(); } catch(e) {} }, 0);
   // Route K: 渲染智能揀魚種 UI（Top 8 by 使用次數 + 摺疊展開）
   renderSpeciesSelector();
 }
-function selectSpecies(idx) { state.selectedSpecies = idx; if (idx !== FISH_SPECIES.length - 1) state.customSpecies = ''; renderSpeciesSelector(); }
+function selectSpecies(idx) { state.selectedSpecies = idx; if (idx !== FISH_SPECIES.length - 1) state.customSpecies = ''; renderSpeciesSelector(); try { updateEligibilityHint(); } catch (e) {} }
 
 /* ============================================================
  * Route K: 智能揀魚種 UI（Top 8 by 使用次數 + 摺疊展開）
@@ -1902,6 +1926,7 @@ function selectSpeciesByName(name) {
     state.selectedSpecies = idx;
     state.customSpecies = '';
     renderSpeciesSelector();  // 只更新魚種區，不重畫整個表單（避免清空已輸入的重量/備註/照片）
+    try { updateEligibilityHint(); } catch (e) {}
   }
 }
 
@@ -2140,6 +2165,7 @@ function getCurrentLocation() {
       state.catchLat = fuzzedLat;
       state.catchLng = fuzzedLng;
       state.catchAccuracy = accuracy;
+      try { updateEligibilityHint(); } catch (e) {}
       document.getElementById('catch-lat').value = fuzzedLat;
       document.getElementById('catch-lng').value = fuzzedLng;
       document.getElementById('catch-accuracy').value = accuracy;
@@ -2269,7 +2295,60 @@ async function autoDetectSpot(lat, lng) {
   // 第三層：保留其他 + GPS
   return { type: 'none', distance: Math.round(closestDist) };
 }
+// 相片：即時影相 input 同相簿 input，只保留最後揀嘅一張
+function getPhotoFile() {
+  const a = document.getElementById('catch-photo'), b = document.getElementById('catch-photo-gallery');
+  return (a && a.files && a.files[0]) || (b && b.files && b.files[0]) || null;
+}
+function clearPhotoInputs() {
+  ['catch-photo', 'catch-photo-gallery'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  state.photoAgeSec = null;
+}
+// ===== 上榜條件即時提示（真正判定喺資料庫，呢度只係畀用戶睇）=====
+function currentEligibilityInput() {
+  const idx = state.selectedSpecies;
+  const sp = (idx != null) ? FISH_SPECIES[idx] : null;
+  const custom = !!(sp && sp.custom);
+  const u = state.weightInputUnit || weightLib.getPref();
+  const raw = parseFloat((document.getElementById('catch-weight') || {}).value);
+  const f = getPhotoFile();
+  return {
+    hasPhoto: !!f, photoAgeSec: f ? state.photoAgeSec : null,
+    latitude: state.catchLat != null ? state.catchLat : null, longitude: state.catchLng != null ? state.catchLng : null,
+    date: (document.getElementById('catch-date') || {}).value || localDateStr(),
+    species: sp ? (custom ? (state.customSpecies || '') : sp.name) : '', customSpecies: custom,
+    weight: raw > 0 ? weightLib.toKg(raw, u) : NaN, _speciesPending: !sp
+  };
+}
+function updateEligibilityHint() {
+  const box = document.getElementById('elig-box');
+  if (!box || !window.lbLib) return;
+  const c = currentEligibilityInput();
+  const r = lbLib.check(c, localDateStr());
+  const bad = new Set(r.reasons);
+  const groups = [
+    ['📸 即時影相', ['no_photo', 'photo_invalid', 'photo_not_fresh'], false],
+    ['📍 GPS 定位（香港範圍）', ['no_gps', 'outside_hk'], false],
+    ['📅 日期（7 日內）', ['date_future', 'date_old'], false],
+    ['🐟 列表內魚種', ['species_not_listed'], c._speciesPending],
+    ['⚖️ 重量合理', ['weight_too_high'], !(c.weight > 0) || c._speciesPending]
+  ];
+  let html = '';
+  groups.forEach(g => {
+    const hit = g[1].find(code => bad.has(code));
+    const cls = g[2] ? 'pend' : (hit ? 'bad' : 'ok');
+    const icon = g[2] ? '○' : (hit ? '✗' : '✓');
+    html += '<div class="elig-row ' + cls + '">' + icon + ' ' + g[0] + (hit && !g[2] ? ' — ' + escapeHtml(lbLib.reasonText(hit)) : '') + '</div>';
+  });
+  box.className = 'elig-box' + (r.eligible ? ' ok' : '');
+  box.innerHTML = '<div class="elig-title">' + (r.eligible ? '🏆 符合上榜條件' : '🏆 上榜條件（未符合都可以儲存記錄，只係唔計排行榜）') + '</div>' + html;
+}
+window.updateEligibilityHint = updateEligibilityHint;
 function previewPhoto(input) {
+  ['catch-photo', 'catch-photo-gallery'].forEach(id => { const el = document.getElementById(id); if (el && el !== input) el.value = ''; });
+  const f0 = input.files && input.files[0];
+  state.photoAgeSec = f0 ? Math.round((Date.now() - (f0.lastModified || 0)) / 1000) : null;
+  setTimeout(() => { try { updateEligibilityHint(); } catch (e) {} }, 0);
   const c = document.getElementById('photo-preview-container');
   if (input.files && input.files[0]) { const r = new FileReader(); r.onload = e => { c.innerHTML = '<img class="photo-preview" src="'+e.target.result+'" alt="preview">'; }; r.readAsDataURL(input.files[0]); }
 }
@@ -2364,8 +2443,17 @@ function submitCatch() {
     optedInAnalytics: getAnalyticsConsent(),  // Route M: 帶入當下同意狀態(稽核軌跡)
     userId: state.user ? state.user.id : null,
     cloudId: newUuid(),
-    _photoFile: (document.getElementById('catch-photo') || {}).files ? document.getElementById('catch-photo').files[0] : null,
+    _photoFile: getPhotoFile(),
+    photoAgeSec: getPhotoFile() ? state.photoAgeSec : null,
   };
+  // 上榜資格（暫定，雲端儲存後會以資料庫判定為準）
+  {
+    const sp0 = FISH_SPECIES.find(f => f.name === speciesName);
+    const el0 = lbLib.check({ hasPhoto: !!catchItem._photoFile, photoAgeSec: catchItem.photoAgeSec, latitude: catchItem.latitude, longitude: catchItem.longitude,
+      date: catchItem.date, species: speciesName, weight: catchItem.weight, customSpecies: !sp0 || !!sp0.custom }, localDateStr());
+    catchItem.eligible = el0.eligible; catchItem.eligibleReason = el0.reasons[0] || null; catchItem.verified = el0.eligible;
+    state.lastEligibility = el0;
+  }
   let statsPromise = Promise.resolve();
   // Route M: 未同意就不做 enrichment(預設 false,GDPR 友善)
   // Route L+: 同步 enrichment（時間/月相/太陽/潮汐/地理）— 不阻塞送出，失敗不影響
@@ -2401,6 +2489,11 @@ function submitCatch() {
         // (唔需要再 findIndex 改 — 之前嘅 code 因為 callback 入面先 findIndex，永遠搵唔到)
         catchItem.id = saved.id;
         catchItem.photoUrl = saved.photo_url;  // Route E: 同步 photo_url 到本地快取
+        if (saved.leaderboard_eligible !== undefined && saved.leaderboard_eligible !== null) {   // 以資料庫判定為準
+          catchItem.eligible = saved.leaderboard_eligible; catchItem.eligibleReason = saved.ineligible_reason || null; catchItem.verified = !!saved.verified;
+        }
+        state.lbCache = {};
+        setTimeout(() => { try { prefetchLeaderboards(true); } catch (e) {} }, 500);
         // 更新 lastCatchId 配合 success 畫面（避免 race condition）
         state.lastCatchId = saved.id;
         renderRecordView();
@@ -2422,8 +2515,7 @@ function submitCatch() {
   }
   state.formSuccess = true; state.selectedSpecies = null; state.customSpecies = ''; state.selectedMethod = ''; state.customMethod = ''; state.selectedBait = ''; state.customBait = ''; state.selectedSpot = ''; state.customSpot = ''; state.lastCatchId = catchItem.id;
   // Route E: 清空照片 input 與預覽，避免下次開表單殘留舊圖
-  const photoEl = document.getElementById('catch-photo');
-  if (photoEl) photoEl.value = '';
+  clearPhotoInputs();
   const previewEl = document.getElementById('photo-preview-container');
   if (previewEl) previewEl.innerHTML = '';
   // 解鎖偵測:只對圖鑑內的魚種慶祝（自訂魚種不會加入圖鑑）
@@ -3153,35 +3245,22 @@ window.retripActiveGPS = retripActiveGPS;
 
 /* ===== My Catches View ===== */
 function getMyCatchRankings() {
+  // 名次來自伺服器排行榜（全部時間）。未載入前冇名次徽章
   const rankings = {};
-  const filtered = state.catches;
-  const qualify = c => c.verified || c.isMine || c.imported;
-  // 重量王者：按用戶最大魚獲排名
-  const userBiggest = {};
-  filtered.forEach(c => { if (qualify(c)) { if (!userBiggest[c.user] || c.weight > userBiggest[c.user].weight) userBiggest[c.user] = c; } });
-  Object.values(userBiggest).sort((a,b) => b.weight - a.weight).forEach((item, idx) => {
-    if (item.isMine) { (rankings[item.id] = rankings[item.id] || []).push({lb:'重量王者', rank: idx+1}); }
-  });
-  // 品種王者：按用戶不同魚種數量排名（徽章標記在重量王者上）
-  const userSpecies = {};
-  filtered.forEach(c => { if (qualify(c)) { userSpecies[c.user] = userSpecies[c.user] || {user:c.user, species:new Set(), catches:[]}; userSpecies[c.user].species.add(c.species); userSpecies[c.user].catches.push(c); } });
-  Object.values(userSpecies).sort((a,b) => b.species.size - a.species.size).forEach((item, idx) => {
-    const mine = item.catches.filter(c => c.isMine);
-    if (mine.length) {
-      const biggest = mine.slice().sort((a,b) => b.weight - a.weight)[0];
-      (rankings[biggest.id] = rankings[biggest.id] || []).push({lb:'品種王者', rank: idx+1});
-    }
-  });
-  // 數量王者：按用戶總數排名（標記在最新一條）
-  const userCounts = {};
-  filtered.forEach(c => { if (qualify(c)) { if (!userCounts[c.user]) userCounts[c.user] = {user:c.user, count:0, catches:[]}; userCounts[c.user].count++; userCounts[c.user].catches.push(c); } });
-  Object.values(userCounts).sort((a,b) => b.count - a.count).forEach((item, idx) => {
-    const mine = item.catches.filter(c => c.isMine);
-    if (mine.length) {
-      const latest = mine.sort((a,b) => (b.date+b.time).localeCompare(a.date+a.time))[0];
-      (rankings[latest.id] = rankings[latest.id] || []).push({lb:'數量王者', rank: idx+1});
-    }
-  });
+  const add = (id, lb, rank) => { if (id == null) return; (rankings[id] = rankings[id] || []).push({ lb, rank }); };
+  const mine = state.catches.filter(c => c.isMine && !c.imported && c.eligible === true);
+  const b = state.lbCache['biggest|all'];
+  if (b) { const row = b.rows.find(r => r.is_mine); if (row) add(row.catch_id, '重量王者', row.pos); }
+  const q = state.lbCache['quantity|all'];
+  if (q && mine.length) {
+    const row = q.rows.find(r => r.is_mine);
+    if (row) { const latest = mine.slice().sort((a, b2) => (b2.date + (b2.time || '')).localeCompare(a.date + (a.time || '')))[0]; add(latest.id, '數量王者', row.pos); }
+  }
+  const sp = state.lbCache['species|all'];
+  if (sp && mine.length) {
+    const row = sp.rows.find(r => r.is_mine);
+    if (row) { const big = mine.slice().sort((a, b2) => b2.weight - a.weight)[0]; add(big.id, '品種王者', row.pos); }
+  }
   return rankings;
 }
 function renderMyView() {
@@ -3307,6 +3386,12 @@ function setMyFilter(f) { state.myFilter = f; renderMyView(); }
 function toggleSection(key) { state.ui.expandedSections[key] = !state.ui.expandedSections[key]; renderMyView(); }
 function toggleSpecies(key) { state.ui.expandedSpecies[key] = !state.ui.expandedSpecies[key]; renderMyView(); }
 // c.weight 一律係標準公斤；unit 不傳 = 用戶預設單位
+function eligBadge(c) {
+  if (c.imported || c.eligible === null || c.eligible === undefined) return '';
+  if (c.eligible) return '<span class="verified-badge">🏆 已符合上榜</span>';
+  if (!c.isMine) return '';
+  return '<span class="catch-tag" style="color:#b45309;">未計排行榜：' + escapeHtml(lbLib.reasonText(c.eligibleReason)) + '</span>';
+}
 function weightDisplay(c, unit) {
   const u = unit || weightLib.getPref();
   const f = weightLib.format((c && typeof c.weight === 'number') ? c.weight : 0, u);
@@ -3322,7 +3407,7 @@ function renderCatchCard(c, rankings) {
   const iconHtml = catchThumbHtml(c, { klass: 'catch-thumb' });
   const unsyncedTag = c.unsynced ? '<span class="catch-tag" style="background:#fff4e8;color:#b06820;border:1px solid #f5a623;" title="未同步到雲端,將在網絡恢復時自動補傳">☁️ 未同步</span>' : '';
   const wd = weightDisplay(c);
-  return '<div class="catch-card"><div class="catch-card-top"><div class="catch-fish-icon">'+iconHtml+'</div><div class="catch-info"><div class="catch-species">'+escapeHtml(c.species)+'</div><div class="catch-meta">'+escapeHtml(c.spot)+' · '+formatDate(c.date)+' '+escapeHtml(c.time||'')+'</div></div><div class="catch-weight-badge"><div class="catch-weight">'+wd.value+'</div><div class="catch-weight-unit">'+wd.unit+'</div>'+((c.weightUnit && c.weightInput!=null && weightLib.isUnit(c.weightUnit) && c.weightUnit!==weightLib.getPref())?'<div class="catch-weight-unit" style="opacity:.7">（輸入 '+weightLib.format(c.weight,c.weightUnit).text+'）</div>':'')+'</div></div><div class="catch-card-bottom">'+rankBadges+unsyncedTag+(c.length?'<span class="catch-tag">'+c.length+'cm</span>':'')+'<span class="catch-tag">🎣 '+escapeHtml(c.method)+'</span><span class="catch-tag">🪱 '+escapeHtml(c.bait)+'</span>'+(c.verified?'<span class="verified-badge">✓ 有效紀錄</span>':'')+'<span class="catch-tag share-btn" data-share-id="'+escapeHtml(c.id)+'">📤 分享</span>'+(c.isMine && !c.imported?'<span class="catch-tag" style="color:#dc2626;" data-del-id="'+escapeHtml(c.id)+'">🗑️ 刪除</span>':'')+'</div>'+(c.notes?'<div style="padding:6px 14px 10px;font-size:13px;color:var(--gray-5);border-top:1px solid var(--gray-1);">'+escapeHtml(c.notes)+'</div>':'')+'</div>';
+  return '<div class="catch-card"><div class="catch-card-top"><div class="catch-fish-icon">'+iconHtml+'</div><div class="catch-info"><div class="catch-species">'+escapeHtml(c.species)+'</div><div class="catch-meta">'+escapeHtml(c.spot)+' · '+formatDate(c.date)+' '+escapeHtml(c.time||'')+'</div></div><div class="catch-weight-badge"><div class="catch-weight">'+wd.value+'</div><div class="catch-weight-unit">'+wd.unit+'</div>'+((c.weightUnit && c.weightInput!=null && weightLib.isUnit(c.weightUnit) && c.weightUnit!==weightLib.getPref())?'<div class="catch-weight-unit" style="opacity:.7">（輸入 '+weightLib.format(c.weight,c.weightUnit).text+'）</div>':'')+'</div></div><div class="catch-card-bottom">'+rankBadges+unsyncedTag+(c.length?'<span class="catch-tag">'+c.length+'cm</span>':'')+'<span class="catch-tag">🎣 '+escapeHtml(c.method)+'</span><span class="catch-tag">🪱 '+escapeHtml(c.bait)+'</span>'+eligBadge(c)+'<span class="catch-tag share-btn" data-share-id="'+escapeHtml(c.id)+'">📤 分享</span>'+(c.isMine && !c.imported?'<span class="catch-tag" style="color:#dc2626;" data-del-id="'+escapeHtml(c.id)+'">🗑️ 刪除</span>':'')+'</div>'+(c.notes?'<div style="padding:6px 14px 10px;font-size:13px;color:var(--gray-5);border-top:1px solid var(--gray-1);">'+escapeHtml(c.notes)+'</div>':'')+'</div>';
 }
 /* ===== 名稱管理 ===== */
 function openNameDialog() {
@@ -3634,30 +3719,67 @@ function clearShareParam() {
 function closeImportModal() { document.getElementById('import-modal').classList.remove('show'); }
 
 /* ===== Leaderboard View ===== */
+const LB_TTL = 60000;
+async function fetchLbRows(type, period) {
+  let res;
+  if (type === 'biggest') res = await sb.rpc('lb_biggest', { p_period: period });
+  else res = await sb.rpc('lb_stats', { p_period: period, p_sort: type });
+  if (res.error) throw res.error;
+  const rows = res.data || [];
+  state.lbCache[type + '|' + period] = { at: Date.now(), rows };
+  return rows;
+}
+function prefetchLeaderboards(force) {
+  if (!SB_ENABLED || !state.user || !sb || state.lbServerFailed) return Promise.resolve();
+  const jobs = ['biggest', 'quantity', 'species'].map(t => {
+    const hit = state.lbCache[t + '|all'];
+    if (!force && hit && Date.now() - hit.at < LB_TTL) return null;
+    return fetchLbRows(t, 'all').catch(e => { console.warn('[leaderboard prefetch]', e.message || e); });
+  }).filter(Boolean);
+  return Promise.all(jobs).then(() => { if (state.view === 'my') renderMyView(); });
+}
+function lbItemsFromRows(type, rows) {
+  if (type === 'biggest') return rows.map(r => ({ user: r.display_name || '釣友', isMine: !!r.is_mine, species: r.species, spot: r.spot, date: r.catch_date, weight: parseFloat(r.weight_kg), id: r.catch_id }));
+  if (type === 'quantity') return rows.map(r => ({ user: r.display_name || '釣友', isMine: !!r.is_mine, count: r.catch_count, spotCount: r.spot_count, speciesCount: r.species_count }));
+  return rows.map(r => ({ user: r.display_name || '釣友', isMine: !!r.is_mine, speciesCount: r.species_count, spotCount: r.spot_count, biggestWeight: parseFloat(r.biggest_kg) }));
+}
+// 離線 / 伺服器未能連接：只用本機「我自己」嘅有效魚獲
+function lbItemsLocal(type, period) {
+  const f = state.catches.filter(c => c.isMine && !c.imported && c.eligible === true && periodFilter(c, period));
+  const me = getUserName();
+  if (!f.length) return [];
+  if (type === 'biggest') { const b = f.reduce((m, c) => c.weight > m.weight ? c : m, f[0]); return [{ ...b, user: me, isMine: true }]; }
+  const spots = new Set(f.map(c => c.spot)), species = new Set(f.map(c => c.species));
+  if (type === 'quantity') return [{ user: me, isMine: true, count: f.length, spotCount: spots.size, speciesCount: species.size }];
+  return [{ user: me, isMine: true, speciesCount: species.size, spotCount: spots.size, biggestWeight: Math.max(...f.map(c => c.weight)) }];
+}
 function renderLeaderboardView() {
   const view = document.getElementById('view-leaderboard');
-  const filtered = state.catches.filter(c => periodFilter(c, state.lbPeriod));
-  let lbData = [];
-  if (state.lbType === 'biggest') {
-    const m = {};
-    filtered.forEach(c => { if (c.verified || c.isMine || c.imported) { if (!m[c.user] || c.weight > m[c.user].weight) m[c.user] = {...c}; } });
-    lbData = Object.values(m).sort((a,b) => b.weight - a.weight);
-  } else if (state.lbType === 'quantity') {
-    const m = {};
-    filtered.forEach(c => { if (c.verified || c.isMine || c.imported) { m[c.user] = m[c.user] || {user:c.user, count:0, spots:new Set(), species:new Set(), isMine:false}; m[c.user].count++; m[c.user].spots.add(c.spot); m[c.user].species.add(c.species); if (c.isMine) m[c.user].isMine = true; } });
-    lbData = Object.values(m).map(u => ({user:u.user, count:u.count, spotCount:u.spots.size, speciesCount:u.species.size, isMine:u.isMine})).sort((a,b) => b.count - a.count);
+  let lbData = [], loading = false, offlineNote = '';
+  const useServer = SB_ENABLED && state.user && sb && !state.lbServerFailed;
+  if (useServer) {
+    const key = state.lbType + '|' + state.lbPeriod;
+    const hit = state.lbCache[key];
+    if (hit) lbData = lbItemsFromRows(state.lbType, hit.rows);
+    else loading = true;
+    if (!hit || Date.now() - hit.at >= LB_TTL) {
+      if (!state.lbFetching[key]) {
+        state.lbFetching[key] = true;
+        fetchLbRows(state.lbType, state.lbPeriod).catch(e => {
+          console.warn('[leaderboard]', e.message || e);
+          state.lbServerFailed = true;
+        }).finally(() => { delete state.lbFetching[key]; if (state.view === 'leaderboard') renderLeaderboardView(); });
+      }
+    }
   } else {
-    // 品種王者：統計每個用戶釣到多少種不同魚種，按數量排名
-    const m = {};
-    filtered.forEach(c => { if (c.verified || c.isMine || c.imported) { m[c.user] = m[c.user] || {user:c.user, species:new Set(), spots:new Set(), catches:[]}; m[c.user].species.add(c.species); m[c.user].spots.add(c.spot); m[c.user].catches.push(c); } });
-    lbData = Object.values(m).map(u => {
-      const biggest = u.catches.reduce((mx,c) => c.weight > mx.weight ? c : mx, u.catches[0]);
-      return { user:u.user, speciesCount:u.species.size, spotCount:u.spots.size, biggestWeight:biggest.weight, isMine:u.catches.some(c=>c.isMine) };
-    }).sort((a,b) => b.speciesCount - a.speciesCount || b.biggestWeight - a.biggestWeight);
+    lbData = lbItemsLocal(state.lbType, state.lbPeriod);
+    if (SB_ENABLED && state.user) offlineNote = '⚠️ 暫時連接唔到排行榜伺服器，只顯示你自己嘅有效紀錄。';
   }
   let listHtml = '';
-  if (lbData.length === 0) {
-    listHtml = '<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-text">暫無排行榜數據</div></div>';
+  if (loading) {
+    listHtml = '<div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-text">載入排行榜中...</div></div>';
+  } else if (lbData.length === 0) {
+    listHtml = '<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-text">暫無排行榜數據<br><span style="font-size:12px;">符合上榜條件嘅魚獲先會出現喺呢度</span></div></div>';
   } else {
     lbData.forEach((item, idx) => {
       const rank = idx + 1; let rankClass = 'normal';
@@ -3695,7 +3817,14 @@ function renderLeaderboardView() {
     + '<div class="lb-period-row"><button class="lb-period '+(state.lbPeriod==='all'?'active':'')+'" onclick="setLbPeriod(\'all\')">全部</button><button class="lb-period '+(state.lbPeriod==='year'?'active':'')+'" onclick="setLbPeriod(\'year\')">年度</button><button class="lb-period '+(state.lbPeriod==='quarter'?'active':'')+'" onclick="setLbPeriod(\'quarter\')">季度</button><button class="lb-period '+(state.lbPeriod==='month'?'active':'')+'" onclick="setLbPeriod(\'month\')">月度</button></div>'
     + '<div class="lb-period-row" style="align-items:center;"><span style="font-size:12px;color:var(--gray-4);flex-shrink:0;">⚖️ 單位</span>'+weightLib.UNITS.map(u => '<button class="lb-period '+(state.lbUnit===u?'active':'')+'" onclick="setLbUnit(\''+u+'\')">'+weightLib.NAMES[u]+'</button>').join('')+'</div>'
     + '<div class="lb-list">'+listHtml+'</div>'
-    + '<div style="font-size:12px;color:var(--gray-4);text-align:center;padding:12px;">排行榜只計有效紀錄（附照片/GPS）<br>規則公開透明，可追溯至原始紀錄</div>';
+    + (offlineNote ? '<div class="lb-rules" style="color:#b45309;">' + offlineNote + '</div>' : '')
+    + '<div class="lb-rules"><b>🏆 上榜條件</b><br>'
+    + '1. 即時影相（相片拍攝時間距離上傳 ≤ 30 分鐘）<br>'
+    + '2. 有 GPS 定位，而且喺香港範圍<br>'
+    + '3. 日期唔係未來，亦唔早過 ' + lbLib.MAX_AGE_DAYS + ' 日前<br>'
+    + '4. 魚種要喺列表內（自訂「其他」魚種唔計）<br>'
+    + '5. 重量唔超過該魚種合理上限<br>'
+    + '<span style="color:var(--gray-4);">由系統自動判定，唔達標嘅魚獲仍會保存喺「我的魚獲」。排行榜只顯示名稱、魚種、重量、釣點同日期。</span></div>';
 }
 function setLbType(t) { state.lbType = t; renderLeaderboardView(); }
 function setLbPeriod(p) { state.lbPeriod = p; renderLeaderboardView(); }
@@ -4507,7 +4636,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v108</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v109</span>';
   }
   renderView(name);
 }
@@ -4521,7 +4650,7 @@ function renderView(name) {
       dbLoadTrips().then(trips => { state.trips = trips; renderTripsView(); });
     } else renderTripsView();
   }
-  else if (name==='leaderboard') renderLeaderboardView();
+  else if (name==='leaderboard') { state.lbServerFailed = false; renderLeaderboardView(); }
   else if (name==='map') renderMapView();
 }
 function renderAll() { renderView(state.view); }
@@ -5025,6 +5154,7 @@ async function completeSignInInner(userProfile) {
     state.catches = await withTimeout(dbLoadCatches(), 8000, '載入魚獲記錄');
     state.catches = state.catches.concat(loadImportedCatches());
     retryUnsyncedCatches();
+    setTimeout(() => { try { prefetchLeaderboards(true); } catch (e) {} }, 300);
   } catch (e) {
     console.error('completeSignIn failed', e);
     showInitError('雲端載入失敗', e.message || '請重新載入頁面');
@@ -5061,6 +5191,9 @@ function safeSwitchView(name) {
 function setupGlobalHandlers() {
   if (!window._globalHandlersReady) {
     window._globalHandlersReady = true;
+    // 表單任何輸入 / 選擇改變 → 更新上榜條件提示
+    const vr = document.getElementById('view-record');
+    if (vr) ['input', 'change'].forEach(ev => vr.addEventListener(ev, () => { try { updateEligibilityHint(); } catch (e) {} }));
     document.querySelectorAll('.nav-item').forEach(btn => {
       btn.addEventListener('click', () => switchView(btn.dataset.view));
     });
