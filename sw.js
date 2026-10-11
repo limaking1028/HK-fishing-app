@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v135';  // v135: 揀完魚種自動收起列表
+const CACHE = 'hk-fishing-v136';  // v136: 快速計數按+1唔閃
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+

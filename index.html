@@ -1197,7 +1197,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v135</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v136</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -2909,6 +2909,7 @@ function renderTallySheet() {
   const opts = FISH_SPECIES.filter(f => !f.custom && !_tallyShown.includes(f.name)).map(f => '<option value="' + escapeHtml(f.name) + '">' + f.icon + ' ' + escapeHtml(f.name) + '</option>').join('');
   const photos = tripHaulPhotos(tid).map(tallySafePhoto).filter(Boolean);
   const ph = photos.map(u => '<img class="tally-ph" src="' + escapeHtml(u) + '" alt="收成相" loading="lazy">').join('');
+  const _prev = ov.querySelector('.modal-sheet'), _keep = ov.classList.contains('show') && _prev ? _prev.scrollTop : -1;
   ov.innerHTML = '<div class="modal-sheet tally-sheet" style="position:relative;" role="dialog" aria-label="快速計數">'
     + '<span class="modal-close" role="button" aria-label="關閉" onclick="closeTallySheet()">✕</span>'
     + '<div class="modal-title">🔢 快速計數</div>'
@@ -2920,6 +2921,7 @@ function renderTallySheet() {
     + '<div class="tally-ph-row">' + ph + (photos.length < 3 ? '<label class="tally-ph-add">＋ 加相<input type="file" accept="image/*" style="display:none" onchange="tallyAddPhoto(this)"></label>' : '') + '</div>'
     + '<div class="tally-hint">' + (photos.length ? '✅ 已有收成相' : '建議加相：日後如開放計數排行榜，有相先有資格。') + '</div></div>'
     + '<button type="button" class="btn btn-primary" style="width:100%;margin-top:14px;" onclick="closeTallySheet()">完成</button></div>';
+  if (_keep >= 0) { const sh = ov.querySelector('.modal-sheet'); if (sh) { sh.style.animation = 'none'; sh.scrollTop = _keep; } }
   const sel = document.getElementById('tally-add-sel');
   if (sel) sel.onchange = () => {
     let v = sel.value; if (!v) return;
@@ -2938,13 +2940,21 @@ function tallyRemove(i) {
   renderTallySheet();
 }
 window.tallyRemove = tallyRemove;
+// v136：加減數量只原地更新數字同總數，唔重畫整個畫面（避免閃爍、捲動位置跳走、相片重載）
+function tallyRefreshQty(i, sp) {
+  const ov = document.getElementById('tally-modal'); if (!ov) return;
+  const inp = ov.querySelectorAll('.tally-qty')[i];
+  if (!inp) { renderTallySheet(); return; }
+  inp.value = tallyGet(_tallyTrip)[sp] || 0;
+  const tb = ov.querySelector('.tally-total b'); if (tb) tb.textContent = tallyTotal(_tallyTrip);
+}
 function tallyStep(i, d) {
   const sp = _tallyShown[i]; if (sp == null) return;
-  const q = tallySet(_tallyTrip, sp, (tallyGet(_tallyTrip)[sp] || 0) + d);
+  tallySet(_tallyTrip, sp, (tallyGet(_tallyTrip)[sp] || 0) + d);
   if (navigator.vibrate) try { navigator.vibrate(d > 0 ? 12 : 6); } catch (e) {}
-  renderTallySheet();
+  tallyRefreshQty(i, sp);
 }
-function tallyType(i, v) { const sp = _tallyShown[i]; if (sp == null) return; tallySet(_tallyTrip, sp, v); renderTallySheet(); }
+function tallyType(i, v) { const sp = _tallyShown[i]; if (sp == null) return; tallySet(_tallyTrip, sp, v); tallyRefreshQty(i, sp); }
 async function tallyAddPhoto(input) {
   const f = input.files && input.files[0]; input.value = '';
   if (!f || !_tallyTrip) return;
@@ -5075,7 +5085,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v135</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v136</span>';
   }
   renderView(name);
 }
