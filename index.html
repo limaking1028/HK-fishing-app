@@ -1054,6 +1054,118 @@ button { touch-action: manipulation; }
     animation: weather-spin 0.8s linear infinite; margin: 0 auto 14px; border-radius: 50%;
   }
   @keyframes weather-spin { to { transform: rotate(360deg); } }
+
+  /* ============================================================
+     v125 UI 美化層（只改外觀，唔改功能）
+     海洋深青色系 · 較高對比 · 一致圓角同陰影 · 清晰焦點框 · 減少動態效果
+     ============================================================ */
+  :root {
+    --teal-dark: #0a5866; --teal: #0e8495; --teal-light: #e1f3f6; --teal-pale: #f1f9fa;
+    --gray-1: #f2f6f8; --gray-2: #e3e9ee; --gray-3: #c7d1d8;
+    --gray-4: #67727e; --gray-5: #4f5a66; --gray-6: #1f2a35; --dark: #14202b;
+    --orange: #e8561f;
+    --radius: 16px; --radius-sm: 12px;
+    --shadow: 0 1px 2px rgba(16,42,56,.05), 0 4px 14px rgba(16,42,56,.06);
+    --shadow-lg: 0 8px 28px rgba(16,42,56,.16);
+    --ring: 0 0 0 3px rgba(14,132,149,.32);
+    --ink-grad: linear-gradient(155deg, #07384a 0%, #0a5866 55%, #0e8495 130%);
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang HK", "PingFang TC", "Noto Sans CJK HK", "Noto Sans TC", "Microsoft JhengHei", sans-serif; font-variant-numeric: tabular-nums; }
+  :focus-visible { outline: none; box-shadow: var(--ring); }
+  button:focus-visible, .btn:focus-visible, .nav-item:focus-visible { border-radius: 12px; }
+
+  /* --- 頂欄 --- */
+  #header { background: var(--ink-grad); padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px; letter-spacing: 0; box-shadow: 0 2px 14px rgba(7,56,74,.28); }
+  .header-title { font-size: 17px; font-weight: 800; letter-spacing: .3px; }
+  .header-settings { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.18); padding: 6px 12px; border-radius: 999px; min-height: 36px; opacity: 1; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  .header-settings:active { background: rgba(255,255,255,.24); }
+
+  /* --- 底部導航（SVG 圖示）--- */
+  #bottom-nav { background: rgba(255,255,255,.94); backdrop-filter: saturate(1.4) blur(14px); -webkit-backdrop-filter: saturate(1.4) blur(14px); border-top: 1px solid var(--gray-2); box-shadow: 0 -4px 20px rgba(16,42,56,.07); }
+  .nav-item { padding: 7px 0 8px; gap: 3px; color: var(--gray-4); position: relative; }
+  .nav-item .nav-icon { width: 52px; height: 30px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 0; transition: background .2s, color .2s; }
+  .nav-item .nav-icon svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .nav-item.active { color: var(--teal-dark); }
+  .nav-item.active .nav-icon { background: var(--teal-light); }
+  .nav-item.active .nav-label { font-weight: 800; }
+  .nav-label { font-size: 11px; }
+
+  /* --- 卡片／區塊 --- */
+  .view { padding: 16px 14px 24px; }
+  .card, .stat-card, .catch-card, .collapsible-header, .trip-card, .lb-tabs { border: 1px solid rgba(10,88,102,.07); box-shadow: var(--shadow); }
+  .section-title { font-size: 17px; font-weight: 800; letter-spacing: -.2px; }
+  .stats-row { gap: 12px; }
+  .stat-card { padding: 16px 8px; background: linear-gradient(180deg, #fff 0%, var(--teal-pale) 160%); }
+  .stat-value { font-size: 28px; font-weight: 800; letter-spacing: -.5px; line-height: 1.15; }
+  .stat-label { font-size: 12px; font-weight: 600; color: var(--gray-5); margin-top: 4px; }
+  .stats-row .stat-card .stat-sub { font-size: 11px; color: var(--gray-4); opacity: 1; }
+  .catch-card { border-radius: var(--radius); }
+  .catch-species { font-size: 16px; font-weight: 800; }
+  .catch-meta { font-size: 12px; color: var(--gray-5); }
+  .catch-weight { font-size: 19px; font-weight: 800; letter-spacing: -.3px; }
+  .collapsible-header { padding: 14px 16px; }
+  .collapsible-title { font-size: 15px; font-weight: 800; }
+
+  /* --- 重量王者卡（深色海洋底 + 金色數字，白字對比足夠）--- */
+  .biggest-card { background: var(--ink-grad); box-shadow: 0 8px 24px rgba(7,56,74,.28); border: 0; padding: 16px; position: relative; overflow: hidden; }
+  .biggest-card::after { content: ''; position: absolute; right: -40px; top: -40px; width: 160px; height: 160px; border-radius: 50%; background: radial-gradient(circle, rgba(255,209,102,.22), transparent 70%); pointer-events: none; }
+  .biggest-badge { background: rgba(255,209,102,.18); color: #ffd166; border: 1px solid rgba(255,209,102,.4); font-weight: 800; }
+  .biggest-card-body { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: 12px; }
+  .biggest-info { color: #fff; }
+  .biggest-species { font-weight: 800; }
+  .biggest-weight { color: #ffd166; font-size: 30px; letter-spacing: -.5px; line-height: 1.1; }
+  .biggest-weight span { color: rgba(255,255,255,.85); }
+  .biggest-meta { opacity: .85; font-size: 12px; }
+
+  /* --- 分頁／篩選 --- */
+  .my-sub-tab, .filter-chip, .lb-tab, .lb-period { min-height: 40px; }
+  .my-sub-tab { border-radius: 12px; font-weight: 700; border-color: var(--gray-2); }
+  .my-sub-tab.active { background: var(--teal-dark); border-color: var(--teal-dark); color: #fff; box-shadow: 0 4px 12px rgba(10,88,102,.25); }
+  .filter-chip { padding: 7px 16px; border-radius: 999px; }
+  .filter-chip.active { background: var(--teal-dark); border-color: var(--teal-dark); color: #fff; }
+  .lb-tabs { border-radius: 14px; padding: 4px; }
+  .lb-tab { border-radius: 10px; font-weight: 700; padding: 10px 4px; }
+  .lb-tab.active { background: var(--teal-dark); box-shadow: 0 3px 10px rgba(10,88,102,.3); }
+
+  /* --- 按鈕／輸入 --- */
+  .btn { min-height: 50px; border-radius: 14px; font-weight: 800; letter-spacing: .2px; }
+  .btn-primary { background: linear-gradient(135deg, var(--teal-dark), var(--teal)); box-shadow: 0 6px 16px rgba(10,88,102,.28); }
+  .btn-outline { border-width: 1.5px; color: var(--teal-dark); }
+  .btn:active:not(:disabled) { box-shadow: none; }
+  .btn-share { box-shadow: 0 6px 16px rgba(232,86,31,.32); }
+  .form-input, .form-select, .form-textarea, .modal-input { border: 1.5px solid var(--gray-3); border-radius: var(--radius-sm); min-height: 46px; background: #fff; }
+  .form-input:focus, .form-select:focus, .form-textarea:focus, .modal-input:focus, .login-input:focus { border-color: var(--teal); box-shadow: var(--ring); }
+  .form-label { font-weight: 700; color: var(--gray-6); }
+  .species-chip { border-radius: 14px; border-color: var(--gray-2); }
+  .species-chip.selected { border-color: var(--teal); box-shadow: 0 0 0 2px rgba(14,132,149,.25); }
+
+  /* --- 行程 --- */
+  .trip-card { border-radius: var(--radius); padding: 14px 16px; }
+  .trip-card-title { font-size: 16px; font-weight: 800; }
+  .trip-card-time { font-size: 12px; color: var(--gray-5); }
+  .trip-card-stats { font-size: 13px; color: var(--gray-5); }
+  .start-trip-btn { box-shadow: 0 8px 20px rgba(232,86,31,.32); border-radius: 14px; }
+  .active-trip-banner { border-radius: 0 0 18px 18px; box-shadow: 0 8px 22px rgba(232,86,31,.28); }
+
+  /* --- 彈窗／提示 --- */
+  .modal-overlay { background: rgba(7,24,34,.55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+  .modal-sheet { border-radius: 24px 24px 0 0; box-shadow: 0 -12px 40px rgba(7,24,34,.25); }
+  .modal-sheet::before { content: ''; display: block; width: 40px; height: 4px; border-radius: 2px; background: var(--gray-3); margin: -10px auto 14px; }
+  .modal-title { font-weight: 800; }
+  .toast { background: rgba(20,32,43,.94); box-shadow: var(--shadow-lg); font-weight: 600; }
+  .tally-plus { box-shadow: 0 4px 12px rgba(14,132,149,.3); }
+
+  /* --- 登入 --- */
+  .login-screen { background: radial-gradient(120% 80% at 50% 0%, #0e8495 0%, #0a5866 45%, #07384a 100%); }
+  .login-card { border-radius: 24px; padding: 30px 24px; box-shadow: 0 20px 60px rgba(3,20,30,.45); }
+  .login-logo { margin-bottom: 6px; line-height: 0; }
+  .login-logo img { width: 72px; height: 72px; border-radius: 18px; box-shadow: 0 6px 18px rgba(10,88,102,.35); }
+  .login-title { font-size: 24px; font-weight: 800; letter-spacing: 1px; }
+  .login-btn { min-height: 50px; border-radius: 14px; font-weight: 800; background: linear-gradient(135deg, var(--teal-dark), var(--teal)); box-shadow: 0 6px 16px rgba(10,88,102,.3); }
+  .login-input { border-color: var(--gray-3); background: #fff; min-height: 46px; }
+  .google-btn { border-radius: 14px; border-color: var(--gray-3); }
+
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
   </style>
 
   <!-- Leaflet CSS -->
@@ -1068,7 +1180,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v124</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v125</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -1082,20 +1194,20 @@ button { touch-action: manipulation; }
   </main>
   <nav id="bottom-nav">
     <button class="nav-item active" data-view="my">
-      <span class="nav-icon">📋</span><span class="nav-label">我的</span>
+      <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><rect x="5" y="5" width="14" height="16" rx="2"/><path d="M9 11h6M9 15h4"/></svg></span><span class="nav-label">我的</span>
     </button>
     <!-- Route H: 行程 tab（我的右邊） -->
     <button class="nav-item" data-view="trips">
-      <span class="nav-icon">⏱️</span><span class="nav-label">行程</span>
+      <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg></span><span class="nav-label">行程</span>
     </button>
     <button class="nav-item" data-view="record">
-      <span class="nav-icon">🎣</span><span class="nav-label">記錄</span>
+      <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg></span><span class="nav-label">記錄</span>
     </button>
     <button class="nav-item" data-view="leaderboard">
-      <span class="nav-icon">🏆</span><span class="nav-label">排行</span>
+      <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg></span><span class="nav-label">排行</span>
     </button>
     <button class="nav-item" data-view="map">
-      <span class="nav-icon">🗺️</span><span class="nav-label">地圖</span>
+      <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span class="nav-label">地圖</span>
     </button>
   </nav>
 
@@ -4865,7 +4977,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v124</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v125</span>';
   }
   renderView(name);
 }
@@ -4920,7 +5032,7 @@ function renderLoginScreen() {
   screen.innerHTML = `
     <div class="login-screen">
       <div class="login-card">
-        <div class="login-logo">🎣</div>
+        <div class="login-logo"><img src="icon-192.png?v=125" alt="釣港" width="72" height="72"></div>
         <div class="login-title">釣港</div>
         <div class="login-subtitle">雲端同步 · 多裝置共享</div>
 
