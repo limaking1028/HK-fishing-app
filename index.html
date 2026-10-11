@@ -1197,7 +1197,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v136</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v137</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -2413,7 +2413,7 @@ function getCurrentLocation() {
       if (err.code === 1) msg = '已拒絕位置權限';
       else if (err.code === 2) msg = '位置不可用';
       else if (err.code === 3) msg = '取得位置逾時';
-      if (err.code === 1) status.innerHTML = '✗ ' + msg + gpsDeniedHelp(); else status.textContent = msg;
+      if (err.code === 1) status.innerHTML = '✗ ' + msg + gpsDeniedHelp(err); else status.textContent = msg;
       status.className = 'gps-status error';
       if (titleEl) titleEl.textContent = '❌ ' + msg;
       if (box) { box.classList.remove('loading'); box.classList.add('error'); }
@@ -3135,13 +3135,22 @@ async function retripActiveGPS() {
 
 
 // v110: 定位被拒絕時，按裝置顯示重新允許的步驟（網頁無法再次彈出詢問）
-function gpsDeniedHelp() {
+function gpsDeniedHelp(err) {
   const ua = navigator.userAgent || '';
   const ios = /iPhone|iPad|iPod/i.test(ua);
   const steps = ios
-    ? '<b>iPhone：</b><br>1. 撳網址列左邊嘅「ᴀA」或網站圖示 →「網站設定」<br>2. 「位置」改為「允許」<br>3. 撳下面「重新載入」<br><span style="opacity:.8">或：設定 → App → Safari → 位置 → 揀「詢問」或「允許」</span>'
-    : '<b>Android：</b><br>1. 撳網址列左邊嘅圖示 →「權限」<br>2. 「位置」改為「允許」<br>3. 撳下面「重新載入」';
-  return '<div style="font-size:12px;line-height:1.6;color:var(--gray-6);margin-top:6px;">' + steps +
+    ? '<b>iPhone（請逐項檢查）：</b><br>'
+      + '① 設定 → 私隱與安全性 → <b>定位服務</b> 要<b>開啟</b><br>'
+      + '② 同一頁向下 → <b>Safari 網站</b> → 揀「<b>使用 App 期間</b>」（唔好揀「永不」）<br>'
+      + '③ 撳網址列左邊「ᴀA」→「網站設定」→「位置」→「允許」<br>'
+      + '④ <b>關閉無痕／私人瀏覽</b>（無痕模式會直接拒絕定位）<br>'
+      + '⑤ 完全關閉 Safari 再開，或撳下面「重新載入」'
+    : '<b>Android：</b><br>'
+      + '① 手機下拉選單確認「<b>定位</b>」已開啟<br>'
+      + '② 撳網址列左邊圖示 →「權限」→「位置」→「允許」<br>'
+      + '③ 撳下面「重新載入」';
+  const tech = (err && err.message) ? '<br><span style="opacity:.6">技術訊息：' + escapeHtml(String(err.message)).slice(0, 120) + '</span>' : '';
+  return '<div style="font-size:12px;line-height:1.6;color:var(--gray-6);margin-top:6px;">' + steps + tech +
     '<br><button type="button" onclick="location.reload()" style="margin-top:6px;padding:6px 12px;border-radius:8px;border:1px solid var(--gray-3);background:#fff;font-size:12px;">🔄 重新載入</button></div>';
 }
 
@@ -3236,7 +3245,7 @@ function tripGetGPS() {
       else if (err.code === 2) msg = '位置不可用';
       else if (err.code === 3) msg = '取得位置逾時';
       status.className = 'gps-status error';
-      status.innerHTML = '✗ ' + msg + (err.code === 1 ? gpsDeniedHelp() : '');
+      status.innerHTML = '✗ ' + msg + (err.code === 1 ? gpsDeniedHelp(err) : '');
       toast(msg);
     },
     { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
@@ -4343,13 +4352,13 @@ window.openSpotShare = openSpotShare; window.closeSpotShare = closeSpotShare; wi
 /* ============================================================
  * Route J: GPS 自動偵測最近站
  * ============================================================ */
-async function requestUserLocation() {
+async function requestUserLocation(force) {
   if (!window.geoLib || !window.tidesLib) return;
   // 30 分鐘內只請求一次（避免重複彈權限）
   const now = Date.now();
-  if (state.geoRequestedAt && (now - state.geoRequestedAt) < 30 * 60 * 1000) return;
-  // 如果已經有 location，唔再請求
-  if (state.userLocation) return;
+  if (!force && state.geoRequestedAt && (now - state.geoRequestedAt) < 30 * 60 * 1000) return;   // v137：手動「重試」唔受 30 分鐘限制
+  // 如果已經有 location，唔再請求（手動重試除外）
+  if (!force && state.userLocation) return;
 
   state.geoStatus = 'locating';
   state.geoRequestedAt = now;
@@ -4392,7 +4401,7 @@ function renderLocationCard() {
       + '<div class="loc-title">想知最近邊個站？</div>'
       + '<div class="loc-sub">開啟定位搵到你附近 3 個驗潮站</div>'
       + '</div>'
-      + '<button class="loc-btn" onclick="requestUserLocation()">📍 定位</button>'
+      + '<button class="loc-btn" onclick="requestUserLocation(true)">📍 定位</button>'
       + '</div>';
   } else if (status === 'locating') {
     html = '<div class="loc-row">'
@@ -4424,7 +4433,7 @@ function renderLocationCard() {
       + '<div class="loc-title">你嘅位置 <span class="loc-acc">' + accuracyStr + '</span>' + (inHK ? '' : ' <span class="loc-warn">非香港範圍</span>') + '</div>'
       + '<div class="loc-sub">' + loc.lat.toFixed(4) + ', ' + loc.lng.toFixed(4) + ' · ' + new Date(loc.timestamp).toLocaleTimeString('zh-HK', {hour:'2-digit', minute:'2-digit'}) + '</div>'
       + '</div>'
-      + '<button class="loc-btn-mini" onclick="requestUserLocation()" title="重新定位">🔄</button>'
+      + '<button class="loc-btn-mini" onclick="requestUserLocation(true)" title="重新定位">🔄</button>'
       + '</div>'
       + '<div class="loc-station-list">' + nearestStationsHtml + '</div>';
   } else if (status === 'denied') {
@@ -4432,9 +4441,9 @@ function renderLocationCard() {
       + '<span class="loc-icon">🚫</span>'
       + '<div class="loc-text">'
       + '<div class="loc-title">定位被拒絕</div>'
-      + '<div class="loc-sub">請喺瀏覽器設定 → 網站權限 → 位置，啟用定位後重試</div>'
+      + '<div class="loc-sub">' + ((/iPhone|iPad|iPod/i.test(navigator.userAgent || '')) ? 'iPhone：設定 → 私隱與安全性 → 定位服務（開啟）→ Safari 網站 →「使用 App 期間」；並關閉無痕瀏覽，然後完全關閉 Safari 再開' : '請確認手機「定位」已開，再喺瀏覽器網站權限 → 位置揀「允許」') + '，再撳重試。' + (state.geoError ? '<br><span style="opacity:.6">技術訊息：' + escapeHtml(String(state.geoError)).slice(0, 100) + '</span>' : '') + '</div>'
       + '</div>'
-      + '<button class="loc-btn" onclick="requestUserLocation()">重試</button>'
+      + '<button class="loc-btn" onclick="requestUserLocation(true)">重試</button>'
       + '</div>';
   } else {
     // unavailable / timeout / error
@@ -4445,7 +4454,7 @@ function renderLocationCard() {
       + '<div class="loc-title">定位失敗</div>'
       + '<div class="loc-sub">' + escapeHtml(errMsg) + '</div>'
       + '</div>'
-      + '<button class="loc-btn" onclick="requestUserLocation()">重試</button>'
+      + '<button class="loc-btn" onclick="requestUserLocation(true)">重試</button>'
       + '</div>';
   }
   card.innerHTML = html;
@@ -5085,7 +5094,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v136</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v137</span>';
   }
   renderView(name);
 }
