@@ -162,7 +162,7 @@ dialog.lb .x{position:absolute;top:-8px;right:-4px;background:#fff;color:#000;bo
   .mbar b{font-size:16px}
   .mbar .sp{flex:1}
   .top h1{font-size:19px}
-  .tabbar{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--bd);z-index:30;padding-bottom:env(safe-area-inset-bottom)}
+  .tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--bd);z-index:30;padding-bottom:env(safe-area-inset-bottom)}
   .tabbar a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:58px;font-size:12px;font-weight:600;color:var(--mu);text-decoration:none;position:relative;cursor:pointer}
   .tabbar a[aria-current=page]{color:var(--brand)}
   .tabbar .badge{position:absolute;top:6px;left:calc(50% + 6px)}
@@ -227,7 +227,7 @@ const rt=c=>(window.lbLib&&lbLib.reasonText)?lbLib.reasonText(c):(c||'');
 const toast=(m)=>{const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('show'),2600);};
 async function rpc(name,args){const {data,error}=await sb.rpc(name,args||{});if(error)throw new Error(error.message||'發生錯誤');return data;}
 const S={tab:'overview',pending:0,photos:[],photoUser:null,photoUserName:'',photoFilter:'all',photoDone:false,users:[],queue:[],updated:null,email:''};
-const TABS=[['overview','總覽','home'],['review','審核中心','shield'],['photos','相片牆','image'],['users','用戶','users']];
+const TABS=[['overview','總覽','home'],['review','審核中心','shield'],['photos','相片牆','image'],['usage','使用分析','pulse'],['users','用戶','users']];
 
 /* ---------- Dialog ---------- */
 function ask(o){ // {title, body, ok, danger, note}
@@ -295,7 +295,7 @@ function loading(){return '<div class="grid kpis" aria-busy="true">'+'<div class
 async function go(tab){
   S.tab=tab;history.replaceState(null,'','#'+tab);renderNav();
   const m=$('main');m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+loading();
-  try{await ({overview:vOverview,review:vReview,photos:vPhotos,users:vUsers})[tab]();S.updated=new Date().toLocaleTimeString('zh-HK',{hour12:false,hour:'2-digit',minute:'2-digit'});}
+  try{await ({overview:vOverview,review:vReview,photos:vPhotos,usage:vUsage,users:vUsers})[tab]();S.updated=new Date().toLocaleTimeString('zh-HK',{hour12:false,hour:'2-digit',minute:'2-digit'});}
   catch(e){m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+'<div class="card err" role="alert"><h2>載入失敗</h2><p class="hint" style="color:inherit">'+esc(e.message)+'</p><button class="btn" onclick="go(S.tab)">'+ic('refresh')+'再試一次</button></div>';}
   window.scrollTo(0,0);
 }
@@ -393,6 +393,39 @@ async function excl(i){
   const r=await ask({title:to?'排除呢條魚獲？':'恢復呢條魚獲？',body:to?'標為「不計排行榜」，用戶自己仍然睇到。':'會重新判定上榜資格。',ok:to?'排除':'恢復',danger:to});
   if(!r)return;
   try{const x=await rpc('admin_set_excluded',{p_catch:p.id,p_excluded:to});p.excluded=x.excluded;p.eligible=x.eligible;p.reason=x.reason;drawPhotos();toast('已更新');}catch(e){toast(e.message);}
+}
+
+/* ---------- 使用分析（第二期）---------- */
+function hbars(rows,key,unit){
+  const m=Math.max(1,...rows.map(r=>r[key]));
+  return rows.map(r=>'<div class="hb"><span>'+esc(r.name)+'</span><div class="t"><i style="width:'+Math.max(2,Math.round(r[key]*100/m))+'%"></i></div><b>'+r[key]+unit+(r.u!=null?' · '+r.u+' 人':'')+'</b></div>').join('');
+}
+async function vUsage(){
+  let u,t;
+  try{[u,t]=await Promise.all([rpc('admin_usage'),rpc('admin_trends')]);}
+  catch(e){
+    if(/admin_usage|admin_trends|function/i.test(e.message)){$('main').innerHTML=header('使用分析')+'<div class="card">'+empty('alert','未啟用使用分析','請先喺 Supabase SQL Editor 執行 migration-v120-usage.sql')+'</div>';return;}
+    throw e;
+  }
+  const k=(icn,l,v,s)=>'<div class="kpi"><span class="l">'+ic(icn)+l+'</span><span class="v">'+esc(v)+'</span><span class="s">'+esc(s||'')+'</span></div>';
+  const dl=u.daily||[],dmax=Math.max(1,...dl.map(d=>d.min));
+  const hr=Array.from({length:24},(_,h)=>({h,min:((u.hours||[]).find(x=>x.h===h)||{min:0}).min})),hmax=Math.max(1,...hr.map(x=>x.min));
+  const wk=t.weekly||[],wmax=Math.max(1,...wk.map(w=>w.n));
+  let h=header('使用分析');
+  h+='<p class="hint" style="color:var(--mu);margin:-6px 0 14px">'+(u.tracking_since?'由 '+esc(u.tracking_since)+' 開始記錄；':'')+'只記 App 喺前景嘅時間，唔記用戶做過乜。早期數字偏少屬正常（需要用戶更新到 v120）。</p>';
+  h+='<div class="grid kpis">'+k('users','今日活躍',u.dau_today,'今日有開過 App')+k('users','7 日活躍',u.wau,'')+k('users','30 日活躍',u.mau,'')+k('trip','平均使用時間',u.avg_min_per_active_7d+' 分','近 7 日 · 每位活躍用戶')+'</div>';
+  h+='<div class="grid two" style="margin-top:12px"><section class="card" aria-labelledby="u1"><h2 id="u1">近 14 日使用分鐘</h2><p class="hint">柱頂＝全部用戶合計分鐘</p>'
+    +(dl.length?'<div class="bars" role="img" aria-label="近 14 日使用分鐘圖表">'+dl.map(d=>'<div class="c" title="'+esc(d.d)+'：'+d.min+' 分 / '+d.u+' 人"><b>'+Math.round(d.min)+'</b><i style="height:'+Math.max(3,Math.round(d.min*100/dmax))+'%"></i></div>').join('')+'</div><div class="xl" aria-hidden="true">'+dl.map(d=>'<span>'+esc(String(d.d).slice(5))+'</span>').join('')+'</div>'
+      +'<details class="tbl"><summary>查看數據表</summary><div class="tw" style="margin-top:8px"><table class="t"><thead><tr><th>日期</th><th>活躍用戶</th><th>分鐘</th></tr></thead><tbody>'+dl.map(d=>'<tr><td data-l="日期">'+esc(d.d)+'</td><td data-l="活躍用戶">'+d.u+'</td><td data-l="分鐘">'+d.min+'</td></tr>').join('')+'</tbody></table></div></details>'
+      :empty('pulse','未有數據','用戶更新並開 App 後會顯示'))+'</section>'
+    +'<section class="card" aria-labelledby="u2"><h2 id="u2">一日之中幾點用得多（近 30 日，香港時間）</h2><p class="hint">用嚟決定幾時推出更新或維護</p>'
+    +'<div class="bars" role="img" aria-label="每個鐘頭使用分鐘圖表" style="height:120px">'+hr.map(x=>'<div class="c" title="'+x.h+':00 · '+x.min+' 分"><i style="height:'+(x.min?Math.max(3,Math.round(x.min*100/hmax)):0)+'%"></i></div>').join('')+'</div><div class="xl" aria-hidden="true">'+hr.map(x=>'<span>'+(x.h%6===0?x.h:'')+'</span>').join('')+'</div></section></div>';
+  h+='<section class="card" style="margin-top:12px"><h2>近 7 日最常使用嘅用戶</h2>'+((u.top_users||[]).length?'<div class="tw" style="box-shadow:none;margin-top:8px"><table class="t"><thead><tr><th>用戶</th><th>分鐘</th><th>使用日數</th><th></th></tr></thead><tbody>'
+    +u.top_users.map(x=>'<tr><td class="first"><b>'+esc(x.display_name||'—')+'</b></td><td class="num" data-l="分鐘">'+x.min+'</td><td class="num" data-l="使用日數">'+x.days+'</td><td class="actions"><button class="btn sm" onclick="photoUser(\''+esc(x.id)+'\',\''+esc(x.display_name||'')+'\')">'+ic('image')+'相片</button></td></tr>').join('')+'</tbody></table></div>':empty('users','未有數據'))+'</section>';
+  h+='<div class="grid two" style="margin-top:12px"><section class="card" aria-labelledby="t1"><h2 id="t1">熱門魚種（近 30 日）</h2><p class="hint">魚獲條數 · 幾多人釣到</p>'+((t.species||[]).length?hbars(t.species,'n',' 條'):empty('fish','未有數據'))+'</section>'
+    +'<section class="card" aria-labelledby="t2"><h2 id="t2">熱門釣點（近 30 日）</h2><p class="hint">按用戶輸入嘅釣點名稱統計</p>'+((t.spots||[]).length?hbars(t.spots,'n',' 條'):empty('fish','未有數據'))+'</section></div>';
+  h+='<section class="card" style="margin-top:12px"><h2>每週魚獲趨勢（近 8 週）</h2><p class="hint">每週一開始計</p>'+(wk.length?'<div class="bars" role="img" aria-label="每週魚獲條數圖表">'+wk.map(w=>'<div class="c" title="'+esc(w.w)+'：'+w.n+' 條"><b>'+w.n+'</b><i style="height:'+Math.max(3,Math.round(w.n*100/wmax))+'%"></i></div>').join('')+'</div><div class="xl" aria-hidden="true">'+wk.map(w=>'<span>'+esc(String(w.w).slice(5))+'</span>').join('')+'</div>':empty('fish','未有數據'))+'</section>';
+  $('main').innerHTML=h;
 }
 
 /* ---------- 用戶 ---------- */
