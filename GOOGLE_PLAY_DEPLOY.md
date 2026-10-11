@@ -88,7 +88,7 @@ bubblewrap build
 4. **填寫商店資料**
    - 簡短描述（30 字內）：記錄你的每一次上魚時刻。
    - 完整應用說明：見下方模板
-   - 應用程式圖示：icon-512.png
+   - 應用程式圖示：store-assets/play-store-icon-512.png（512×512，全幅正方形，Google 會自動套圓角）
    - Feature Graphic：feature-graphic.png
    - Phone Screenshots：見下方截圖準備
    - 隱私政策 URL：`https://limaking1028.github.io/HK-fishing-app/privacy.html`

@@ -9,6 +9,7 @@
   "enableNotifications": false,
   "startUrl": "/HK-fishing-app/",
   "iconUrl": "https://limaking1028.github.io/HK-fishing-app/icon-512.png",
+  "maskableIconUrl": "https://limaking1028.github.io/HK-fishing-app/icon-maskable-512.png",
   "splashScreenFadeOutDuration": 300,
   "versionCode": 89,
   "versionName": "v89",
