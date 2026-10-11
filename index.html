@@ -11,8 +11,8 @@
   <meta http-equiv="Expires" content="0">
   <link rel="manifest" href="manifest.json?v=104">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=104">
-  <meta name="apple-mobile-web-app-title" content="釣魚HK">
-  <title>香港釣魚數據平台</title>
+  <meta name="apple-mobile-web-app-title" content="釣港">
+  <title>釣港</title>
   <script>
   // v103: 早期錯誤捕獲 — 即使主 script 語法錯誤也能顯示訊息
   window.__bootErrors = [];
@@ -1034,13 +1034,13 @@ button { touch-action: manipulation; }
 <body>
 
 <div id="boot-log" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#fff;padding:20px;font-family:-apple-system,sans-serif;font-size:14px;display:none;overflow:auto;">
-  <div style="font-weight:600;margin-bottom:12px;">🎣 香港釣魚數據平台 — 啟動診斷</div>
+  <div style="font-weight:600;margin-bottom:12px;">🎣 釣港 — 啟動診斷</div>
 </div>
 
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v112</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v113</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -3583,7 +3583,7 @@ function shareCatch(id) {
   const base = location.origin + location.pathname;
   const shareUrl = base + '?share=' + data;
   let shareWd = weightDisplay(c);
-  let text = '🎣 '+c.user+' 喺【香港釣魚數據平台】記錄咗一條魚獲：\n'+(c.speciesIcon||'🐟')+' '+c.species+' '+shareWd.value+shareWd.unit+'\n📍 '+c.spot+' · '+formatDate(c.date);
+  let text = '🎣 '+c.user+' 喺【釣港】記錄咗一條魚獲：\n'+(c.speciesIcon||'🐟')+' '+c.species+' '+shareWd.value+shareWd.unit+'\n📍 '+c.spot+' · '+formatDate(c.date);
   if (rankText) text += '\n🏆 排行榜名次：'+rankText;
   text += '\n快嚟挑戰排行榜！';
   const body = document.getElementById('share-modal-body');
@@ -3626,10 +3626,10 @@ function nativeShare(data) {
   const url = base + '?share=' + data;
   const d = parseShareData(data);
   if (!d) return;
-  let text = '🎣 嚟【香港釣魚數據平台】睇下'+d.u+'嘅魚獲！\n'+(d.i||'🐟')+' '+d.s+' '+fmtWeight(d.w)+'\n📍 '+d.p+' · '+formatDate(d.d);
+  let text = '🎣 嚟【釣港】睇下'+d.u+'嘅魚獲！\n'+(d.i||'🐟')+' '+d.s+' '+fmtWeight(d.w)+'\n📍 '+d.p+' · '+formatDate(d.d);
   if (d.r && d.r.length) text += '\n🏆 排行榜名次：'+d.r.map(r => r.lb+' #'+r.rank).join('、');
   if (navigator.share) {
-    navigator.share({ title: '香港釣魚數據平台', text: text, url: url }).catch(()=>{});
+    navigator.share({ title: '釣港', text: text, url: url }).catch(()=>{});
   } else {
     navigator.clipboard.writeText(text + '\n' + url).then(() => showToast('已複製，可貼到 WhatsApp / 微信')).catch(()=>{});
   }
@@ -4659,7 +4659,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v112</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v113</span>';
   }
   renderView(name);
 }
@@ -4715,7 +4715,7 @@ function renderLoginScreen() {
     <div class="login-screen">
       <div class="login-card">
         <div class="login-logo">🎣</div>
-        <div class="login-title">香港釣魚數據平台</div>
+        <div class="login-title">釣港</div>
         <div class="login-subtitle">雲端同步 · 多裝置共享</div>
 
         <!-- 密碼登入 / 註冊(預設) -->
@@ -5030,7 +5030,7 @@ function setInitStatus(step, detail) {
   if (!screen) return;
   screen.innerHTML = '<div id="init-status" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;text-align:center;font-family:-apple-system,sans-serif;">'
     + '<div style="font-size:48px;margin-bottom:16px;">🎣</div>'
-    + '<div style="font-size:18px;font-weight:600;color:#333;margin-bottom:8px;">香港釣魚數據平台</div>'
+    + '<div style="font-size:18px;font-weight:600;color:#333;margin-bottom:8px;">釣港</div>'
     + '<div style="font-size:14px;color:#666;margin-bottom:6px;">' + (step || '初始化中...') + '</div>'
     + '<div style="font-size:12px;color:#999;max-width:280px;word-break:break-word;">' + (detail || '') + '</div>'
     + '<div style="margin-top:24px;width:40px;height:40px;border:4px solid #e0f5f8;border-top-color:#0a6e7a;border-radius:50%;animation:spin 1s linear infinite;"></div>'
@@ -5143,7 +5143,7 @@ function showInitError(title, message) {
   if (screen) {
     screen.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;text-align:center;font-family:-apple-system,sans-serif;">'
       + '<div style="font-size:48px;margin-bottom:16px;">🎣</div>'
-      + '<div style="font-size:18px;font-weight:600;color:#333;margin-bottom:8px;">香港釣魚數據平台</div>'
+      + '<div style="font-size:18px;font-weight:600;color:#333;margin-bottom:8px;">釣港</div>'
       + '<div style="font-size:15px;font-weight:600;color:#ea4335;margin-bottom:4px;">' + (title || '載入失敗') + '</div>'
       + '<div style="font-size:13px;color:#999;margin-bottom:24px;">' + (message || '') + '</div>'
       + '<button onclick="location.reload()" style="padding:12px 32px;background:#0a6e7a;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">🔄 重新載入</button>'

@@ -92,7 +92,7 @@ Supabase Dashboard → SQL Editor → 「New query」
 去 email inbox,應該見到一封來自 Supabase 嘅 email:
 
 ```
-Subject: Sign in to 香港釣魚數據平台
+Subject: Sign in to 釣港
 From: noreply@supabase.io
 ```
 
@@ -124,13 +124,13 @@ Supabase Dashboard → Authentication → **Email Templates**
 
 **Subject:**
 ```
-登入香港釣魚數據平台 🎣
+登入釣港 🎣
 ```
 
 **Body (HTML):**
 ```html
 <h2>釣魚愛好者,你好 👋</h2>
-<p>撳下面嘅按鈕登入香港釣魚數據平台:</p>
+<p>撳下面嘅按鈕登入釣港:</p>
 <p>
   <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;background:#0d8a99;color:white;border-radius:10px;text-decoration:none;font-weight:600;">
     立即登入
@@ -140,7 +140,7 @@ Supabase Dashboard → Authentication → **Email Templates**
   連結 1 小時內有效。如果你沒有要求登入,請忽略此 email。
 </p>
 <p style="color:#999;font-size:11px;margin-top:24px;">
-  香港釣魚數據平台 · 雲端同步 · 多裝置共享
+  釣港 · 雲端同步 · 多裝置共享
 </p>
 ```
 

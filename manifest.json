@@ -1,6 +1,6 @@
 {
-  "name": "香港釣魚數據平台",
-  "short_name": "釣魚HK",
+  "name": "釣港",
+  "short_name": "釣港",
   "description": "記錄魚獲、挑戰排行榜、發現香港釣況",
   "start_url": "./",
   "scope": "./",
