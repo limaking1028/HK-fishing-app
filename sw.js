@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v134';  // v134: 地圖只顯示自己魚獲 + 分享釣點
+const CACHE = 'hk-fishing-v135';  // v135: 揀完魚種自動收起列表
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
