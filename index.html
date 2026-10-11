@@ -1040,7 +1040,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v109</span></div>
+    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v110</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -2230,7 +2230,7 @@ function getCurrentLocation() {
       if (err.code === 1) msg = '已拒絕位置權限';
       else if (err.code === 2) msg = '位置不可用';
       else if (err.code === 3) msg = '取得位置逾時';
-      status.textContent = msg;
+      if (err.code === 1) status.innerHTML = '✗ ' + msg + gpsDeniedHelp(); else status.textContent = msg;
       status.className = 'gps-status error';
       if (titleEl) titleEl.textContent = '❌ ' + msg;
       if (box) { box.classList.remove('loading'); box.classList.add('error'); }
@@ -2777,6 +2777,18 @@ async function retripActiveGPS() {
   );
 }
 
+
+// v110: 定位被拒絕時，按裝置顯示重新允許的步驟（網頁無法再次彈出詢問）
+function gpsDeniedHelp() {
+  const ua = navigator.userAgent || '';
+  const ios = /iPhone|iPad|iPod/i.test(ua);
+  const steps = ios
+    ? '<b>iPhone：</b><br>1. 撳網址列左邊嘅「ᴀA」或網站圖示 →「網站設定」<br>2. 「位置」改為「允許」<br>3. 撳下面「重新載入」<br><span style="opacity:.8">或：設定 → App → Safari → 位置 → 揀「詢問」或「允許」</span>'
+    : '<b>Android：</b><br>1. 撳網址列左邊嘅圖示 →「權限」<br>2. 「位置」改為「允許」<br>3. 撳下面「重新載入」';
+  return '<div style="font-size:12px;line-height:1.6;color:var(--gray-6);margin-top:6px;">' + steps +
+    '<br><button type="button" onclick="location.reload()" style="margin-top:6px;padding:6px 12px;border-radius:8px;border:1px solid var(--gray-3);background:#fff;font-size:12px;">🔄 重新載入</button></div>';
+}
+
 function onTripSpotChange(s) {
   state.tripPickingSpot = s;
   // Route I: 更新潮汐預覽
@@ -2868,7 +2880,7 @@ function tripGetGPS() {
       else if (err.code === 2) msg = '位置不可用';
       else if (err.code === 3) msg = '取得位置逾時';
       status.className = 'gps-status error';
-      status.innerHTML = '✗ ' + msg + '<br><span style="font-size:11px;color:var(--gray-5);">請到瀏覽器設置允許位置權限</span>';
+      status.innerHTML = '✗ ' + msg + (err.code === 1 ? gpsDeniedHelp() : '');
       toast(msg);
     },
     { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
@@ -4636,7 +4648,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v109</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v110</span>';
   }
   renderView(name);
 }

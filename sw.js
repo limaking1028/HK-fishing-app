@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v109';  // v109: 排行榜上榜條件 + 多人排行榜
+const CACHE = 'hk-fishing-v110';  // v110: 定位被拒絕時顯示重新允許步驟
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
