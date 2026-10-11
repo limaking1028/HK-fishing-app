@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v112';  // v112: 後台相關 + 排除原因標籤
+const CACHE = 'hk-fishing-v113';  // v113: App 改名「釣港」
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+

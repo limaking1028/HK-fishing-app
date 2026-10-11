@@ -1,8 +1,8 @@
 {
   "packageId": "app.hkfishing.twa",
   "host": "limaking1028.github.io",
-  "name": "香港釣魚數據平台",
-  "launcherName": "釣魚HK",
+  "name": "釣港",
+  "launcherName": "釣港",
   "display": "standalone",
   "themeColor": "#0a6e7a",
   "backgroundColor": "#0a6e7a",

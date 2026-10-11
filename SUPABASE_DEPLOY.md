@@ -1,4 +1,4 @@
-# 香港釣魚數據平台 - Supabase 部署指南
+# 釣港 - Supabase 部署指南
 
 ## 📋 部署 Checklist
 
