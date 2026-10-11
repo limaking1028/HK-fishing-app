@@ -228,7 +228,7 @@ const ago=t=>{if(!t)return'從未登入';const d=(Date.now()-new Date(t))/864e5;
 const rt=c=>(window.lbLib&&lbLib.reasonText)?lbLib.reasonText(c):(c||'');
 const toast=(m)=>{const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('show'),2600);};
 async function rpc(name,args){const {data,error}=await sb.rpc(name,args||{});if(error)throw new Error(error.message||'發生錯誤');return data;}
-const S={tab:'overview',pending:0,fbNew:0,fbFilter:'new',photos:[],photoUser:null,photoUserName:'',photoFilter:'all',photoDone:false,users:[],queue:[],updated:null,email:''};
+const S={tab:'overview',detail:null,pending:0,fbNew:0,fbFilter:'new',photos:[],photoUser:null,photoUserName:'',photoFilter:'all',photoDone:false,users:[],queue:[],updated:null,email:''};
 const TABS=[['overview','總覽','home'],['review','審核中心','shield'],['feedback','意見箱','chat'],['photos','相片牆','image'],['usage','使用分析','pulse'],['users','用戶','users'],['audit','操作記錄','log']];
 
 /* ---------- Dialog ---------- */
@@ -292,13 +292,14 @@ function shell(){
 function renderNav(){const a=navHtml();if($('snav'))$('snav').innerHTML=a;if($('tnav'))$('tnav').innerHTML=a;}
 function header(title,extra){
   return '<div class="top"><h1>'+esc(title)+'</h1><span class="sp"></span>'+(S.updated?'<small>更新於 '+esc(S.updated)+'</small>':'')+(extra||'')
-   +'<button class="btn sm" onclick="go(S.tab)" aria-label="重新整理">'+ic('refresh')+'<span>重新整理</span></button></div>';
+   +'<button class="btn sm" onclick="go(S.tab,\'keep\')" aria-label="重新整理">'+ic('refresh')+'<span>重新整理</span></button></div>';
 }
 function loading(){return '<div class="grid kpis" aria-busy="true">'+'<div class="sk"></div>'.repeat(8)+'</div>';}
-async function go(tab){
+async function go(tab,keep){
+  if(keep!=='keep')S.detail=null;
   S.tab=tab;history.replaceState(null,'','#'+tab);renderNav();
   const m=$('main');m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+loading();
-  try{await ({overview:vOverview,review:vReview,feedback:vFeedback,photos:vPhotos,usage:vUsage,users:vUsers,audit:vAudit})[tab]();S.updated=new Date().toLocaleTimeString('zh-HK',{hour12:false,hour:'2-digit',minute:'2-digit'});}
+  try{await ({overview:vOverview,review:vReview,feedback:vFeedback,photos:vPhotos,usage:vUsage,users:()=>S.detail?vUserDetail():vUsers(),audit:vAudit})[tab]();S.updated=new Date().toLocaleTimeString('zh-HK',{hour12:false,hour:'2-digit',minute:'2-digit'});}
   catch(e){m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+'<div class="card err" role="alert"><h2>載入失敗</h2><p class="hint" style="color:inherit">'+esc(e.message)+'</p><button class="btn" onclick="go(S.tab)">'+ic('refresh')+'再試一次</button></div>';}
   window.scrollTo(0,0);
 }
@@ -443,8 +444,8 @@ async function vUsers(){
   h+='<div class="mu" style="color:var(--mu);font-size:13px;margin:0 2px 8px">共 '+rows.length+' 位（最多顯示 200）</div>';
   if(!rows.length)h+='<div class="card">'+empty('users','搵唔到用戶','試下其他關鍵字')+'</div>';
   else h+='<div class="tw"><table class="t"><thead><tr><th>用戶</th><th>註冊</th><th>最後登入</th><th>魚獲</th><th>上榜</th><th>行程</th><th></th></tr></thead><tbody>'
-   +rows.map((u,i)=>'<tr><td class="first"><b>'+esc(u.display_name||'—')+'</b> '+(u.is_admin?'<span class="pill brand">管理員</span> ':'')+(u.banned?'<span class="pill bad">已停用</span>':'')+'<span class="sub">'+esc(u.email||'')+'</span></td><td data-l="註冊">'+fmt(u.created_at).slice(0,10)+'</td><td data-l="最後登入">'+ago(u.last_sign_in_at)+'</td><td class="num" data-l="魚獲">'+u.catch_count+'</td><td class="num" data-l="上榜">'+u.eligible_count+'</td><td class="num" data-l="行程">'+u.trip_count+'</td>'
-     +'<td class="actions"><div class="act"><button class="btn sm" onclick="photoUser(\''+esc(u.id)+'\',\''+esc(u.display_name||'')+'\')">'+ic('image')+'相片</button>'+(u.is_admin?'':'<button class="btn sm '+(u.banned?'':'ghost-bad')+'" onclick="ban('+i+')">'+(u.banned?ic('undo')+'恢復':ic('ban')+'停用')+'</button>')+'</div></td></tr>').join('')+'</tbody></table></div>';
+   +rows.map((u,i)=>'<tr><td class="first"><b><a href="#users" style="color:inherit" onclick="event.preventDefault();openUser(\''+esc(u.id)+'\')">'+esc(u.display_name||'—')+'</a></b> '+(u.is_admin?'<span class="pill brand">管理員</span> ':'')+(u.banned?'<span class="pill bad">已停用</span>':'')+'<span class="sub">'+esc(u.email||'')+'</span></td><td data-l="註冊">'+fmt(u.created_at).slice(0,10)+'</td><td data-l="最後登入">'+ago(u.last_sign_in_at)+'</td><td class="num" data-l="魚獲">'+u.catch_count+'</td><td class="num" data-l="上榜">'+u.eligible_count+'</td><td class="num" data-l="行程">'+u.trip_count+'</td>'
+     +'<td class="actions"><div class="act"><button class="btn sm" onclick="openUser(\''+esc(u.id)+'\')">'+ic('users')+'詳情</button><button class="btn sm" onclick="photoUser(\''+esc(u.id)+'\',\''+esc(u.display_name||'')+'\')">'+ic('image')+'相片</button>'+(u.is_admin?'':'<button class="btn sm '+(u.banned?'':'ghost-bad')+'" onclick="ban('+i+')">'+(u.banned?ic('undo')+'恢復':ic('ban')+'停用')+'</button>')+'</div></td></tr>').join('')+'</tbody></table></div>';
   $('main').innerHTML=h;
   if(q){const el=$('us');el.focus();el.setSelectionRange(q.length,q.length);}
 }
@@ -528,6 +529,60 @@ async function vAudit(){
      return '<tr><td class="first" data-l="時間">'+esc(fmt(l.created_at))+'</td><td data-l="管理員">'+esc(l.admin_email||'—')+'</td><td data-l="操作"><span class="pill '+a[1]+'">'+esc(a[0])+'</span></td><td data-l="對象">'+esc(tgt)+(d.owner&&d.species?' · '+esc(d.species):'')+'</td><td data-l="原因">'+esc(d.reason||'—')+'</td></tr>';}).join('')
    +'</tbody></table></div>';
   $('main').innerHTML=h;
+}
+
+/* ---------- v140：單一用戶全部紀錄 ---------- */
+function openUser(id){S.detail=id;S.userDetailTab=null;go('users','keep');}
+function closeUser(){S.detail=null;go('users');}
+async function vUserDetail(){
+  let d;
+  try{d=await rpc('admin_user_detail',{p_user:S.detail});}
+  catch(e){
+    if(/admin_user_detail|schema cache|function/i.test(e.message)){$('main').innerHTML=header('用戶詳情')+'<div class="card">'+empty('alert','未啟用用戶詳情','請先喺 Supabase SQL Editor 執行 migration-v140-user-detail.sql')+'<div style="text-align:center;margin-top:10px"><button class="btn" onclick="closeUser()">返回用戶列表</button></div></div>';return;}
+    S.detail=null;throw e;
+  }
+  S.ud=d;const pr=d.profile||{},t=d.totals||{};
+  const k=(icn,l,v,sub)=>'<div class="kpi"><span class="l">'+ic(icn)+l+'</span><span class="v">'+esc(v)+'</span><span class="s">'+esc(sub||'')+'</span></div>';
+  const prov={email:'電郵',google:'Google',phone:'手機'};
+  let h='<div class="top"><button class="btn sm" onclick="closeUser()">'+ic('undo')+'<span>返回用戶</span></button><h1 style="margin-left:10px">'+esc(pr.display_name||'（未命名）')+'</h1><span class="sp"></span>'
+   +'<button class="btn sm" onclick="go(\'users\',\'keep\')" aria-label="重新整理">'+ic('refresh')+'<span>重新整理</span></button></div>';
+  h+='<section class="card" style="margin-bottom:12px"><div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px">'
+   +(pr.is_admin?'<span class="pill brand">管理員</span>':'')+(pr.banned?'<span class="pill bad">已停用</span>':'<span class="pill ok">正常</span>')
+   +(pr.providers||[]).map(x=>'<span class="pill">'+esc(prov[x]||x)+' 登入</span>').join('')
+   +'<span class="pill '+(pr.has_password?'ok':'warn')+'">'+(pr.has_password?'已設密碼':'未設密碼')+'</span></div>'
+   +'<div class="mu" style="color:var(--mu);font-size:13px;line-height:1.7">電郵：'+esc(pr.email||'—')+'<br>註冊：'+esc(fmt(pr.created_at))+' · 最後登入：'+esc(fmt(pr.last_sign_in_at))+'（'+esc(ago(pr.last_sign_in_at))+'）<br>用戶 ID：<code style="font-size:11px">'+esc(pr.id)+'</code></div>'
+   +'<div class="act" style="justify-content:flex-start;margin-top:10px"><button class="btn sm" onclick="photoUser(\''+esc(pr.id)+'\',\''+esc(pr.display_name||'')+'\')">'+ic('image')+'相片牆</button>'
+   +(pr.is_admin?'':'<button class="btn sm '+(pr.banned?'':'ghost-bad')+'" onclick="banDetail()">'+(pr.banned?ic('undo')+'恢復帳戶':ic('ban')+'停用帳戶')+'</button>')+'</div></section>';
+  h+='<div class="grid kpis">'
+   +k('fish','魚獲',t.catches,'上榜 '+t.eligible+(t.excluded?' · 已排除 '+t.excluded:''))
+   +k('image','有相片',t.with_photo,t.catches?Math.round(t.with_photo*100/t.catches)+'%':'')
+   +k('trip','行程',t.trips,'')
+   +k('pulse','快速計數',t.tally_qty,'條（唔計排行榜）')
+   +k('cal','近 30 日使用',Math.round(t.usage_min_30d)+' 分鐘','活躍 '+t.active_days_30d+' 日')+'</div>';
+  const ud=d.usage_daily||[],umax=Math.max(1,...ud.map(x=>x.min));
+  if(ud.length)h+='<section class="card" style="margin-top:12px"><h2>近 30 日每日使用（分鐘）</h2><div class="bars" role="img" aria-label="近 30 日每日使用分鐘">'+ud.map(x=>'<div class="c" title="'+esc(x.day)+'：'+x.min+' 分鐘"><b>'+Math.round(x.min)+'</b><i style="height:'+Math.max(3,Math.round(x.min*100/umax))+'%"></i></div>').join('')+'</div></section>';
+  const cs=d.catches||[];
+  h+='<section class="card" style="margin-top:12px"><h2>魚獲（最近 '+cs.length+' 條）</h2>'+(cs.length?'<div class="tw" style="box-shadow:none;margin-top:8px"><table class="t"><thead><tr><th>相</th><th>魚種</th><th>重量</th><th>釣點</th><th>日期</th><th>上榜</th></tr></thead><tbody>'
+   +cs.map(c=>{const u=safeImg(c.photo_url);return '<tr><td class="first" data-l="相">'+(u?'<button class="im" type="button" aria-label="放大相片" style="border:0;padding:0;background:none;cursor:zoom-in" onclick="zoom(\''+esc(u)+'\',\''+esc(c.species)+'\')"><img src="'+esc(u)+'" alt="" loading="lazy" style="width:44px;height:44px;object-fit:cover;border-radius:8px"></button>':'—')+'</td>'
+     +'<td data-l="魚種"><b>'+esc(c.species)+'</b></td><td class="num" data-l="重量">'+esc(c.weight_kg==null?'—':c.weight_kg+' kg')+'</td><td data-l="釣點">'+esc(c.spot||'—')+'</td><td data-l="日期">'+esc(c.date||'')+' '+esc((c.time||'').slice(0,5))+'</td>'
+     +'<td data-l="上榜">'+(c.excluded?'<span class="pill bad">已排除</span>':c.eligible?'<span class="pill ok">符合</span>':'<span class="pill warn">'+esc(rt(c.reason)||'唔符合')+'</span>')+'</td></tr>';}).join('')+'</tbody></table></div>':empty('fish','未有魚獲'))+'</section>';
+  const ts=d.trips||[];
+  h+='<section class="card" style="margin-top:12px"><h2>行程（最近 '+ts.length+' 個）</h2>'+(ts.length?'<div class="tw" style="box-shadow:none;margin-top:8px"><table class="t"><thead><tr><th>開始</th><th>釣點</th><th>時長</th><th>魚獲</th><th>快速計數</th><th>收成相</th></tr></thead><tbody>'
+   +ts.map(x=>{const mins=x.ended_at?Math.round((new Date(x.ended_at)-new Date(x.started_at))/60000):null;const tl=Object.entries(x.tally||{});
+     return '<tr><td class="first" data-l="開始">'+esc(fmt(x.started_at))+'</td><td data-l="釣點">'+esc(x.spot||'—')+'</td><td data-l="時長">'+(mins==null?'<span class="pill warn">進行中</span>':Math.floor(mins/60)+'小時'+mins%60+'分')+'</td><td class="num" data-l="魚獲">'+esc(x.catch_count==null?'—':x.catch_count)+'</td>'
+     +'<td data-l="快速計數">'+(tl.length?tl.map(e=>'<span class="pill">'+esc(e[0])+' '+esc(e[1])+'</span>').join(' '):'—')+'</td>'
+     +'<td data-l="收成相">'+((x.haul_photos||[]).map(safeImg).filter(Boolean).map(u=>'<button class="im" type="button" aria-label="放大相片" style="border:0;padding:0;background:none;cursor:zoom-in" onclick="zoom(\''+esc(u)+'\',\'收成相\')"><img src="'+esc(u)+'" alt="" loading="lazy" style="width:44px;height:44px;object-fit:cover;border-radius:8px"></button>').join(' ')||'—')+'</td></tr>';}).join('')+'</tbody></table></div>':empty('trip','未有行程'))+'</section>';
+  const fbs=d.feedback||[];
+  if(fbs.length)h+='<section class="card" style="margin-top:12px"><h2>意見回饋</h2>'+fbs.map(f=>'<div style="padding:8px 0;border-bottom:1px solid var(--bd)"><span class="pill '+((FB_CAT[f.category]||[])[1]||'')+'">'+esc((FB_CAT[f.category]||FB_CAT.other)[0])+'</span> <span class="pill '+(f.status==='done'?'ok':'warn')+'">'+(f.status==='done'?'已處理':'未處理')+'</span> <small>'+esc(fmt(f.created_at))+'</small><p style="white-space:pre-wrap;word-break:break-word;margin:6px 0 0">'+esc(f.message)+'</p></div>').join('')+'</section>';
+  const au=d.audit||[];
+  if(au.length)h+='<section class="card" style="margin-top:12px"><h2>相關管理操作</h2>'+au.map(l=>{const a=AUDIT_ACT[l.action]||[l.action,''],dd=l.detail||{};return '<div style="padding:6px 0;border-bottom:1px solid var(--bd);font-size:13px"><span class="pill '+a[1]+'">'+esc(a[0])+'</span> '+esc(fmt(l.created_at))+' · '+esc(l.admin_email||'—')+(dd.reason?' · '+esc(dd.reason):'')+'</div>';}).join('')+'</section>';
+  $('main').innerHTML=h;
+}
+async function banDetail(){
+  const pr=S.ud.profile,to=!pr.banned;
+  const r=await ask({title:(to?'停用':'恢復')+'帳戶？',body:'「'+(pr.display_name||pr.email)+'」'+(to?'：停用後無法登入，亦唔會再出現喺排行榜，已有記錄會保留。':'：恢復後可以重新登入同上榜。'),ok:to?'停用':'恢復',danger:to,note:true});
+  if(!r)return;
+  try{await rpcR('admin_set_ban',{p_user:pr.id,p_banned:to},r.note);toast('已更新');vUserDetail();}catch(e){toast(e.message);}
 }
 window.addEventListener('hashchange',()=>{const h=(location.hash||'').replace('#','');if(TABS.some(t=>t[0]===h)&&h!==S.tab&&$('main'))go(h);});
 boot();
