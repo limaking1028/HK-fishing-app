@@ -1041,7 +1041,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v115</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v120</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -4672,7 +4672,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v115</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v120</span>';
   }
   renderView(name);
 }
@@ -5173,6 +5173,26 @@ function showInitError(title, message) {
 }
 
 /** 完成登入後嘅統一初始化流程 */
+// v120：只記「App 喺前景開咗幾耐」（每日每鐘頭秒數），用於改善 App；唔記做咗乜
+let _usageOn = false, _usagePend = 0, _usageLast = 0;
+function startUsageTracking() {
+  if (_usageOn) return; _usageOn = true; _usageLast = Date.now();
+  const tick = () => {
+    const now = Date.now();
+    if (document.visibilityState === 'visible') _usagePend += Math.min(60, Math.round((now - _usageLast) / 1000));
+    _usageLast = now;
+  };
+  const flush = async () => {
+    tick();
+    if (_usagePend < 5 || !state.user || !window.sb) return;
+    const n = Math.min(_usagePend, 120); _usagePend -= n;
+    try { const r = await sb.rpc('track_usage', { p_seconds: n }); if (r && r.error) _usagePend += n; }
+    catch (e) { _usagePend += n; }
+    if (_usagePend > 600) _usagePend = 600;
+  };
+  setInterval(flush, 60000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); else _usageLast = Date.now(); });
+}
 async function completeSignIn(userProfile) {
   if (window._signingIn) return;
   window._signingIn = true;
@@ -5190,6 +5210,7 @@ async function completeSignInInner(userProfile) {
     state.catches = await withTimeout(dbLoadCatches(), 8000, '載入魚獲記錄');
     state.catches = state.catches.concat(loadImportedCatches());
     retryUnsyncedCatches();
+    startUsageTracking();
     setTimeout(() => { try { prefetchLeaderboards(true); } catch (e) {} }, 300);
   } catch (e) {
     console.error('completeSignIn failed', e);
