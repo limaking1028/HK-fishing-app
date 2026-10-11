@@ -1046,7 +1046,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v121</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v122</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -1097,7 +1097,8 @@ button { touch-action: manipulation; }
       <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
         <div style="font-size:13px;color:var(--gray-5);margin-bottom:8px;font-weight:600;">🔑 設定 / 更改密碼</div>
         <input type="password" class="modal-input" id="settings-new-pw" placeholder="新密碼（最少 8 個字元）" autocomplete="new-password">
-        <button class="btn btn-outline" style="width:100%;margin-top:8px;" onclick="changeMyPassword()">儲存密碼</button>
+        <button class="btn btn-outline" id="settings-pw-btn" style="width:100%;margin-top:8px;" onclick="changeMyPassword()">儲存密碼</button>
+        <div id="settings-pw-msg" role="status" aria-live="polite" style="font-size:13px;margin-top:8px;min-height:18px;font-weight:600;text-align:center;"></div>
       </div>
       <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
         <button class="btn btn-outline" style="width:100%;color:#dc2626;border-color:#dc2626;" onclick="confirmClearAll()">🗑️ 清除所有記錄</button>
@@ -3517,11 +3518,20 @@ function closeConsentModal() {
 /* ===== 刪除帳戶（Google Play 要求）===== */
 async function changeMyPassword() {
   const el = document.getElementById('settings-new-pw');
+  const btn = document.getElementById('settings-pw-btn');
+  const msg = document.getElementById('settings-pw-msg');
+  const say = (t, ok) => { if (msg) { msg.textContent = t; msg.style.color = ok ? 'var(--green, #16a34a)' : 'var(--red, #dc2626)'; } };
+  if (!el.value) { say('❌ 請先輸入新密碼', false); el.focus(); return; }
+  if (btn) { btn.disabled = true; btn.textContent = '儲存中…'; }
+  say('', true);
   try {
     await authLib.updatePassword(el.value);
     el.value = '';
-    showToast('密碼已更新');
-  } catch (e) { showToast(e.message || '更新失敗'); }
+    say('✅ 密碼已成功更新，下次請用新密碼登入', true);
+    toast('✅ 密碼已更新', 3000);
+    clearTimeout(msg && msg._t); if (msg) msg._t = setTimeout(() => { msg.textContent = ''; }, 8000);
+  } catch (e) { say('❌ ' + (e.message || '更新失敗，請再試'), false); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = '儲存密碼'; } }
 }
 window.changeMyPassword = changeMyPassword;
 async function deleteAccount() {
@@ -4677,7 +4687,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v121</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v122</span>';
   }
   renderView(name);
 }
