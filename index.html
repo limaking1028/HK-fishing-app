@@ -1040,7 +1040,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v113</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v114</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -2916,6 +2916,13 @@ async function confirmStartTrip() {
   const method = (state.tripPickingMethod || '').trim();
   const bait = (state.tripPickingBait || '').trim();
 
+  // 編輯模式但行程已不存在（例如已被結束）：唔好開新行程
+  if (state.editingActiveTrip && !state.activeTrip) {
+    state.tripPicking = false; state.editingActiveTrip = false;
+    toast('呢個行程已經結束，無法儲存變更');
+    renderTripsView();
+    return;
+  }
   // 編輯模式：只更新現有 trip
   if (state.editingActiveTrip && state.activeTrip) {
     const ok = await dbUpdateTrip(state.activeTrip.id, {
@@ -3000,6 +3007,11 @@ async function endTrip(skipConfirm) {
   window.tripsLib.stopTimer();
   window.tripsLib.clearActiveTrip();
   state.activeTrip = null;
+  // 若結束時正開住「編輯行程」畫面，要一併清走編輯狀態，否則「儲存變更」會變成開始新行程
+  state.tripPicking = false; state.editingActiveTrip = false;
+  state.tripPickingSpot = ''; state.tripPickingDetectedSpot = ''; state.tripPickingCustom = '';
+  state.tripPickingMethod = ''; state.tripPickingBait = '';
+  state.tripPickingLat = null; state.tripPickingLng = null; state.tripPickingAccuracy = null;
   state.trips = await dbLoadTrips();
   renderActiveTripBanner();
   renderTripsView();
@@ -4659,7 +4671,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v113</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v114</span>';
   }
   renderView(name);
 }
