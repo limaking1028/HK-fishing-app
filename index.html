@@ -1040,7 +1040,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v110</span></div>
+    <div class="header-title" id="header-title">🎣 香港釣魚數據平台 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v111</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -1402,6 +1402,13 @@ function newUuid() {
   if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, ch => { const r = Math.random() * 16 | 0; return (ch === 'x' ? r : (r & 3 | 8)).toString(16); });
 }
+async function sha256File(file) {
+  try {
+    const buf = await file.arrayBuffer();
+    const h = await crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch (e) { return null; }
+}
 async function dbAddCatch(c) {
   if (!sb || !state.user) return null;
   // 照片：每條魚獲只上傳一次（重試時重用），失敗不阻擋魚獲本身儲存
@@ -1413,6 +1420,7 @@ async function dbAddCatch(c) {
       toast('照片上傳失敗（' + (e.message || '網絡錯誤') + '），魚獲仍會儲存', 4000);
     }
   }
+  if (!c._photoHash && typeof File !== 'undefined' && c._photoFile instanceof File) c._photoHash = await sha256File(c._photoFile);
   // 固定 id：重試時用 upsert，即使上次其實已成功也不會產生重複記錄
   if (!c.cloudId) c.cloudId = newUuid();
   const payload = {
@@ -1426,6 +1434,7 @@ async function dbAddCatch(c) {
     date: c.date, time: c.time || null, method: c.method, bait: c.bait,
     verified: false,   // 由資料庫 trigger 判定（上榜條件），App 填咩都冇用
     photo_age_sec: c.photoAgeSec != null ? Math.round(c.photoAgeSec) : null,
+    photo_hash: c._photoHash || null,   // 相片 SHA-256 指紋（防重複）
     notes: c.notes || null,
     latitude: c.latitude || null, longitude: c.longitude || null,
     location_accuracy: c.locationAccuracy || null, location_source: c.locationSource || null,
@@ -1435,10 +1444,10 @@ async function dbAddCatch(c) {
     opted_in_analytics: c.optedInAnalytics || false,  // Route M: 同意旗標稽核軌跡
   };
   let { data, error } = await sb.from('catches').upsert(payload, { onConflict: 'id' }).select().single();
-  if (error && /weight_kg|weight_input|weight_unit|photo_age_sec/.test(error.message || '')) {
+  if (error && /weight_kg|weight_input|weight_unit|photo_age_sec|photo_hash/.test(error.message || '')) {
     // 資料庫未執行 migration-v108：退回舊欄位（斤），讀取時會自動換算
     console.warn('[catches] 未有 v108 重量欄位，改用舊欄位寫入');
-    const legacy = Object.assign({}, payload); delete legacy.weight_kg; delete legacy.weight_input; delete legacy.weight_unit; delete legacy.photo_age_sec;
+    const legacy = Object.assign({}, payload); delete legacy.weight_kg; delete legacy.weight_input; delete legacy.weight_unit; delete legacy.photo_age_sec; delete legacy.photo_hash;
     ({ data, error } = await sb.from('catches').upsert(legacy, { onConflict: 'id' }).select().single());
   }
   if (error) {
@@ -3836,6 +3845,8 @@ function renderLeaderboardView() {
     + '3. 日期唔係未來，亦唔早過 ' + lbLib.MAX_AGE_DAYS + ' 日前<br>'
     + '4. 魚種要喺列表內（自訂「其他」魚種唔計）<br>'
     + '5. 重量唔超過該魚種合理上限<br>'
+    + '6. 同一張相只計一次<br>'
+    + '<b>數量王者 / 品種王者</b>另外要求：魚獲屬於一個行程（喺行程時間內記錄）、兩條相隔最少 1 分鐘；同一行程同一魚種超過 30 條需人手審核。<br>'
     + '<span style="color:var(--gray-4);">由系統自動判定，唔達標嘅魚獲仍會保存喺「我的魚獲」。排行榜只顯示名稱、魚種、重量、釣點同日期。</span></div>';
 }
 function setLbType(t) { state.lbType = t; renderLeaderboardView(); }
@@ -4648,7 +4659,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v110</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v111</span>';
   }
   renderView(name);
 }
