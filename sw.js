@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v127';  // v127: 快速計數魚種顯示對應魚照
+const CACHE = 'hk-fishing-v128';  // v128: 計數魚照 16:9
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
