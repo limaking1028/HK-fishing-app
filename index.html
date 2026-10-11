@@ -335,6 +335,9 @@ button { touch-action: manipulation; }
   .lb-rules b { color: var(--gray-6); }
   .weight-unit-select { border: none; background: var(--gray-1); font-size: 14px; font-weight: 600; color: var(--gray-5); padding: 0 6px; height: 100%; font-family: inherit; cursor: pointer; }
   .input-suffix .suffix { padding: 0 12px; font-size: 14px; color: var(--gray-4); font-weight: 600; background: var(--gray-1); height: 100%; display: flex; align-items: center; }
+  .sp-chosen { display: flex; align-items: center; gap: 14px; }
+  .sp-chosen .sp-card { width: 96px; flex: none; }
+  .sp-change-btn { border: 1.5px solid var(--teal); background: #fff; color: var(--teal-dark); font-weight: 700; font-size: 14px; padding: 10px 16px; border-radius: 12px; cursor: pointer; }
   .species-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .species-chip { text-align: center; padding: 8px 4px; border: 1.5px solid var(--gray-2); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s; font-size: 12px; background: var(--white); position: relative; }
   .species-chip > svg { display: block; margin: 0 auto 3px; }
@@ -1194,7 +1197,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v134</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v135</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -2001,7 +2004,7 @@ function renderRecordView() {
   // Route K: 渲染智能揀魚種 UI（Top 8 by 使用次數 + 摺疊展開）
   renderSpeciesSelector();
 }
-function selectSpecies(idx) { state.selectedSpecies = idx; if (idx !== FISH_SPECIES.length - 1) state.customSpecies = ''; renderSpeciesSelector(); try { updateEligibilityHint(); } catch (e) {} }
+function selectSpecies(idx) { state.selectedSpecies = idx; state.speciesPicking = false; if (idx !== FISH_SPECIES.length - 1) state.customSpecies = ''; renderSpeciesSelector(); try { updateEligibilityHint(); } catch (e) {} }
 
 /* ============================================================
  * Route K: 智能揀魚種 UI（Top 8 by 使用次數 + 摺疊展開）
@@ -2088,12 +2091,14 @@ function selectSpeciesByName(name) {
   const idx = FISH_SPECIES.findIndex(f => f.name === name);
   if (idx >= 0) {
     state.selectedSpecies = idx;
+    state.speciesPicking = false;   // v135：揀完自動收起魚種列表
     state.customSpecies = '';
     renderSpeciesSelector();  // 只更新魚種區，不重畫整個表單（避免清空已輸入的重量/備註/照片）
     try { updateEligibilityHint(); } catch (e) {}
   }
 }
 
+function changeSpecies() { state.speciesPicking = true; renderSpeciesSelector(); }
 function expandSpecies() {
   state.speciesExpanded = true;
   renderSpeciesSelector();
@@ -2130,6 +2135,20 @@ function renderSpeciesSelector() {
       ${countBadge}${pinBadge}
     </div>`;
   };
+
+  // v135：已揀魚種 → 收起列表，只顯示所揀魚種 + 「更改魚種」
+  if (state.selectedSpecies != null && !state.speciesPicking) {
+    const sel = getAllSpecies().find(it => it.idx === state.selectedSpecies);
+    if (sel) {
+      let h = '<div class="sp-chosen">' + renderCard(sel)
+        + '<button type="button" class="sp-change-btn" onclick="changeSpecies()">🔄 更改魚種</button></div>';
+      if (sel.f.custom) {
+        h += '<input type="text" class="form-input" id="custom-species" placeholder="輸入魚種名稱（例如：象拔蚌）..." value="' + escapeHtml(state.customSpecies || '') + '" oninput="state.customSpecies=this.value" style="margin-top:10px;">';
+      }
+      container.innerHTML = h;
+      return;
+    }
+  }
 
   // Top 8 區域
   let html = '<div class="sp-section-title">🔥 常用 (自動 by 使用次數)</div>';
@@ -5056,7 +5075,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v134</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v135</span>';
   }
   renderView(name);
 }
