@@ -1188,7 +1188,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v130</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v131</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -4156,7 +4156,7 @@ function renderLeaderboardView() {
       const rank = idx + 1; let rankClass = 'normal';
       if (rank===1) rankClass='gold'; else if (rank===2) rankClass='silver'; else if (rank===3) rankClass='bronze';
       let value='', detail='';
-      if (state.lbType==='biggest') { const lbWd=weightDisplay(item, state.lbUnit); value=lbWd.value+'<span class="unit">'+lbWd.unit+'</span>'; detail=escapeHtml(item.species)+' · '+escapeHtml(item.spot)+' · '+daysAgo(item.date); }
+      if (state.lbType==='biggest') { const lbWd=weightDisplay(item, state.lbUnit); value=lbWd.value+'<span class="unit">'+lbWd.unit+'</span>'; detail=escapeHtml(item.species)+' · '+daysAgo(item.date); }
       else if (state.lbType==='quantity') { value=item.count+'<span class="unit">條</span>'; detail=item.speciesCount+' 種魚 · '+item.spotCount+' 個釣點'; }
       else { var spWd = weightDisplay({weight:item.biggestWeight}, state.lbUnit); value=item.speciesCount+'<span class="unit">種</span>'; detail='最大 '+spWd.value+' '+spWd.unit+' · 釣過 '+item.spotCount+' 個釣點'; }
       // 第一名「全港霸主」：用原本 flex 結構，只加金色背景 + 徽章跨行 + detail 跨行
@@ -5009,7 +5009,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v130</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v131</span>';
   }
   renderView(name);
 }
