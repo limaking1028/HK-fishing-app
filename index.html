@@ -178,6 +178,13 @@ button { touch-action: manipulation; }
 .tally-ph-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .tally-ph { width: 76px; height: 76px; border-radius: 10px; object-fit: cover; background: var(--gray-2); }
 .tally-ph-add { width: 76px; height: 76px; border-radius: 10px; border: 2px dashed var(--gray-3); display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--gray-5); cursor: pointer; text-align: center; }
+.tally-item { border-bottom: 1px solid var(--gray-2); }
+.tally-item .tally-row { border-bottom: none; }
+.tally-sp-ph { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 0 0 10px; }
+.tally-sp-th { position: relative; width: 56px; height: 56px; }
+.tally-sp-th img { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; background: var(--gray-2); }
+.tally-sp-th button { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; border: none; background: rgba(0,0,0,.65); color: #fff; font-size: 11px; cursor: pointer; line-height: 1; }
+.tally-sp-add { display: inline-flex; align-items: center; height: 40px; padding: 0 12px; border: 1.5px dashed var(--gray-3); border-radius: 10px; font-size: 13px; color: var(--gray-5); cursor: pointer; }
 .tally-hint { font-size: 12px; color: var(--gray-4); margin-top: 6px; }
 .tally-chip { font-size: 12px; color: var(--teal-dark); }
 .tally-list-row { display: flex; justify-content: space-between; padding: 6px 2px; font-size: 14px; border-bottom: 1px solid var(--gray-2); }
@@ -1180,7 +1187,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v125</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v126</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -2772,18 +2779,20 @@ async function dbEndTrip(tripId, endedAt, stats) {
 
 /* ===== v124：快速計數（連續上魚唔使逐條記錄；唔計入任何排行榜）===== */
 const TALLY_KEY = 'hk_fishing_tallies_v1';
-let _tally = { data: {}, dirty: {} };   // data[tripId][species]=qty ; dirty['tripId|species']=1
+let _tally = { data: {}, dirty: {}, photos: {} };   // data[tripId][species]=qty ; dirty['tripId|species']=1
 let _tallyTimer = null, _tallyTrip = null, _tallyShown = [], _tallySyncing = false;
 function tallyLoadLocal() {
-  try { const o = JSON.parse(localStorage.getItem(TALLY_KEY) || '{}'); _tally.data = o.data || {}; _tally.dirty = o.dirty || {}; } catch (e) { _tally = { data: {}, dirty: {} }; }
+  try { const o = JSON.parse(localStorage.getItem(TALLY_KEY) || '{}'); _tally.data = o.data || {}; _tally.dirty = o.dirty || {}; _tally.photos = o.photos || {}; } catch (e) { _tally = { data: {}, dirty: {}, photos: {} }; }
 }
 function tallySaveLocal() { try { localStorage.setItem(TALLY_KEY, JSON.stringify(_tally)); } catch (e) {} }
 function tallyGet(tripId) { return (_tally.data[tripId] || {}); }
+function tallySpPhotos(tripId, sp) { const a = ((_tally.photos || {})[tripId] || {})[sp]; return Array.isArray(a) ? a.map(tallySafePhoto).filter(Boolean) : []; }
+function tallySetSpPhotos(tripId, sp, arr) { if (!_tally.photos) _tally.photos = {}; if (!_tally.photos[tripId]) _tally.photos[tripId] = {}; if (arr && arr.length) _tally.photos[tripId][sp] = arr; else delete _tally.photos[tripId][sp]; tallySaveLocal(); }
 function tallyTotal(tripId) { return Object.values(tallyGet(tripId)).reduce((a, b) => a + (b || 0), 0); }
 function tallySet(tripId, sp, qty) {
   qty = Math.max(0, Math.min(9999, Math.round(Number(qty) || 0)));
   if (!_tally.data[tripId]) _tally.data[tripId] = {};
-  if (qty === 0) delete _tally.data[tripId][sp]; else _tally.data[tripId][sp] = qty;
+  if (qty === 0) { delete _tally.data[tripId][sp]; if (_tally.photos && _tally.photos[tripId]) delete _tally.photos[tripId][sp]; } else _tally.data[tripId][sp] = qty;
   _tally.dirty[tripId + '|' + sp] = 1;
   tallySaveLocal();
   clearTimeout(_tallyTimer); _tallyTimer = setTimeout(tallySync, 1500);
@@ -2819,10 +2828,14 @@ async function tallySync() {
 async function tallyLoadRemote() {
   if (!sb || !state.user) return;
   try {
-    const { data, error } = await sb.from('trip_tallies').select('trip_id,species,qty');
+    let { data, error } = await sb.from('trip_tallies').select('trip_id,species,qty,photos');
+    if (error) ({ data, error } = await sb.from('trip_tallies').select('trip_id,species,qty'));   // 未執行 v126 SQL：冇 photos 欄
     if (error) return;   // 未執行 v124 SQL：靜靜地只用本機
     const remote = {};
-    (data || []).forEach(r => { (remote[r.trip_id] = remote[r.trip_id] || {})[r.species] = r.qty; });
+    (data || []).forEach(r => {
+      (remote[r.trip_id] = remote[r.trip_id] || {})[r.species] = r.qty;
+      if (Array.isArray(r.photos)) tallySetSpPhotos(r.trip_id, r.species, r.photos);
+    });
     Object.keys(remote).forEach(tid => Object.keys(remote[tid]).forEach(sp => {
       if (!_tally.dirty[tid + '|' + sp]) { (_tally.data[tid] = _tally.data[tid] || {})[sp] = remote[tid][sp]; }
     }));
@@ -2856,10 +2869,17 @@ function renderTallySheet() {
   const tid = _tallyTrip, cur = tallyGet(tid);
   const trip = (state.trips || []).find(x => x.id === tid) || state.activeTrip || {};
   const iconOf = n => { const f = FISH_SPECIES.find(x => x.name === n); return f ? f.icon : '🐟'; };
-  const rows = _tallyShown.map((sp, i) => '<div class="tally-row"><div class="tally-name">' + iconOf(sp) + ' ' + escapeHtml(sp) + '</div>'
+  const rows = _tallyShown.map((sp, i) => {
+    const sph = tallySpPhotos(tid, sp);
+    const strip = (cur[sp] > 0)
+      ? '<div class="tally-sp-ph">' + sph.map((u, j) => '<span class="tally-sp-th"><img src="' + escapeHtml(u) + '" alt="' + escapeHtml(sp) + '" loading="lazy"><button type="button" aria-label="刪除相片" onclick="tallyDelPhoto(' + i + ',' + j + ')">✕</button></span>').join('')
+        + (sph.length < 2 ? '<label class="tally-sp-add">📷 ' + (sph.length ? '加相' : escapeHtml(sp) + '相片') + '<input type="file" accept="image/*" style="display:none" onchange="tallyAddSpPhoto(' + i + ',this)"></label>' : '') + '</div>'
+      : '';
+    return '<div class="tally-item"><div class="tally-row"><div class="tally-name">' + iconOf(sp) + ' ' + escapeHtml(sp) + '</div>'
     + '<button type="button" class="tally-minus" aria-label="減一" onclick="tallyStep(' + i + ',-1)">−</button>'
     + '<input class="tally-qty" type="number" inputmode="numeric" min="0" max="9999" value="' + (cur[sp] || 0) + '" aria-label="' + escapeHtml(sp) + ' 數量" onchange="tallyType(' + i + ',this.value)">'
-    + '<button type="button" class="tally-plus" aria-label="加一" onclick="tallyStep(' + i + ',1)">＋1</button></div>').join('');
+    + '<button type="button" class="tally-plus" aria-label="加一" onclick="tallyStep(' + i + ',1)">＋1</button></div>' + strip + '</div>';
+  }).join('');
   const opts = FISH_SPECIES.filter(f => !f.custom && !_tallyShown.includes(f.name)).map(f => '<option value="' + escapeHtml(f.name) + '">' + f.icon + ' ' + escapeHtml(f.name) + '</option>').join('');
   const photos = tripHaulPhotos(tid).map(tallySafePhoto).filter(Boolean);
   const ph = photos.map(u => '<img class="tally-ph" src="' + escapeHtml(u) + '" alt="收成相" loading="lazy">').join('');
@@ -2905,6 +2925,34 @@ async function tallyAddPhoto(input) {
     toast('✅ 已加入收成相'); renderTallySheet();
   } catch (e) { toast('上載失敗：' + (e.message || '請檢查網絡'), 3500); }
 }
+async function tallyAddSpPhoto(i, input) {
+  const f = input.files && input.files[0]; input.value = '';
+  const sp = _tallyShown[i], tid = _tallyTrip;
+  if (!f || sp == null || !tid) return;
+  if (!sb || !state.user) { toast('請先登入'); return; }
+  const cur = tallySpPhotos(tid, sp); if (cur.length >= 2) return;
+  toast('上載相片中…', 4000);
+  try {
+    const url = await uploadCatchPhoto(f);
+    const arr = cur.concat([url]).slice(0, 2), q = tallyGet(tid)[sp] || 0;
+    if (!q) { toast('請先計數再加相'); return; }
+    const { error } = await sb.from('trip_tallies').upsert({ trip_id: tid, user_id: state.user.id, species: sp, qty: q, photos: arr }, { onConflict: 'trip_id,species' });
+    if (error) throw error;
+    delete _tally.dirty[tid + '|' + sp];
+    tallySetSpPhotos(tid, sp, arr);
+    toast('✅ 已加入相片'); renderTallySheet();
+  } catch (e) { toast('上載失敗：' + (e.message || '請檢查網絡'), 3500); }
+}
+async function tallyDelPhoto(i, j) {
+  const sp = _tallyShown[i], tid = _tallyTrip; if (sp == null || !tid) return;
+  const arr = tallySpPhotos(tid, sp).filter((_, k) => k !== j);
+  try {
+    const { error } = await sb.from('trip_tallies').update({ photos: arr }).eq('trip_id', tid).eq('species', sp);
+    if (error) throw error;
+    tallySetSpPhotos(tid, sp, arr); renderTallySheet();
+  } catch (e) { toast('刪除失敗：' + (e.message || '請檢查網絡'), 3000); }
+}
+window.tallyAddSpPhoto = tallyAddSpPhoto; window.tallyDelPhoto = tallyDelPhoto;
 window.openTallySheet = openTallySheet; window.closeTallySheet = closeTallySheet; window.tallyStep = tallyStep; window.tallyType = tallyType; window.tallyAddPhoto = tallyAddPhoto;
 tallyLoadLocal();
 
@@ -3514,7 +3562,7 @@ function renderTripDetailView(id) {
     const tl = tallyGet(trip.id), names = Object.keys(tl);
     const hp = (trip.haulPhotos || []).map(tallySafePhoto).filter(Boolean);
     html += '<div class="section-title" style="margin-top:16px;">🔢 快速計數</div>'
-      + (names.length ? names.map(n => '<div class="tally-list-row"><span>' + escapeHtml(n) + '</span><b>' + tl[n] + ' 條</b></div>').join('') : '<div style="font-size:13px;color:var(--gray-4);padding:6px 0;">未有計數</div>')
+      + (names.length ? names.map(n => '<div class="tally-list-row"><span>' + escapeHtml(n) + '</span><b>' + tl[n] + ' 條</b></div>' + (tallySpPhotos(trip.id, n).length ? '<div class="tally-ph-row" style="margin:6px 0 4px;">' + tallySpPhotos(trip.id, n).map(u => '<img class="tally-ph" src="' + escapeHtml(u) + '" alt="' + escapeHtml(n) + '" loading="lazy">').join('') + '</div>' : '')).join('') : '<div style="font-size:13px;color:var(--gray-4);padding:6px 0;">未有計數</div>')
       + (hp.length ? '<div class="tally-ph-row" style="margin-top:8px;">' + hp.map(u => '<img class="tally-ph" src="' + escapeHtml(u) + '" alt="收成相" loading="lazy">').join('') + '</div>' : '')
       + '<button class="btn btn-outline" style="width:100%;margin-top:8px;" onclick="openTallySheet(\'' + trip.id + '\')">🔢 ' + (names.length ? '修改計數／收成相' : '快速計數') + '</button>';
   }
@@ -3846,7 +3894,7 @@ async function deleteAccount() {
   } catch (e) {}
   closeNameDialog();
   state.activeTrip = null; state.trips = [];
-  try { localStorage.removeItem(TALLY_KEY); _tally = { data: {}, dirty: {} }; } catch (e) {}
+  try { localStorage.removeItem(TALLY_KEY); _tally = { data: {}, dirty: {}, photos: {} }; } catch (e) {}
   sbLogout();
   toast('帳戶已永久刪除', 4000);
 }
@@ -3867,7 +3915,7 @@ async function clearAllRecords() {
     } catch (e) { showToast('雲端清除失敗：' + (e.message || e)); return; }
     window.tripsLib && window.tripsLib.stopTimer(); window.tripsLib && window.tripsLib.clearActiveTrip();
     state.trips = []; state.activeTrip = null; renderActiveTripBanner();
-    try { localStorage.removeItem(UNSYNCED_KEY); localStorage.removeItem(TALLY_KEY); _tally = { data: {}, dirty: {} }; } catch (e) {}
+    try { localStorage.removeItem(UNSYNCED_KEY); localStorage.removeItem(TALLY_KEY); _tally = { data: {}, dirty: {}, photos: {} }; } catch (e) {}
   }
   localStorage.removeItem(STORAGE_KEY);
   state.catches = [];
@@ -4977,7 +5025,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v125</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v126</span>';
   }
   renderView(name);
 }
