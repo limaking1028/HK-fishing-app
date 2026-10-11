@@ -4,60 +4,213 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
 <title>管理後台 · 釣港</title>
+<link rel="icon" type="image/png" href="icon-192.png">
 <style>
-:root{--bg:#f3f6f8;--card:#fff;--tx:#12303a;--mu:#6b7f87;--bd:#dbe4e8;--pri:#0f6f80;--ok:#15803d;--bad:#b91c1c;--warn:#b45309}
-@media (prefers-color-scheme:dark){:root{--bg:#0e1a1f;--card:#16262d;--tx:#e6f0f3;--mu:#8fa5ad;--bd:#27414b;--pri:#38b2c6;--ok:#4ade80;--bad:#f87171;--warn:#fbbf24}}
+:root{
+  --bg:#f3f5f9; --surface:#ffffff; --surface-2:#f7f9fc; --tx:#0f172a; --mu:#566478; --bd:#dbe2ec;
+  --brand:#0a4a9a; --brand-tx:#ffffff; --brand-weak:#e7effb;
+  --ok:#0f7b3f; --ok-weak:#e3f5ea; --warn:#8f5200; --warn-weak:#fdf1dc; --bad:#b42318; --bad-weak:#fde8e6;
+  --r:12px; --shadow:0 1px 2px rgba(15,23,42,.06),0 4px 16px rgba(15,23,42,.05);
+  --ring:0 0 0 3px rgba(10,74,154,.35);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0b1220; --surface:#111a2b; --surface-2:#0e1626; --tx:#e8eef7; --mu:#9db0c8; --bd:#24324a;
+  --brand:#5aa5ff; --brand-tx:#061326; --brand-weak:#13233d;
+  --ok:#4ade80; --ok-weak:#0f2a1b; --warn:#fbbf24; --warn-weak:#2d2308; --bad:#f87171; --bad-weak:#341517;
+  --shadow:0 1px 2px rgba(0,0,0,.4); --ring:0 0 0 3px rgba(90,165,255,.45);
+}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang HK","Noto Sans TC",sans-serif}
-header{background:var(--pri);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px}
-header h1{font-size:17px;margin:0}
-header small{opacity:.85}
-nav{display:flex;gap:6px;padding:10px 12px;overflow-x:auto;background:var(--card);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:5}
-nav button{border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:8px 14px;border-radius:20px;font-size:14px;white-space:nowrap;cursor:pointer}
-nav button.on{background:var(--pri);color:#fff;border-color:var(--pri)}
-nav .badge{background:var(--bad);color:#fff;border-radius:10px;padding:0 6px;font-size:11px;margin-left:4px}
-main{max-width:980px;margin:0 auto;padding:14px 12px 60px}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:12px}
-.card h3{margin:0 0 8px;font-size:15px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-.stat{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px}
-.stat b{display:block;font-size:24px;line-height:1.2}
-.stat span{color:var(--mu);font-size:12px}
-.bar{display:flex;align-items:center;gap:8px;font-size:13px;margin:5px 0}
-.bar i{display:block;height:10px;border-radius:5px;background:var(--pri);min-width:2px}
-.bar .l{width:150px;flex-shrink:0;color:var(--mu)}
-.days{display:flex;align-items:flex-end;gap:4px;height:90px}
-.days div{flex:1;background:var(--pri);border-radius:3px 3px 0 0;min-height:2px;position:relative}
-.days div span{position:absolute;top:-16px;left:0;right:0;text-align:center;font-size:10px;color:var(--mu)}
-.btn{border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:7px 12px;border-radius:8px;font-size:13px;cursor:pointer}
-.btn.ok{background:var(--ok);color:#fff;border-color:var(--ok)}
-.btn.bad{background:var(--bad);color:#fff;border-color:var(--bad)}
-.btn.pri{background:var(--pri);color:#fff;border-color:var(--pri)}
-.btn:disabled{opacity:.5}
-input[type=text],input[type=email],input[type=password],input[type=search]{width:100%;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx);font-size:15px}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
-.ph{border:1px solid var(--bd);border-radius:10px;overflow:hidden;background:var(--card);font-size:12px}
-.ph img{width:100%;aspect-ratio:1;object-fit:cover;display:block;cursor:zoom-in;background:#0002}
-.ph .m{padding:6px}
-.tag{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;background:var(--bd);color:var(--tx)}
-.tag.ok{background:#16a34a22;color:var(--ok)}.tag.bad{background:#dc262622;color:var(--bad)}.tag.warn{background:#d9770622;color:var(--warn)}
-.mu{color:var(--mu);font-size:12px}
-table{width:100%;border-collapse:collapse;font-size:13px}
-td,th{padding:8px 6px;border-bottom:1px solid var(--bd);text-align:left;vertical-align:top}
-th{color:var(--mu);font-weight:500}
-.lb{position:fixed;inset:0;background:#000d;display:none;align-items:center;justify-content:center;z-index:50;padding:10px}
-.lb.show{display:flex}.lb img{max-width:100%;max-height:100%;border-radius:8px}
-.center{text-align:center;padding:40px 10px;color:var(--mu)}
-.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111;color:#fff;padding:9px 16px;border-radius:20px;font-size:13px;z-index:60;display:none}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang HK","Noto Sans CJK HK","Noto Sans TC",sans-serif;font-variant-numeric:tabular-nums}
+a{color:var(--brand)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:none;box-shadow:var(--ring);border-radius:8px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+
+/* ---- 版面 ---- */
+.shell{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+.side{position:sticky;top:0;height:100vh;background:var(--surface);border-right:1px solid var(--bd);display:flex;flex-direction:column;padding:18px 14px}
+.brand{display:flex;align-items:center;gap:10px;padding:2px 8px 18px}
+.brand img{width:36px;height:36px;border-radius:10px}
+.brand b{display:block;font-size:17px;line-height:1.2}
+.brand span{font-size:12px;color:var(--mu)}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav a{display:flex;align-items:center;gap:12px;padding:0 12px;min-height:44px;border-radius:10px;color:var(--mu);text-decoration:none;font-weight:500;cursor:pointer;transition:background .18s,color .18s}
+.nav a:hover{background:var(--surface-2);color:var(--tx)}
+.nav a[aria-current=page]{background:var(--brand-weak);color:var(--brand);font-weight:600}
+.nav .badge{margin-left:auto}
+.side .foot{margin-top:auto;border-top:1px solid var(--bd);padding:14px 8px 0;font-size:13px;color:var(--mu)}
+.side .foot .who{display:block;color:var(--tx);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:8px}
+.main{min-width:0;padding:24px 28px 40px;max-width:1180px;width:100%}
+.top{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.top h1{font-size:22px;margin:0;line-height:1.3}
+.top .sp{flex:1}
+.top small{color:var(--mu);font-size:12px}
+.mbar{display:none}
+.tabbar{display:none}
+
+/* ---- 元件 ---- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--bd);background:var(--surface);cursor:pointer;font-weight:600;font-size:14px;transition:background .18s,border-color .18s,transform .08s;white-space:nowrap}
+.btn:hover{background:var(--surface-2);border-color:var(--mu)}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.sm{min-height:36px;padding:0 12px;font-size:13px}
+.btn.pri{background:var(--brand);border-color:var(--brand);color:var(--brand-tx)}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.btn.ghost-bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,var(--bd))}
+.card{background:var(--surface);border:1px solid var(--bd);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
+.card h2{font-size:15px;margin:0 0 4px;line-height:1.4}
+.card .hint{color:var(--mu);font-size:13px;margin:0 0 12px}
+.grid{display:grid;gap:12px}
+.kpis{grid-template-columns:repeat(auto-fill,minmax(168px,1fr))}
+.kpi{background:var(--surface);border:1px solid var(--bd);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:2px}
+.kpi .l{font-size:13px;color:var(--mu);display:flex;align-items:center;gap:8px}
+.kpi .v{font-size:30px;font-weight:700;line-height:1.2;letter-spacing:-.5px}
+.kpi .s{font-size:12px;color:var(--mu)}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 7px;border-radius:11px;background:var(--bad);color:#fff;font-size:12px;font-weight:700}
+.pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:12px;font-size:12px;font-weight:600;background:var(--surface-2);color:var(--mu);border:1px solid var(--bd);white-space:nowrap}
+.pill.ok{background:var(--ok-weak);color:var(--ok);border-color:transparent}
+.pill.bad{background:var(--bad-weak);color:var(--bad);border-color:transparent}
+.pill.warn{background:var(--warn-weak);color:var(--warn);border-color:transparent}
+.pill.brand{background:var(--brand-weak);color:var(--brand);border-color:transparent}
+.alert{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-radius:var(--r);background:var(--warn-weak);color:var(--warn);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent);margin-bottom:12px;font-weight:600}
+.alert .btn{margin-left:auto}
+.two{grid-template-columns:1.2fr 1fr}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{min-height:36px;padding:0 14px;border-radius:18px;border:1px solid var(--bd);background:var(--surface);cursor:pointer;font-size:13px;font-weight:600;color:var(--mu)}
+.chip[aria-pressed=true]{background:var(--brand);border-color:var(--brand);color:var(--brand-tx)}
+input[type=search],input[type=text],input[type=email],input[type=password],textarea{width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--surface);color:var(--tx);font:inherit}
+input:focus,textarea:focus{outline:none;border-color:var(--brand);box-shadow:var(--ring)}
+label.f{display:block;font-size:13px;font-weight:600;margin:0 0 6px}
+
+/* ---- 圖表 ---- */
+.bars{display:flex;align-items:flex-end;gap:6px;height:150px;padding-top:20px;border-bottom:1px solid var(--bd)}
+.bars .c{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:0}
+.bars .c i{display:block;width:100%;max-width:34px;background:var(--brand);border-radius:6px 6px 0 0;min-height:3px;opacity:.9}
+.bars .c b{font-size:11px;color:var(--mu);font-weight:600;margin-bottom:3px}
+.xl{display:flex;gap:6px;margin-top:6px}
+.xl span{flex:1;text-align:center;font-size:11px;color:var(--mu);min-width:0}
+.hb{display:grid;grid-template-columns:minmax(120px,38%) 1fr auto;align-items:center;gap:10px;margin:9px 0;font-size:13px}
+.hb .t{height:10px;background:var(--surface-2);border-radius:5px;overflow:hidden;border:1px solid var(--bd)}
+.hb .t i{display:block;height:100%;background:var(--brand);border-radius:5px}
+.hb b{min-width:64px;text-align:right}
+details.tbl summary{cursor:pointer;color:var(--brand);font-size:13px;font-weight:600;margin-top:10px;min-height:32px;display:flex;align-items:center}
+
+/* ---- 相片 ---- */
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.ph{background:var(--surface);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+.ph button.im{all:unset;display:block;cursor:zoom-in;position:relative}
+.ph button.im:focus-visible{box-shadow:inset var(--ring)}
+.ph img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--surface-2)}
+.ph .m{padding:10px;font-size:13px;display:flex;flex-direction:column;gap:6px;line-height:1.35}
+.ph .m .u{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:none;border:0;padding:0;text-align:left;cursor:pointer;color:var(--brand)}
+.ph .m .d{color:var(--mu);font-size:12px}
+.noimg{aspect-ratio:1;display:grid;place-items:center;color:var(--mu);background:var(--surface-2);font-size:12px}
+.rv-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;margin:12px 0}
+.rv-photos .ph .m{padding:6px 8px;font-size:12px}
+
+/* ---- 表格（桌面）／卡片（手機）---- */
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+table.t th{font-size:12px;color:var(--mu);font-weight:600;text-align:left;padding:10px 12px;border-bottom:1px solid var(--bd);background:var(--surface-2);position:sticky;top:0}
+table.t td{padding:12px;border-bottom:1px solid var(--bd);vertical-align:middle}
+table.t tr:last-child td{border-bottom:0}
+table.t .sub{display:block;color:var(--mu);font-size:12px}
+table.t td.num{font-variant-numeric:tabular-nums}
+.act{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.tw{overflow-x:auto;border:1px solid var(--bd);border-radius:var(--r);background:var(--surface);box-shadow:var(--shadow)}
+
+/* ---- 狀態 ---- */
+.sk{background:linear-gradient(90deg,var(--surface-2),var(--bd),var(--surface-2));background-size:200% 100%;animation:sk 1.2s infinite linear;border-radius:var(--r);min-height:92px}
+@keyframes sk{to{background-position:-200% 0}}
+.empty{text-align:center;padding:48px 16px;color:var(--mu)}
+.empty svg{width:40px;height:40px;margin-bottom:8px;opacity:.7}
+.empty b{display:block;color:var(--tx);font-size:16px;margin-bottom:4px}
+.err{border-color:var(--bad);background:var(--bad-weak);color:var(--bad)}
+
+/* ---- Dialog / Toast ---- */
+dialog{border:1px solid var(--bd);border-radius:16px;background:var(--surface);color:var(--tx);padding:0;width:min(440px,calc(100vw - 32px));box-shadow:0 24px 64px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(5,12,25,.6)}
+dialog .in{padding:20px}
+dialog h3{margin:0 0 8px;font-size:18px}
+dialog p{margin:0 0 14px;color:var(--mu)}
+dialog .row{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+dialog.lb{width:auto;max-width:min(96vw,980px);background:transparent;border:0;box-shadow:none;overflow:visible}
+dialog.lb img{display:block;max-width:96vw;max-height:84vh;border-radius:12px;margin:auto}
+dialog.lb .cap{color:#fff;text-align:center;margin-top:10px;font-size:14px}
+dialog.lb .x{position:absolute;top:-8px;right:-4px;background:#fff;color:#000;border-radius:50%;width:44px;height:44px;border:0;display:grid;place-items:center;cursor:pointer}
+#toast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);background:#0f172a;color:#fff;padding:11px 18px;border-radius:24px;font-size:14px;font-weight:500;z-index:80;opacity:0;pointer-events:none;transition:opacity .2s;max-width:calc(100vw - 32px)}
+#toast.show{opacity:1}
+@media (min-width:1024px){#toast{bottom:28px}}
+
+/* ---- 登入 ---- */
+.login{min-height:100vh;display:grid;place-items:center;padding:20px}
+.login .card{width:min(400px,100%);padding:24px}
+.login .brand{padding:0 0 16px}
+
+/* ---- 響應式 ---- */
+@media (max-width:1023px){
+  .shell{grid-template-columns:1fr}
+  .side{display:none}
+  .main{padding:14px 14px 96px}
+  .mbar{display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--bd);padding:10px 14px}
+  .mbar img{width:30px;height:30px;border-radius:8px}
+  .mbar b{font-size:16px}
+  .mbar .sp{flex:1}
+  .top h1{font-size:19px}
+  .tabbar{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--bd);z-index:30;padding-bottom:env(safe-area-inset-bottom)}
+  .tabbar a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:58px;font-size:12px;font-weight:600;color:var(--mu);text-decoration:none;position:relative;cursor:pointer}
+  .tabbar a[aria-current=page]{color:var(--brand)}
+  .tabbar .badge{position:absolute;top:6px;left:calc(50% + 6px)}
+  .two{grid-template-columns:1fr}
+}
+@media (max-width:720px){
+  table.t,table.t tbody,table.t tr,table.t td{display:block;width:100%}
+  table.t thead{display:none}
+  table.t tr{padding:12px;border-bottom:1px solid var(--bd)}
+  table.t td{border:0;padding:4px 0;display:flex;justify-content:space-between;gap:12px;align-items:center}
+  table.t td::before{content:attr(data-l);color:var(--mu);font-size:12px;flex-shrink:0}
+  table.t td.first{display:block}
+  table.t td.first::before{display:none}
+  table.t td.actions{justify-content:flex-end;padding-top:8px}
+  table.t td.actions::before{display:none}
+  .hb{grid-template-columns:1fr auto}
+  .hb .t{grid-column:1/-1;order:3}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
-<header><h1>🎣 管理後台</h1><small id="who"></small></header>
-<div id="app"><div class="center">載入中…</div></div>
-<div class="lb" id="lb" onclick="this.classList.remove('show')"><img id="lbimg" alt=""></div>
-<div class="toast" id="toast"></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></symbol>
+  <symbol id="i-fish" viewBox="0 0 24 24"><path d="M2 12c3-5 8-6 12-4l5-3-1 5 1 5-5-3c-4 2-9 1-12-4z"/><circle cx="9" cy="11" r=".6"/></symbol>
+  <symbol id="i-trip" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+  <symbol id="i-pct" viewBox="0 0 24 24"><path d="M19 5 5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></symbol>
+  <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+</svg>
+
+<div id="app" aria-live="polite"><div class="login"><div class="sk" style="width:min(400px,100%);height:220px"></div></div></div>
+
+<dialog id="dlg"><div class="in" id="dlgBody"></div></dialog>
+<dialog id="lb" class="lb" aria-label="相片預覽"><button class="x" type="button" aria-label="關閉預覽" onclick="document.getElementById('lb').close()"><svg class="i"><use href="#i-x"/></svg></button><img id="lbimg" alt=""><div class="cap" id="lbcap"></div></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 <script src="./lib/leaderboard.js"></script>
 <script>
@@ -66,133 +219,205 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,storage:window.localStorage}});
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ic=(n,cls)=>'<svg class="i'+(cls?' '+cls:'')+'" aria-hidden="true"><use href="#i-'+n+'"/></svg>';
 const safeImg=u=>(typeof u==='string'&&u.indexOf(SB_URL+'/storage/')===0)?u:'';
-const fmt=t=>t?new Date(t).toLocaleString('sv-SE',{timeZone:'Asia/Hong_Kong'}).slice(0,16):'—';   // YYYY-MM-DD HH:mm（香港時間）
-const ago=t=>{if(!t)return'從未';const d=(Date.now()-new Date(t))/864e5;return d<1?'今日':d<2?'昨日':Math.floor(d)+' 日前';};
-const rt=c=>(window.lbLib&&lbLib.reasonText)?lbLib.reasonText(c):c;
-function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display='none',2500);}
-function zoom(u){const s=safeImg(u);if(!s)return;$('lbimg').src=s;$('lb').classList.add('show');}
-async function rpc(name,args){const {data,error}=await sb.rpc(name,args||{});if(error){throw new Error(error.message||'錯誤');}return data;}
-const S={tab:'overview',pending:0,photos:[],photoUser:null,photoDone:false};
+const fmt=t=>t?new Date(t).toLocaleString('sv-SE',{timeZone:'Asia/Hong_Kong'}).slice(0,16):'—';
+const ago=t=>{if(!t)return'從未登入';const d=(Date.now()-new Date(t))/864e5;return d<1?'今日':d<2?'昨日':Math.floor(d)+' 日前';};
+const rt=c=>(window.lbLib&&lbLib.reasonText)?lbLib.reasonText(c):(c||'');
+const toast=(m)=>{const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('show'),2600);};
+async function rpc(name,args){const {data,error}=await sb.rpc(name,args||{});if(error)throw new Error(error.message||'發生錯誤');return data;}
+const S={tab:'overview',pending:0,photos:[],photoUser:null,photoUserName:'',photoFilter:'all',photoDone:false,users:[],queue:[],updated:null,email:''};
+const TABS=[['overview','總覽','home'],['review','審核中心','shield'],['photos','相片牆','image'],['users','用戶','users']];
 
-// ---------- 登入 ----------
-function showLogin(msg){
-  $('who').textContent='';
-  $('app').innerHTML='<main><div class="card"><h3>登入</h3><p class="mu">如果你喺同一部瀏覽器已經登入咗 App，會自動沿用。否則請用 App 嘅電郵同密碼登入。</p>'
-   +(msg?'<p style="color:var(--bad)">'+esc(msg)+'</p>':'')
-   +'<div style="display:grid;gap:8px;max-width:360px"><input type="email" id="em" placeholder="電郵" autocomplete="username"><input type="password" id="pw" placeholder="密碼" autocomplete="current-password"><button class="btn pri" onclick="doLogin()">登入</button></div></div></main>';
+/* ---------- Dialog ---------- */
+function ask(o){ // {title, body, ok, danger, note}
+  return new Promise(res=>{
+    const d=$('dlg');
+    $('dlgBody').innerHTML='<h3>'+esc(o.title)+'</h3><p>'+esc(o.body||'')+'</p>'
+      +(o.note?'<label class="f" for="dnote">備註（可選）</label><input type="text" id="dnote" maxlength="200" autocomplete="off">':'')
+      +'<div class="row"><button type="button" class="btn" id="dno">取消</button><button type="button" class="btn '+(o.danger?'bad':'pri')+'" id="dyes">'+esc(o.ok||'確定')+'</button></div>';
+    let val=null;
+    const done=v=>{val=v;d.close();};
+    $('dno').onclick=()=>done(null);
+    $('dyes').onclick=()=>done({note:o.note?($('dnote').value||'').trim():''});
+    d.onclose=()=>res(val);
+    d.showModal(); (o.note?$('dnote'):$('dno')).focus();
+  });
 }
-async function doLogin(){
+function zoom(u,cap){const s=safeImg(u);if(!s)return;$('lbimg').src=s;$('lbimg').alt=cap||'魚獲相片';$('lbcap').textContent=cap||'';$('lb').showModal();}
+$('lb').addEventListener('click',e=>{if(e.target.id==='lb')$('lb').close();});
+
+/* ---------- 登入 ---------- */
+function showLogin(msg){
+  $('app').innerHTML='<div class="login"><div class="card"><div class="brand"><img src="icon-192.png" alt=""><div><b>釣港 管理後台</b><span>僅限管理員</span></div></div>'
+   +'<p class="hint" style="color:var(--mu);font-size:13px;margin:0 0 14px">同一部瀏覽器已登入 App 會自動沿用，否則請用 App 嘅電郵同密碼登入。</p>'
+   +(msg?'<div class="alert" style="background:var(--bad-weak);color:var(--bad)" role="alert">'+esc(msg)+'</div>':'')
+   +'<form onsubmit="doLogin(event)" style="display:grid;gap:12px"><div><label class="f" for="em">電郵</label><input type="email" id="em" autocomplete="username" required></div>'
+   +'<div><label class="f" for="pw">密碼</label><input type="password" id="pw" autocomplete="current-password" required></div>'
+   +'<button class="btn pri" type="submit">登入</button></form></div></div>';
+}
+async function doLogin(e){
+  e.preventDefault();
   const {error}=await sb.auth.signInWithPassword({email:$('em').value.trim(),password:$('pw').value});
   if(error){showLogin('登入失敗：'+error.message);return;}
   boot();
 }
 async function logout(){await sb.auth.signOut();showLogin();}
+
+/* ---------- 外殼 ---------- */
 async function boot(){
   const {data:{session}}=await sb.auth.getSession();
   if(!session){showLogin();return;}
   let ok=false;try{ok=await rpc('is_admin');}catch(e){ok=false;}
-  if(!ok){$('app').innerHTML='<main><div class="card"><h3>冇權限</h3><p class="mu">呢個帳戶唔係管理員，或者資料庫（v112）未設定好。</p><button class="btn" onclick="logout()">登出</button></div></main>';return;}
-  $('who').innerHTML='管理員 · <a href="#" style="color:#fff" onclick="logout();return false">登出</a>';
-  $('app').innerHTML='<nav id="nav"></nav><main id="main"></main>';
+  if(!ok){$('app').innerHTML='<div class="login"><div class="card"><div class="brand"><img src="icon-192.png" alt=""><div><b>釣港 管理後台</b></div></div><h2>冇權限</h2><p class="hint" style="color:var(--mu)">呢個帳戶唔係管理員，或者資料庫（v112）未設定好。</p><button class="btn" onclick="logout()">登出</button></div></div>';return;}
+  S.email=(session.user&&session.user.email)||'管理員';
+  const h=(location.hash||'').replace('#','');if(TABS.some(t=>t[0]===h))S.tab=h;
+  shell();
   try{S.pending=(await rpc('admin_overview')).pending_reviews||0;}catch(e){}
   go(S.tab);
 }
-function renderNav(){
-  const T=[['overview','📊 總覽'],['review','🛡️ 審核中心'],['photos','📷 相片牆'],['users','👥 用戶']];
-  $('nav').innerHTML=T.map(t=>'<button class="'+(S.tab===t[0]?'on':'')+'" onclick="go(\''+t[0]+'\')">'+t[1]+(t[0]==='review'&&S.pending?'<span class="badge">'+S.pending+'</span>':'')+'</button>').join('');
+function navHtml(kind){
+  return TABS.map(t=>'<a role="link" tabindex="0" data-tab="'+t[0]+'" '+(S.tab===t[0]?'aria-current="page"':'')+' onclick="go(\''+t[0]+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();go(\''+t[0]+'\')}">'
+    +ic(t[2])+'<span>'+t[1]+'</span>'+(t[0]==='review'&&S.pending?'<span class="badge" aria-label="'+S.pending+' 項待審核">'+S.pending+'</span>':'')+'</a>').join('');
 }
+function shell(){
+  $('app').innerHTML='<div class="mbar"><img src="icon-192.png" alt=""><b>釣港 管理後台</b><span class="sp"></span><button class="btn sm" onclick="logout()" aria-label="登出">'+ic('out')+'</button></div>'
+   +'<div class="shell"><aside class="side" aria-label="主選單"><div class="brand"><img src="icon-192.png" alt=""><div><b>釣港</b><span>管理後台</span></div></div><nav class="nav" id="snav">'+navHtml()+'</nav>'
+   +'<div class="foot"><span class="who" title="'+esc(S.email)+'">'+esc(S.email)+'</span><button class="btn sm" onclick="logout()">'+ic('out')+'登出</button></div></aside>'
+   +'<main class="main" id="main"></main></div><nav class="tabbar" id="tnav" aria-label="主選單">'+navHtml()+'</nav>';
+}
+function renderNav(){const a=navHtml();if($('snav'))$('snav').innerHTML=a;if($('tnav'))$('tnav').innerHTML=a;}
+function header(title,extra){
+  return '<div class="top"><h1>'+esc(title)+'</h1><span class="sp"></span>'+(S.updated?'<small>更新於 '+esc(S.updated)+'</small>':'')+(extra||'')
+   +'<button class="btn sm" onclick="go(S.tab)" aria-label="重新整理">'+ic('refresh')+'<span>重新整理</span></button></div>';
+}
+function loading(){return '<div class="grid kpis" aria-busy="true">'+'<div class="sk"></div>'.repeat(8)+'</div>';}
 async function go(tab){
-  S.tab=tab;renderNav();$('main').innerHTML='<div class="center">載入中…</div>';
-  try{await ({overview:vOverview,review:vReview,photos:vPhotos,users:vUsers})[tab]();}
-  catch(e){$('main').innerHTML='<div class="card"><h3>載入失敗</h3><p class="mu">'+esc(e.message)+'</p></div>';}
+  S.tab=tab;history.replaceState(null,'','#'+tab);renderNav();
+  const m=$('main');m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+loading();
+  try{await ({overview:vOverview,review:vReview,photos:vPhotos,users:vUsers})[tab]();S.updated=new Date().toLocaleTimeString('zh-HK',{hour12:false,hour:'2-digit',minute:'2-digit'});}
+  catch(e){m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+'<div class="card err" role="alert"><h2>載入失敗</h2><p class="hint" style="color:inherit">'+esc(e.message)+'</p><button class="btn" onclick="go(S.tab)">'+ic('refresh')+'再試一次</button></div>';}
+  window.scrollTo(0,0);
 }
+const empty=(icn,t,s)=>'<div class="empty">'+ic(icn)+'<b>'+esc(t)+'</b><span>'+esc(s||'')+'</span></div>';
 
-// ---------- 總覽 ----------
+/* ---------- 總覽 ---------- */
 async function vOverview(){
   const o=await rpc('admin_overview');S.pending=o.pending_reviews||0;renderNav();
   const pct=o.catches_total?Math.round(o.eligible_total*100/o.catches_total):0;
-  const st=(n,l)=>'<div class="stat"><b>'+esc(n)+'</b><span>'+l+'</span></div>';
-  const rs=o.reasons||[],rmax=Math.max(1,...rs.map(r=>r.n));
+  const k=(icn,l,v,s)=>'<div class="kpi"><span class="l">'+ic(icn)+l+'</span><span class="v">'+esc(v)+'</span><span class="s">'+esc(s||'')+'</span></div>';
+  const rs=o.reasons||[],rsum=rs.reduce((a,r)=>a+r.n,0)||1;
   const dl=o.daily||[],dmax=Math.max(1,...dl.map(d=>d.n));
-  $('main').innerHTML='<div class="grid">'
-   +st(o.users_total,'註冊用戶')+st(o.users_7d,'近 7 日新用戶')+st(o.users_active_7d,'近 7 日有登入')
-   +st(o.catches_total,'魚獲總數')+st(o.catches_today,'今日新增魚獲')+st(o.catches_7d,'近 7 日魚獲')
-   +st(o.trips_total,'行程總數')+st(o.with_photo,'有相片魚獲')+st(pct+'%','符合上榜比例')
-   +st(o.pending_reviews,'待審核')+st(o.excluded_total,'管理員排除')+'</div>'
-   +'<div class="card" style="margin-top:12px"><h3>近 14 日每日魚獲</h3>'+(dl.length?'<div class="days">'+dl.map(d=>'<div style="height:'+Math.max(3,Math.round(d.n*100/dmax))+'%" title="'+esc(d.d)+'：'+d.n+' 條 / '+d.u+' 人"><span>'+d.n+'</span></div>').join('')+'</div><div class="mu" style="margin-top:4px">'+esc(dl[0].d)+' → '+esc(dl[dl.length-1].d)+'（柱上數字＝魚獲數）</div>':'<div class="mu">暫時冇資料</div>')+'</div>'
-   +'<div class="card"><h3>近 30 日未能上榜原因</h3>'+(rs.length?rs.map(r=>'<div class="bar"><span class="l">'+esc(rt(r.reason))+'</span><i style="width:'+Math.round(r.n*100/rmax)+'%"></i><b>'+r.n+'</b></div>').join(''):'<div class="mu">冇資料</div>')+'</div>';
+  let h=header('總覽');
+  if(S.pending)h+='<div class="alert" role="status">'+ic('alert')+'有 '+S.pending+' 項魚獲等緊你審核<button class="btn sm pri" onclick="go(\'review\')">去審核</button></div>';
+  h+='<div class="grid kpis">'
+   +k('users','註冊用戶',o.users_total,'近 7 日新增 '+o.users_7d)
+   +k('pulse','近 7 日活躍',o.users_active_7d,'有登入嘅用戶')
+   +k('fish','魚獲總數',o.catches_total,'今日 +'+o.catches_today)
+   +k('cal','近 7 日魚獲',o.catches_7d,'')
+   +k('trip','行程總數',o.trips_total,'')
+   +k('image','有相片魚獲',o.with_photo,o.catches_total?Math.round(o.with_photo*100/o.catches_total)+'% 有相':'')
+   +k('pct','符合上榜比例',pct+'%',o.eligible_total+' / '+o.catches_total)
+   +k('ban','管理員已排除',o.excluded_total,'')
+   +'</div><div class="grid two" style="margin-top:12px">'
+   +'<section class="card" aria-labelledby="h1"><h2 id="h1">近 14 日每日魚獲</h2><p class="hint">柱頂數字＝魚獲條數</p>'
+   +(dl.length?'<div class="bars" role="img" aria-label="近 14 日每日魚獲條數圖表">'+dl.map(d=>'<div class="c" title="'+esc(d.d)+'：'+d.n+' 條 / '+d.u+' 人"><b>'+d.n+'</b><i style="height:'+Math.max(3,Math.round(d.n*100/dmax))+'%"></i></div>').join('')+'</div><div class="xl" aria-hidden="true">'+dl.map(d=>'<span>'+esc(String(d.d).slice(5))+'</span>').join('')+'</div>'
+     +'<details class="tbl"><summary>查看數據表</summary><div class="tw" style="margin-top:8px"><table class="t"><thead><tr><th>日期</th><th>魚獲</th><th>用戶</th></tr></thead><tbody>'+dl.map(d=>'<tr><td data-l="日期">'+esc(d.d)+'</td><td data-l="魚獲">'+d.n+'</td><td data-l="用戶">'+d.u+'</td></tr>').join('')+'</tbody></table></div></details>'
+     :empty('pulse','暫時冇資料','有魚獲新增後會顯示喺呢度'))+'</section>'
+   +'<section class="card" aria-labelledby="h2"><h2 id="h2">近 30 日未能上榜原因</h2><p class="hint">睇下用戶最常卡喺邊一項</p>'
+   +(rs.length?rs.map(r=>'<div class="hb"><span>'+esc(rt(r.reason))+'</span><div class="t"><i style="width:'+Math.max(2,Math.round(r.n*100/rsum))+'%"></i></div><b>'+r.n+' · '+Math.round(r.n*100/rsum)+'%</b></div>').join(''):empty('check','冇未能上榜嘅魚獲'))+'</section></div>';
+  $('main').innerHTML=h;
 }
 
-// ---------- 審核 ----------
+/* ---------- 審核 ---------- */
 async function vReview(){
   const [q,done]=await Promise.all([rpc('admin_review_queue'),rpc('admin_review_done')]);
-  S.pending=q.length;renderNav();
-  let h='<div class="card"><h3>待審核（同一行程 + 同一魚種超過 30 條）</h3><p class="mu">批准後先會計入數量榜 / 品種榜；拒絕就唔計。請睇相片有冇重複、盜用或同一條魚影多次。</p></div>';
-  if(!q.length)h+='<div class="center">冇待審核項目 🎉</div>';
+  S.queue=q;S.pending=q.length;renderNav();
+  let h=header('審核中心');
+  h+='<p class="hint" style="color:var(--mu);margin:-6px 0 14px">同一行程、同一魚種超過 30 條需要人手審核。批准後先計入數量榜同品種榜；請留意相片有冇重複、盜用或同一條魚影多次。</p>';
+  if(!q.length)h+='<div class="card">'+empty('check','冇待審核項目','全部處理好咗')+'</div>';
   q.forEach((g,i)=>{
-    h+='<div class="card"><div class="row" style="justify-content:space-between"><div><b>'+esc(g.display_name||'（未命名）')+'</b> · '+esc(g.species)+' <span class="tag warn">'+g.catch_count+' 條</span><div class="mu">行程 '+fmt(g.started_at)+' · '+esc(g.spot||'')+'</div></div></div>'
-     +'<div class="photos" style="margin:10px 0">'+(g.catches||[]).map(c=>{const u=safeImg(c.photo_url);return '<div class="ph">'+(u?'<img loading="lazy" src="'+esc(u)+'" onclick="zoom(this.src)">':'')+'<div class="m">'+fmt(c.created_at).slice(5)+'<br>'+esc(c.weight_kg)+' kg</div></div>';}).join('')+'</div>'
-     +'<input type="text" id="rn'+i+'" placeholder="備註（可選）"><div class="row" style="margin-top:8px"><button class="btn ok" onclick="decide('+i+',\'approved\')">✅ 批准</button><button class="btn bad" onclick="decide('+i+',\'rejected\')">⛔ 拒絕</button></div></div>';
+    h+='<section class="card" style="margin-bottom:12px" aria-label="審核項目 '+(i+1)+'"><div class="top" style="margin-bottom:0"><div><b style="font-size:16px">'+esc(g.display_name||'（未命名）')+'</b> <span class="pill warn">'+esc(g.species)+' · '+g.catch_count+' 條</span><div class="d" style="color:var(--mu);font-size:13px">行程 '+fmt(g.started_at)+(g.spot?' · '+esc(g.spot):'')+'</div></div></div>'
+     +'<div class="rv-photos">'+(g.catches||[]).map(c=>{const u=safeImg(c.photo_url);return '<div class="ph">'+(u?'<button class="im" type="button" aria-label="放大相片" onclick="zoom(\''+esc(u)+'\',\''+esc(g.species)+' '+esc(c.weight_kg)+'kg · '+fmt(c.created_at)+'\')"><img loading="lazy" src="'+esc(u)+'" alt="'+esc(g.species)+'"></button>':'<div class="noimg">無相片</div>')+'<div class="m"><span>'+fmt(c.created_at).slice(5)+'</span><span class="d">'+esc(c.weight_kg)+' kg</span></div></div>';}).join('')+'</div>'
+     +'<div class="act" style="justify-content:flex-start"><button class="btn ok" onclick="decide('+i+',\'approved\')">'+ic('check')+'批准</button><button class="btn bad" onclick="decide('+i+',\'rejected\')">'+ic('x')+'拒絕</button></div></section>';
   });
-  S.queue=q;
-  h+='<div class="card"><h3>最近審核紀錄</h3>'+(done.length?'<table><tr><th>用戶</th><th>魚種</th><th>結果</th><th>時間</th><th></th></tr>'+done.map(d=>'<tr><td>'+esc(d.display_name||'')+'</td><td>'+esc(d.species)+'</td><td><span class="tag '+(d.status==='approved'?'ok':'bad')+'">'+(d.status==='approved'?'已批准':'已拒絕')+'</span><div class="mu">'+esc(d.note||'')+'</div></td><td class="mu">'+fmt(d.reviewed_at)+'</td><td><button class="btn" onclick="undo(\''+esc(d.trip_id)+'\',\''+esc(d.species)+'\')">撤銷</button></td></tr>').join('')+'</table>':'<div class="mu">未有紀錄</div>')+'</div>';
+  h+='<section class="card" style="margin-top:16px"><h2>最近審核紀錄</h2>'+(done.length?'<div class="tw" style="box-shadow:none;margin-top:8px"><table class="t"><thead><tr><th>用戶</th><th>魚種</th><th>結果</th><th>時間</th><th></th></tr></thead><tbody>'
+    +done.map((d,j)=>'<tr><td class="first" data-l="用戶"><b>'+esc(d.display_name||'—')+'</b></td><td data-l="魚種">'+esc(d.species)+'</td><td data-l="結果"><span class="pill '+(d.status==='approved'?'ok':'bad')+'">'+(d.status==='approved'?'已批准':'已拒絕')+'</span></td><td data-l="時間">'+fmt(d.reviewed_at)+(d.note?'<span class="sub">'+esc(d.note)+'</span>':'')+'</td><td class="actions"><button class="btn sm" onclick="undo('+j+')">'+ic('undo')+'撤銷</button></td></tr>').join('')
+    +'</tbody></table></div>':empty('shield','未有審核紀錄'))+'</section>';
+  S.done=done;
   $('main').innerHTML=h;
 }
 async function decide(i,status){
-  const g=S.queue[i];if(!confirm((status==='approved'?'批准':'拒絕')+'「'+(g.display_name||'')+'」嘅 '+g.species+' '+g.catch_count+' 條？'))return;
-  try{await rpc('admin_review_set',{p_trip:g.trip_id,p_species:g.species,p_status:status,p_note:($('rn'+i).value||'').slice(0,200)||null});toast('已更新');vReview();}catch(e){toast(e.message);}
+  const g=S.queue[i];
+  const r=await ask({title:(status==='approved'?'批准':'拒絕')+'呢組魚獲？',body:(g.display_name||'')+' 嘅 '+g.species+' '+g.catch_count+' 條。'+(status==='approved'?'批准後會計入數量榜同品種榜。':'拒絕後唔會計入排行榜。'),ok:status==='approved'?'批准':'拒絕',danger:status!=='approved',note:true});
+  if(!r)return;
+  try{await rpc('admin_review_set',{p_trip:g.trip_id,p_species:g.species,p_status:status,p_note:r.note||null});toast('已更新');vReviewRefresh();}catch(e){toast(e.message);}
 }
-async function undo(trip,sp){
-  if(!confirm('撤銷呢個審核結果？（會返回待審核）'))return;
-  try{await rpc('admin_review_set',{p_trip:trip,p_species:sp,p_status:'pending'});toast('已撤銷');vReview();}catch(e){toast(e.message);}
+async function undo(j){
+  const d=S.done[j];
+  const r=await ask({title:'撤銷審核結果？',body:'會返回「待審核」狀態。',ok:'撤銷'});
+  if(!r)return;
+  try{await rpc('admin_review_set',{p_trip:d.trip_id,p_species:d.species,p_status:'pending'});toast('已撤銷');vReviewRefresh();}catch(e){toast(e.message);}
 }
+function vReviewRefresh(){go('review');}
 
-// ---------- 相片牆 ----------
+/* ---------- 相片牆 ---------- */
 async function vPhotos(reset=true){
   if(reset){S.photos=[];S.photoDone=false;}
   const before=S.photos.length?S.photos[S.photos.length-1].created_at:null;
   const rows=await rpc('admin_photos',{p_limit:40,p_before:before,p_user:S.photoUser});
   if(rows.length<40)S.photoDone=true;
-  S.photos=S.photos.concat(rows);drawPhotos();
+  S.photos=S.photos.concat(rows);
+  if(rows.length&&S.photoUser&&!S.photoUserName)S.photoUserName=rows[0].display_name||'';
+  drawPhotos();
 }
 function drawPhotos(){
-  const tag=p=>p.excluded?'<span class="tag bad">已排除</span>':p.eligible?'<span class="tag ok">上榜</span>':'<span class="tag" title="'+esc(rt(p.reason))+'">未上榜</span>';
-  let h='<div class="card"><div class="row"><b>📷 魚獲相片</b>'+(S.photoUser?'<button class="btn" onclick="photoUser(null)">✕ 取消只睇呢位用戶</button>':'<span class="mu">撳用戶名可以只睇佢嘅相片</span>')+'</div></div>';
-  h+='<div class="photos">'+S.photos.map((p,i)=>{const u=safeImg(p.photo_url);return '<div class="ph">'+(u?'<img loading="lazy" src="'+esc(u)+'" onclick="zoom(this.src)">':'<div style="aspect-ratio:1" class="center">無相</div>')
-    +'<div class="m"><a href="#" onclick="photoUser(\''+esc(p.user_id)+'\');return false">'+esc(p.display_name||'—')+'</a><br>'+esc(p.species)+' '+esc(p.weight_kg)+'kg<br><span class="mu">'+fmt(p.created_at).slice(5)+'</span><br>'+tag(p)
-    +(p.eligible||p.excluded?'<br><button class="btn" style="padding:3px 8px;margin-top:4px" onclick="excl('+i+')">'+(p.excluded?'恢復':'排除')+'</button>':'')+'</div></div>';}).join('')+'</div>';
-  if(!S.photos.length)h+='<div class="center">暫時冇相片</div>';
-  if(!S.photoDone&&S.photos.length)h+='<div class="center"><button class="btn" onclick="vPhotos(false)">載入更多</button></div>';
+  const F=[['all','全部'],['ok','已上榜'],['no','未上榜'],['ex','已排除']];
+  const vis=S.photos.filter(p=>S.photoFilter==='all'||(S.photoFilter==='ok'&&p.eligible)||(S.photoFilter==='no'&&!p.eligible&&!p.excluded)||(S.photoFilter==='ex'&&p.excluded));
+  const tag=p=>p.excluded?'<span class="pill bad">已排除</span>':p.eligible?'<span class="pill ok">已上榜</span>':'<span class="pill" title="'+esc(rt(p.reason))+'">未上榜</span>';
+  let h=header('相片牆');
+  h+='<div class="chips" role="group" aria-label="篩選">'+F.map(f=>'<button type="button" class="chip" aria-pressed="'+(S.photoFilter===f[0])+'" onclick="photoFilter(\''+f[0]+'\')">'+f[1]+'</button>').join('')
+    +(S.photoUser?'<button type="button" class="chip" aria-pressed="true" onclick="photoUser(null)">只睇：'+esc(S.photoUserName||'此用戶')+' '+ic('x')+'</button>':'')+'</div>';
+  if(!vis.length)h+='<div class="card">'+empty('image','冇符合條件嘅相片','試下轉換篩選條件')+'</div>';
+  else h+='<div class="photos">'+vis.map(p=>{const i=S.photos.indexOf(p);const u=safeImg(p.photo_url);
+    return '<article class="ph">'+(u?'<button class="im" type="button" aria-label="放大相片" onclick="zoom(\''+esc(u)+'\',\''+esc(p.display_name||'')+' · '+esc(p.species)+' '+esc(p.weight_kg)+'kg\')"><img loading="lazy" src="'+esc(u)+'" alt="'+esc(p.species)+'"></button>':'<div class="noimg">無相片</div>')
+     +'<div class="m"><button class="u" type="button" onclick="photoUser(\''+esc(p.user_id)+'\',\''+esc(p.display_name||'')+'\')">'+esc(p.display_name||'—')+'</button><span>'+esc(p.species)+' · '+esc(p.weight_kg)+' kg</span><span class="d">'+fmt(p.created_at)+'</span><span>'+tag(p)+'</span>'
+     +(p.eligible||p.excluded?'<button class="btn sm '+(p.excluded?'':'ghost-bad')+'" type="button" onclick="excl('+i+')">'+(p.excluded?ic('undo')+'恢復':ic('ban')+'排除')+'</button>':'')+'</div></article>';}).join('')+'</div>';
+  if(!S.photoDone&&S.photos.length)h+='<div style="text-align:center;margin-top:16px"><button class="btn" onclick="vPhotos(false)">載入更多</button></div>';
   $('main').innerHTML=h;
 }
-function photoUser(id){S.photoUser=id;vPhotos(true);}
+function photoFilter(f){S.photoFilter=f;drawPhotos();}
+function photoUser(id,name){S.photoUser=id;S.photoUserName=id?(name||''):'';go('photos');}
 async function excl(i){
   const p=S.photos[i],to=!p.excluded;
-  if(!confirm(to?'將呢條魚獲標為「不計排行榜」？':'恢復呢條魚獲（會重新判定資格）？'))return;
-  try{const r=await rpc('admin_set_excluded',{p_catch:p.id,p_excluded:to});p.excluded=r.excluded;p.eligible=r.eligible;p.reason=r.reason;drawPhotos();toast('已更新');}catch(e){toast(e.message);}
+  const r=await ask({title:to?'排除呢條魚獲？':'恢復呢條魚獲？',body:to?'標為「不計排行榜」，用戶自己仍然睇到。':'會重新判定上榜資格。',ok:to?'排除':'恢復',danger:to});
+  if(!r)return;
+  try{const x=await rpc('admin_set_excluded',{p_catch:p.id,p_excluded:to});p.excluded=x.excluded;p.eligible=x.eligible;p.reason=x.reason;drawPhotos();toast('已更新');}catch(e){toast(e.message);}
 }
 
-// ---------- 用戶 ----------
+/* ---------- 用戶 ---------- */
+let sT=null;
 async function vUsers(){
-  $('main').innerHTML='<div class="card"><input type="search" id="us" placeholder="搜尋電郵或顯示名稱" onkeydown="if(event.key===\'Enter\')loadUsers()"></div><div id="ul"><div class="center">載入中…</div></div>';
-  loadUsers();
+  const q=($('us')&&$('us').value)||S.userQ||'';S.userQ=q;
+  const rows=await rpc('admin_users',{p_limit:200,p_search:q.trim()||null});S.users=rows;
+  let h=header('用戶');
+  h+='<div class="card" style="margin-bottom:12px"><label class="f" for="us">搜尋電郵或顯示名稱</label><input type="search" id="us" value="'+esc(q)+'" placeholder="輸入後會自動搜尋" oninput="clearTimeout(sT);sT=setTimeout(usersSearch,350)"></div>';
+  h+='<div class="mu" style="color:var(--mu);font-size:13px;margin:0 2px 8px">共 '+rows.length+' 位（最多顯示 200）</div>';
+  if(!rows.length)h+='<div class="card">'+empty('users','搵唔到用戶','試下其他關鍵字')+'</div>';
+  else h+='<div class="tw"><table class="t"><thead><tr><th>用戶</th><th>註冊</th><th>最後登入</th><th>魚獲</th><th>上榜</th><th>行程</th><th></th></tr></thead><tbody>'
+   +rows.map((u,i)=>'<tr><td class="first"><b>'+esc(u.display_name||'—')+'</b> '+(u.is_admin?'<span class="pill brand">管理員</span> ':'')+(u.banned?'<span class="pill bad">已停用</span>':'')+'<span class="sub">'+esc(u.email||'')+'</span></td><td data-l="註冊">'+fmt(u.created_at).slice(0,10)+'</td><td data-l="最後登入">'+ago(u.last_sign_in_at)+'</td><td class="num" data-l="魚獲">'+u.catch_count+'</td><td class="num" data-l="上榜">'+u.eligible_count+'</td><td class="num" data-l="行程">'+u.trip_count+'</td>'
+     +'<td class="actions"><div class="act"><button class="btn sm" onclick="photoUser(\''+esc(u.id)+'\',\''+esc(u.display_name||'')+'\')">'+ic('image')+'相片</button>'+(u.is_admin?'':'<button class="btn sm '+(u.banned?'':'ghost-bad')+'" onclick="ban('+i+')">'+(u.banned?ic('undo')+'恢復':ic('ban')+'停用')+'</button>')+'</div></td></tr>').join('')+'</tbody></table></div>';
+  $('main').innerHTML=h;
+  if(q){const el=$('us');el.focus();el.setSelectionRange(q.length,q.length);}
 }
-async function loadUsers(){
-  try{
-    const rows=await rpc('admin_users',{p_limit:200,p_search:($('us')&&$('us').value.trim())||null});S.users=rows;
-    $('ul').innerHTML='<div class="card" style="overflow-x:auto"><div class="mu" style="margin-bottom:6px">共 '+rows.length+' 位（最多顯示 200）</div><table><tr><th>用戶</th><th>註冊</th><th>最後登入</th><th>魚獲</th><th>上榜</th><th>行程</th><th></th></tr>'
-     +rows.map((u,i)=>'<tr><td><b>'+esc(u.display_name||'—')+'</b>'+(u.is_admin?' <span class="tag ok">管理員</span>':'')+(u.banned?' <span class="tag bad">已停用</span>':'')+'<div class="mu">'+esc(u.email||'')+'</div></td><td class="mu">'+fmt(u.created_at).slice(0,10)+'</td><td class="mu">'+ago(u.last_sign_in_at)+'</td><td>'+u.catch_count+'</td><td>'+u.eligible_count+'</td><td>'+u.trip_count+'</td><td>'
-     +'<button class="btn" onclick="seePhotos(\''+esc(u.id)+'\')">相片</button> '+(u.is_admin?'':'<button class="btn '+(u.banned?'':'bad')+'" onclick="ban('+i+')">'+(u.banned?'恢復':'停用')+'</button>')+'</td></tr>').join('')+'</table></div>';
-  }catch(e){$('ul').innerHTML='<div class="card mu">'+esc(e.message)+'</div>';}
-}
-function seePhotos(id){S.photoUser=id;go('photos');}
+function usersSearch(){S.tab='users';vUsers().catch(e=>toast(e.message));}
 async function ban(i){
   const u=S.users[i],to=!u.banned;
-  if(!confirm((to?'停用':'恢復')+'帳戶「'+(u.display_name||u.email)+'」？'+(to?'\n停用後佢仍可保存自己嘅記錄，但唔再出現喺排行榜，亦無法登入。':'')))return;
-  try{await rpc('admin_set_ban',{p_user:u.id,p_banned:to});toast('已更新');loadUsers();}catch(e){toast(e.message);}
+  const r=await ask({title:(to?'停用':'恢復')+'帳戶？',body:'「'+(u.display_name||u.email)+'」'+(to?'：停用後無法登入，亦唔會再出現喺排行榜，已有記錄會保留。':'：恢復後可以重新登入同上榜。'),ok:to?'停用':'恢復',danger:to});
+  if(!r)return;
+  try{await rpc('admin_set_ban',{p_user:u.id,p_banned:to});toast('已更新');vUsers();}catch(e){toast(e.message);}
 }
-sb.auth.onAuthStateChange(()=>{});
+window.addEventListener('hashchange',()=>{const h=(location.hash||'').replace('#','');if(TABS.some(t=>t[0]===h)&&h!==S.tab&&$('main'))go(h);});
 boot();
 </script>
 </body>
