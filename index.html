@@ -335,6 +335,11 @@ button { touch-action: manipulation; }
   .lb-rules b { color: var(--gray-6); }
   .weight-unit-select { border: none; background: var(--gray-1); font-size: 14px; font-weight: 600; color: var(--gray-5); padding: 0 6px; height: 100%; font-family: inherit; cursor: pointer; }
   .input-suffix .suffix { padding: 0 12px; font-size: 14px; color: var(--gray-4); font-weight: 600; background: var(--gray-1); height: 100%; display: flex; align-items: center; }
+  #photo-zoom { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,.92); display: none; align-items: center; justify-content: center; padding: 16px; }
+  #photo-zoom.show { display: flex; }
+  #photo-zoom img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; touch-action: pinch-zoom; }
+  .pz-close { position: absolute; top: calc(12px + env(safe-area-inset-top)); right: 14px; width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(255,255,255,.18); color: #fff; font-size: 20px; cursor: pointer; }
+  img[data-zoom] { cursor: zoom-in; }
   .sp-chosen { display: flex; align-items: center; gap: 14px; }
   .sp-chosen .sp-card { width: 96px; flex: none; }
   .sp-change-btn { border: 1.5px solid var(--teal); background: #fff; color: var(--teal-dark); font-weight: 700; font-size: 14px; padding: 10px 16px; border-radius: 12px; cursor: pointer; }
@@ -1197,7 +1202,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v137</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v138</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -1806,7 +1811,8 @@ function catchThumbHtml(c, opts) {
       ? fishPhotoImg(fishInfo.photo, fishInfo.icon, klass).replace('alt=""', 'alt="' + safeAlt + '"')
       : fallbackSvg;
     // fallback HTML 放入 data 屬性（escape 後），載入失敗時由 photoFallback 還原
-    return '<img class="' + klass + '" src="' + escapeHtml(c.photoUrl) + '" alt="' + safeAlt + '" loading="lazy" '
+    const zoomAttr = /^https:\/\//.test(c.photoUrl) ? ' data-zoom="' + escapeHtml(c.photoUrl) + '"' : '';   // v138：點相放大
+    return '<img class="' + klass + '"' + zoomAttr + ' src="' + escapeHtml(c.photoUrl) + '" alt="' + safeAlt + '" loading="lazy" '
       + 'data-fallback="' + escapeHtml(fallback) + '" onerror="photoFallback(this)">';
   }
   // 2) 魚種真實照片
@@ -1829,6 +1835,28 @@ function speciesPhotoHtml(name, opts) {
   }
   return window.fishIconSvg ? window.fishIconSvg(name, opts.size || 96) : '🐟';
 }
+/* ===== v138：用戶上傳嘅魚獲相，點擊放大查看 ===== */
+function openPhotoZoom(url, alt) {
+  if (!/^https:\/\//.test(url || '')) return;
+  let ov = document.getElementById('photo-zoom');
+  if (!ov) {
+    ov = document.createElement('div'); ov.id = 'photo-zoom';
+    ov.addEventListener('click', closePhotoZoom);
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML = '<button type="button" class="pz-close" aria-label="關閉">✕</button><img src="' + escapeHtml(url) + '" alt="' + escapeHtml(alt || '魚獲相片') + '">';
+  ov.classList.add('show');
+}
+function closePhotoZoom() { const ov = document.getElementById('photo-zoom'); if (ov) { ov.classList.remove('show'); ov.innerHTML = ''; } }
+document.addEventListener('click', e => {
+  const img = e.target && e.target.closest ? e.target.closest('img[data-zoom]') : null;
+  if (!img) return;
+  e.preventDefault(); e.stopPropagation();
+  openPhotoZoom(img.getAttribute('data-zoom'), img.getAttribute('alt'));
+}, true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePhotoZoom(); });
+window.openPhotoZoom = openPhotoZoom; window.closePhotoZoom = closePhotoZoom;
+
 function photoFallback(img) {
   img.onerror = null;
   const f = img.getAttribute('data-fallback');
@@ -5094,7 +5122,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v137</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v138</span>';
   }
   renderView(name);
 }
