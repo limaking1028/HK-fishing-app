@@ -767,6 +767,12 @@ button { touch-action: manipulation; }
   .map-popup-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
   .map-popup-meta { font-size: 12px; color: var(--gray-5); line-height: 1.5; }
   .map-popup-weight { font-size: 16px; color: var(--orange); font-weight: 700; margin: 4px 0; }
+  .map-share-btn { margin-left: auto; border: none; background: var(--teal); color: #fff; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 8px; cursor: pointer; }
+  .map-popup-share { margin-top: 8px; width: 100%; border: 1.5px solid var(--teal); background: #fff; color: var(--teal-dark); font-weight: 700; font-size: 13px; padding: 7px; border-radius: 8px; cursor: pointer; }
+  .spot-share-row { display: flex; align-items: center; gap: 10px; padding: 12px 4px; border-bottom: 1px solid var(--gray-2); cursor: pointer; }
+  .spot-share-row input { width: 22px; height: 22px; flex: none; accent-color: var(--teal); }
+  .spot-share-row b { flex: 1; min-width: 0; font-size: 15px; word-break: break-all; }
+  .spot-share-row span { font-size: 12px; color: var(--gray-4); flex: none; }
   .map-empty { text-align: center; padding: 60px 20px; color: var(--gray-4); }
   .map-empty-icon { font-size: 48px; margin-bottom: 12px; }
 
@@ -1188,7 +1194,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v132</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v134</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -4110,7 +4116,7 @@ function prefetchLeaderboards(force) {
   return Promise.all(jobs).then(() => { if (state.view === 'my') renderMyView(); });
 }
 function lbItemsFromRows(type, rows) {
-  if (type === 'biggest') return rows.map(r => ({ user: r.display_name || '釣友', isMine: !!r.is_mine, species: r.species, spot: r.spot, date: r.catch_date, weight: parseFloat(r.weight_kg), id: r.catch_id }));
+  if (type === 'biggest') return rows.map(r => ({ user: r.display_name || '釣友', isMine: !!r.is_mine, species: r.species, date: r.catch_date, weight: parseFloat(r.weight_kg), id: r.catch_id }));
   if (type === 'quantity') return rows.map(r => ({ user: r.display_name || '釣友', isMine: !!r.is_mine, count: r.catch_count, spotCount: r.spot_count, speciesCount: r.species_count }));
   return rows.map(r => ({ user: r.display_name || '釣友', isMine: !!r.is_mine, speciesCount: r.species_count, spotCount: r.spot_count, biggestWeight: parseFloat(r.biggest_kg) }));
 }
@@ -4211,7 +4217,7 @@ const DEFAULT_MAPTILER_KEY = 'w5fj5y6QeZAEiZ0a9GOd';  // MapTiler 公開 key，�
 
 function renderMapView() {
   const view = document.getElementById('view-map');
-  const gpsCatches = (state.catches || []).filter(c => c.latitude && c.longitude);
+  const gpsCatches = (state.catches || []).filter(c => c.isMine && c.latitude && c.longitude);   // v134：地圖只顯示自己嘅魚獲
   const hasMapTilerKey = (typeof localStorage !== 'undefined' && (localStorage.getItem('maptiler_key') || '').length > 10);
   // Sub-tab bar（地圖 / 潮汐 / 天氣）
   const tab = state.mapTab || 'map';
@@ -4239,12 +4245,11 @@ function renderMapView() {
     + '<div class="map-container"><div id="map-canvas"></div>'
     + '<div class="map-overlay"><div class="map-overlay-title">🗺️ 釣點分佈<span class="map-overlay-close" onclick="closeMapOverlay()">×</span></div>'
     + '<div class="map-stats"><span>📍 已記錄 <span class="map-stat-value">'+gpsCatches.length+'</span> 個 GPS 點</span>'
-    + '<span>🐟 共 <span class="map-stat-value">'+(state.catches||[]).length+'</span> 條魚</span>'
+    + '<span>🐟 共 <span class="map-stat-value">'+(state.catches||[]).filter(c => c.isMine).length+'</span> 條魚</span>'
+    + (gpsCatches.length ? '<button type="button" class="map-share-btn" onclick="openSpotShare()">📤 分享釣點</button>' : '')
     + (hasMapTilerKey ? '' : '')  // 自訂 key 按鈕已隱藏（App 已內建 DEFAULT_MAPTILER_KEY）；如需設定，console 跑 setMapTilerKey()
     + '</div></div>'
-    + '<div class="map-legend"><div class="map-legend-item"><div class="map-legend-dot" style="background:#f97316"></div>我的魚獲</div>'
-    + '<div class="map-legend-item"><div class="map-legend-dot" style="background:#0d9488"></div>釣友的魚獲</div>'
-    + '<div class="map-legend-item"><div class="map-legend-dot" style="background:#9ca3af"></div>示範數據</div></div>'
+    + '<div class="map-legend"><div class="map-legend-item"><div class="map-legend-dot" style="background:#f97316"></div>我的魚獲</div></div>'
     + '</div>';
   // 首次 render 顯示 idle state
   renderLocationCard();
@@ -4264,6 +4269,47 @@ function renderMapView() {
   // 自動請求用戶定位（首次進入地圖 tab 時；避免重複彈權限）
   requestUserLocation();
 }
+
+
+/* ===== v134：分享自己嘅釣點（用家逐個揀，經手機分享 / 複製文字；唔會自動公開）===== */
+let _shareSpots = [];
+function mySpotGroups() {
+  const g = {};
+  (state.catches || []).filter(c => c.isMine && c.spot && c.latitude && c.longitude).forEach(c => {
+    const x = g[c.spot] || (g[c.spot] = { name: c.spot, n: 0, lat: 0, lng: 0 });
+    x.n++; x.lat += c.latitude; x.lng += c.longitude;
+  });
+  return Object.values(g).map(x => ({ name: x.name, n: x.n, lat: x.lat / x.n, lng: x.lng / x.n })).sort((a, b) => b.n - a.n);
+}
+function openSpotShare(preselect) {
+  _shareSpots = mySpotGroups();
+  if (!_shareSpots.length) { toast('未有帶 GPS 嘅釣點可分享'); return; }
+  let ov = document.getElementById('spot-share-modal');
+  if (!ov) { ov = document.createElement('div'); ov.className = 'modal-overlay'; ov.id = 'spot-share-modal'; document.body.appendChild(ov); ov.addEventListener('click', e => { if (e.target === ov) closeSpotShare(); }); }
+  const rows = _shareSpots.map((x, i) => '<label class="spot-share-row"><input type="checkbox" data-i="' + i + '"' + (x.name === preselect ? ' checked' : '') + '><b>📍 ' + escapeHtml(x.name) + '</b><span>' + x.n + ' 條魚</span></label>').join('');
+  ov.innerHTML = '<div class="modal-sheet" style="position:relative;" role="dialog" aria-label="分享釣點">'
+    + '<span class="modal-close" role="button" aria-label="關閉" onclick="closeSpotShare()">✕</span>'
+    + '<div class="modal-title">📤 分享釣點</div>'
+    + '<div style="font-size:13px;color:var(--gray-4);margin-bottom:8px;text-align:center;">揀你想分享嘅釣點。對方會見到<b>釣點名稱同地圖位置</b>；冇揀嘅釣點唔會分享。</div>'
+    + rows
+    + '<button type="button" class="btn btn-primary" style="width:100%;margin-top:14px;" onclick="doSpotShare()">分享已揀釣點</button></div>';
+  ov.classList.add('show');
+}
+function closeSpotShare() { const ov = document.getElementById('spot-share-modal'); if (ov) ov.classList.remove('show'); }
+async function doSpotShare() {
+  const ov = document.getElementById('spot-share-modal');
+  const picked = [...ov.querySelectorAll('input[type=checkbox]:checked')].map(cb => _shareSpots[+cb.dataset.i]).filter(Boolean);
+  if (!picked.length) { toast('請先揀至少一個釣點'); return; }
+  const text = '🎣 ' + getUserName() + ' 喺【釣港】分享咗釣點：\n\n'
+    + picked.map(x => '📍 ' + x.name + '\nhttps://www.google.com/maps?q=' + x.lat.toFixed(5) + ',' + x.lng.toFixed(5)).join('\n\n')
+    + '\n\n' + location.origin + location.pathname;
+  try {
+    if (navigator.share) { await navigator.share({ text }); closeSpotShare(); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(text); toast('✅ 已複製，可貼上傳俾朋友'); closeSpotShare(); }
+  catch (e) { prompt('複製以下文字分享：', text); }
+}
+window.openSpotShare = openSpotShare; window.closeSpotShare = closeSpotShare; window.doSpotShare = doSpotShare;
 
 /* ============================================================
  * Route J: GPS 自動偵測最近站
@@ -4669,7 +4715,8 @@ function initMap(items) {
     const mapWd = weightDisplay(c);
     const popupHtml = '<div class="map-popup-title">'+escapeHtml(c.speciesIcon||'🐟')+' '+escapeHtml(c.species)+'</div>'
       + '<div class="map-popup-weight">'+mapWd.value+' '+mapWd.unit+'</div>'
-      + '<div class="map-popup-meta">📍 '+escapeHtml(c.spot)+'<br>👤 '+escapeHtml(c.user)+'<br>📅 '+formatDate(c.date)+(c.time?' '+escapeHtml(c.time):'')+(c.locationAccuracy?'<br>🎯 GPS ±'+c.locationAccuracy+'m':'')+'</div>';
+      + '<div class="map-popup-meta">📍 '+escapeHtml(c.spot)+'<br>👤 '+escapeHtml(c.user)+'<br>📅 '+formatDate(c.date)+(c.time?' '+escapeHtml(c.time):'')+(c.locationAccuracy?'<br>🎯 GPS ±'+c.locationAccuracy+'m':'')+'</div>'
+      + (c.spot ? '<button type="button" class="map-popup-share" data-s="'+escapeHtml(c.spot)+'" onclick="openSpotShare(this.dataset.s)">📤 分享此釣點</button>' : '');
     marker.bindPopup(popupHtml);
     mapMarkers.push(marker);
   });
@@ -4855,7 +4902,7 @@ function showStationOnMap(code) {
   setTimeout(() => {
     // 如果地圖未初始化（用戶未有 GPS 魚獲），用空 list init
     if (!mapInstance && document.getElementById('map-canvas')) {
-      try { initMap((state.catches || []).filter(c => c.latitude && c.longitude)); } catch(e) { console.warn('initMap fail', e); }
+      try { initMap((state.catches || []).filter(c => c.isMine && c.latitude && c.longitude)); } catch(e) { console.warn('initMap fail', e); }
     }
     if (!mapInstance) return;
 
@@ -5009,7 +5056,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v132</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v134</span>';
   }
   renderView(name);
 }
