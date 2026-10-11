@@ -174,7 +174,7 @@ button { touch-action: manipulation; }
   .header-edit { font-size: 12px; }
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: none; align-items: flex-end; justify-content: center; }
   .modal-overlay.show { display: flex; }
-  .modal-sheet { background: white; border-radius: 16px 16px 0 0; width: 100%; max-width: 500px; padding: 24px 20px calc(24px + env(safe-area-inset-bottom)); animation: slideUp 0.25s ease; }
+  .modal-sheet { background: white; border-radius: 16px 16px 0 0; width: 100%; max-width: 500px; padding: 24px 20px calc(24px + env(safe-area-inset-bottom)); animation: slideUp 0.25s ease; max-height: 92vh; max-height: 92dvh; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
   @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
   .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 16px; text-align: center; color: var(--gray-6); }
   .modal-input { width: 100%; padding: 12px 14px; border: 1.5px solid var(--gray-2); border-radius: 10px; font-size: 16px; font-family: inherit; margin-bottom: 16px; box-sizing: border-box; }
@@ -1046,7 +1046,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v122</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v123</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -3454,7 +3454,8 @@ function openNameDialog() {
   document.getElementById('name-input').value = getUserName();
   document.getElementById('pref-weight-unit').value = weightLib.getPref();
   document.getElementById('name-modal').classList.add('show');
-  setTimeout(() => document.getElementById('name-input').focus(), 300);
+  const sheet = document.querySelector('#name-modal .modal-sheet'); if (sheet) sheet.scrollTop = 0;
+  if (!(window.matchMedia && matchMedia('(pointer: coarse)').matches)) setTimeout(() => document.getElementById('name-input').focus(), 300);
   refreshAnalyticsToggleUI();  // Route M: 確保 toggle 顯示當前狀態
 }
 function setPrefWeightUnit(u) {
@@ -4687,7 +4688,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v122</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v123</span>';
   }
   renderView(name);
 }
