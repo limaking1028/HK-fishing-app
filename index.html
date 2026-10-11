@@ -164,7 +164,7 @@ button { touch-action: manipulation; }
 .tally-sub { font-size: 12px; color: var(--gray-5); margin-bottom: 12px; line-height: 1.5; text-align: center; }
 .tally-add { margin-bottom: 10px; }
 .tally-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--gray-2); }
-.tally-fish { width: 44px; height: 44px; flex: none; border-radius: 10px; overflow: hidden; background: var(--gray-2); display: flex; align-items: center; justify-content: center; }
+.tally-fish { width: 72px; aspect-ratio: 16 / 9; flex: none; border-radius: 10px; overflow: hidden; background: var(--gray-2); display: flex; align-items: center; justify-content: center; }
 .tally-fish-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .tally-fish-emoji { font-size: 24px; line-height: 1; }
 .tally-name { flex: 1; font-size: 16px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1190,7 +1190,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v127</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v128</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -5032,7 +5032,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v127</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v128</span>';
   }
   renderView(name);
 }
