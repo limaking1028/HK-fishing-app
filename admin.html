@@ -162,7 +162,7 @@ dialog.lb .x{position:absolute;top:-8px;right:-4px;background:#fff;color:#000;bo
   .mbar b{font-size:16px}
   .mbar .sp{flex:1}
   .top h1{font-size:19px}
-  .tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--bd);z-index:30;padding-bottom:env(safe-area-inset-bottom)}
+  .tabbar{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(66px,1fr);overflow-x:auto;position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--bd);z-index:30;padding-bottom:env(safe-area-inset-bottom)}
   .tabbar a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:58px;font-size:12px;font-weight:600;color:var(--mu);text-decoration:none;position:relative;cursor:pointer}
   .tabbar a[aria-current=page]{color:var(--brand)}
   .tabbar .badge{position:absolute;top:6px;left:calc(50% + 6px)}
@@ -202,6 +202,8 @@ dialog.lb .x{position:absolute;top:-8px;right:-4px;background:#fff;color:#000;bo
   <symbol id="i-trip" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
   <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
   <symbol id="i-pct" viewBox="0 0 24 24"><path d="M19 5 5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="i-log" viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></symbol>
   <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
 </svg>
 
@@ -226,8 +228,8 @@ const ago=t=>{if(!t)return'從未登入';const d=(Date.now()-new Date(t))/864e5;
 const rt=c=>(window.lbLib&&lbLib.reasonText)?lbLib.reasonText(c):(c||'');
 const toast=(m)=>{const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('show'),2600);};
 async function rpc(name,args){const {data,error}=await sb.rpc(name,args||{});if(error)throw new Error(error.message||'發生錯誤');return data;}
-const S={tab:'overview',pending:0,photos:[],photoUser:null,photoUserName:'',photoFilter:'all',photoDone:false,users:[],queue:[],updated:null,email:''};
-const TABS=[['overview','總覽','home'],['review','審核中心','shield'],['photos','相片牆','image'],['usage','使用分析','pulse'],['users','用戶','users']];
+const S={tab:'overview',pending:0,fbNew:0,fbFilter:'new',photos:[],photoUser:null,photoUserName:'',photoFilter:'all',photoDone:false,users:[],queue:[],updated:null,email:''};
+const TABS=[['overview','總覽','home'],['review','審核中心','shield'],['feedback','意見箱','chat'],['photos','相片牆','image'],['usage','使用分析','pulse'],['users','用戶','users'],['audit','操作記錄','log']];
 
 /* ---------- Dialog ---------- */
 function ask(o){ // {title, body, ok, danger, note}
@@ -273,12 +275,13 @@ async function boot(){
   S.email=(session.user&&session.user.email)||'管理員';
   const h=(location.hash||'').replace('#','');if(TABS.some(t=>t[0]===h))S.tab=h;
   shell();
-  try{S.pending=(await rpc('admin_overview')).pending_reviews||0;}catch(e){}
+  await refreshBadges(true);
   go(S.tab);
+  clearInterval(S.poll);S.poll=setInterval(()=>{if(!document.hidden)refreshBadges(false);},60000);
 }
 function navHtml(kind){
   return TABS.map(t=>'<a role="link" tabindex="0" data-tab="'+t[0]+'" '+(S.tab===t[0]?'aria-current="page"':'')+' onclick="go(\''+t[0]+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();go(\''+t[0]+'\')}">'
-    +ic(t[2])+'<span>'+t[1]+'</span>'+(t[0]==='review'&&S.pending?'<span class="badge" aria-label="'+S.pending+' 項待審核">'+S.pending+'</span>':'')+'</a>').join('');
+    +ic(t[2])+'<span>'+t[1]+'</span>'+(t[0]==='review'&&S.pending?'<span class="badge" aria-label="'+S.pending+' 項待審核">'+S.pending+'</span>':'')+(t[0]==='feedback'&&S.fbNew?'<span class="badge" aria-label="'+S.fbNew+' 則新意見">'+S.fbNew+'</span>':'')+'</a>').join('');
 }
 function shell(){
   $('app').innerHTML='<div class="mbar"><img src="icon-192.png" alt=""><b>釣港 管理後台</b><span class="sp"></span><button class="btn sm" onclick="logout()" aria-label="登出">'+ic('out')+'</button></div>'
@@ -295,7 +298,7 @@ function loading(){return '<div class="grid kpis" aria-busy="true">'+'<div class
 async function go(tab){
   S.tab=tab;history.replaceState(null,'','#'+tab);renderNav();
   const m=$('main');m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+loading();
-  try{await ({overview:vOverview,review:vReview,photos:vPhotos,usage:vUsage,users:vUsers})[tab]();S.updated=new Date().toLocaleTimeString('zh-HK',{hour12:false,hour:'2-digit',minute:'2-digit'});}
+  try{await ({overview:vOverview,review:vReview,feedback:vFeedback,photos:vPhotos,usage:vUsage,users:vUsers,audit:vAudit})[tab]();S.updated=new Date().toLocaleTimeString('zh-HK',{hour12:false,hour:'2-digit',minute:'2-digit'});}
   catch(e){m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+'<div class="card err" role="alert"><h2>載入失敗</h2><p class="hint" style="color:inherit">'+esc(e.message)+'</p><button class="btn" onclick="go(S.tab)">'+ic('refresh')+'再試一次</button></div>';}
   window.scrollTo(0,0);
 }
@@ -309,6 +312,8 @@ async function vOverview(){
   const rs=o.reasons||[],rsum=rs.reduce((a,r)=>a+r.n,0)||1;
   const dl=o.daily||[],dmax=Math.max(1,...dl.map(d=>d.n));
   let h=header('總覽');
+  if(window.Notification&&Notification.permission==='default')h+='<div class="alert" role="status">'+ic('alert')+'開啟通知：有新審核或新意見時彈出提示（要保持後台頁面開住）<button class="btn sm pri" onclick="enableNotify()">開啟通知</button></div>';
+  if(S.fbNew)h+='<div class="alert" role="status">'+ic('chat')+'有 '+S.fbNew+' 則新意見<button class="btn sm pri" onclick="go(\'feedback\')">去睇</button></div>';
   if(S.pending)h+='<div class="alert" role="status">'+ic('alert')+'有 '+S.pending+' 項魚獲等緊你審核<button class="btn sm pri" onclick="go(\'review\')">去審核</button></div>';
   h+='<div class="grid kpis">'
    +k('users','註冊用戶',o.users_total,'近 7 日新增 '+o.users_7d)
@@ -390,9 +395,9 @@ function photoFilter(f){S.photoFilter=f;drawPhotos();}
 function photoUser(id,name){S.photoUser=id;S.photoUserName=id?(name||''):'';go('photos');}
 async function excl(i){
   const p=S.photos[i],to=!p.excluded;
-  const r=await ask({title:to?'排除呢條魚獲？':'恢復呢條魚獲？',body:to?'標為「不計排行榜」，用戶自己仍然睇到。':'會重新判定上榜資格。',ok:to?'排除':'恢復',danger:to});
+  const r=await ask({title:to?'排除呢條魚獲？':'恢復呢條魚獲？',body:to?'標為「不計排行榜」，用戶自己仍然睇到。':'會重新判定上榜資格。',ok:to?'排除':'恢復',danger:to,note:true});
   if(!r)return;
-  try{const x=await rpc('admin_set_excluded',{p_catch:p.id,p_excluded:to});p.excluded=x.excluded;p.eligible=x.eligible;p.reason=x.reason;drawPhotos();toast('已更新');}catch(e){toast(e.message);}
+  try{const x=await rpcR('admin_set_excluded',{p_catch:p.id,p_excluded:to},r.note);p.excluded=x.excluded;p.eligible=x.eligible;p.reason=x.reason;drawPhotos();toast('已更新');}catch(e){toast(e.message);}
 }
 
 /* ---------- 使用分析（第二期）---------- */
@@ -446,9 +451,83 @@ async function vUsers(){
 function usersSearch(){S.tab='users';vUsers().catch(e=>toast(e.message));}
 async function ban(i){
   const u=S.users[i],to=!u.banned;
-  const r=await ask({title:(to?'停用':'恢復')+'帳戶？',body:'「'+(u.display_name||u.email)+'」'+(to?'：停用後無法登入，亦唔會再出現喺排行榜，已有記錄會保留。':'：恢復後可以重新登入同上榜。'),ok:to?'停用':'恢復',danger:to});
+  const r=await ask({title:(to?'停用':'恢復')+'帳戶？',body:'「'+(u.display_name||u.email)+'」'+(to?'：停用後無法登入，亦唔會再出現喺排行榜，已有記錄會保留。':'：恢復後可以重新登入同上榜。'),ok:to?'停用':'恢復',danger:to,note:true});
   if(!r)return;
-  try{await rpc('admin_set_ban',{p_user:u.id,p_banned:to});toast('已更新');vUsers();}catch(e){toast(e.message);}
+  try{await rpcR('admin_set_ban',{p_user:u.id,p_banned:to},r.note);toast('已更新');vUsers();}catch(e){toast(e.message);}
+}
+
+/* ---------- v139：紅點 / 通知 ---------- */
+// 帶原因嘅管理動作：未執行 v139 SQL 時自動退回舊簽名
+async function rpcR(name,args,reason){
+  try{return await rpc(name,Object.assign({},args,{p_reason:reason||null}));}
+  catch(e){if(/Could not find|schema cache|does not exist/i.test(e.message))return await rpc(name,args);throw e;}
+}
+async function refreshBadges(first){
+  let b=null;
+  try{b=await rpc('admin_badges');}
+  catch(e){try{S.pending=(await rpc('admin_overview')).pending_reviews||0;}catch(_){}renderNav();return;}
+  const oldP=S.pending,oldF=S.fbNew;
+  S.pending=b.pending_reviews||0;S.fbNew=b.new_feedback||0;
+  renderNav();
+  const n=S.pending+S.fbNew;
+  document.title=(n?'('+n+') ':'')+'釣港 管理後台';
+  if(!first&&(S.pending>oldP||S.fbNew>oldF)&&window.Notification&&Notification.permission==='granted'){
+    try{new Notification('釣港後台',{body:(S.pending>oldP?'有新嘅待審核項目 ':'')+(S.fbNew>oldF?'有新意見':''),icon:'icon-192.png'});}catch(e){}
+  }
+}
+function enableNotify(){
+  if(!window.Notification){toast('呢部瀏覽器唔支援通知');return;}
+  Notification.requestPermission().then(p=>{toast(p==='granted'?'已開啟通知（保持後台頁面開住先會提示）':'未開啟通知');if($('main')&&S.tab==='overview')go('overview');});
+}
+
+/* ---------- v139：意見箱 ---------- */
+const FB_CAT={bug:['問題','bad'],idea:['建議','brand'],other:['其他','']};
+async function vFeedback(){
+  let rows;
+  try{rows=await rpc('admin_feedback_list',{p_status:S.fbFilter==='all'?null:S.fbFilter,p_limit:200});}
+  catch(e){
+    if(/admin_feedback|function|schema cache/i.test(e.message)){$('main').innerHTML=header('意見箱')+'<div class="card">'+empty('alert','未啟用意見箱','請先喺 Supabase SQL Editor 執行 migration-v139-admin-tools.sql')+'</div>';return;}
+    throw e;
+  }
+  S.fbRows=rows;
+  let h=header('意見箱');
+  h+='<div class="chips" role="group" aria-label="篩選">'+[['new','未處理'],['done','已處理'],['all','全部']].map(f=>'<button class="chip" type="button" aria-pressed="'+(S.fbFilter===f[0])+'" onclick="S.fbFilter=\''+f[0]+'\';go(\'feedback\')">'+f[1]+'</button>').join('')+'</div>';
+  if(!rows.length)h+='<div class="card">'+empty('chat',S.fbFilter==='new'?'冇未處理嘅意見':'暫時冇意見','用戶喺 App「設定 → 回報問題／意見」送出後會顯示喺呢度')+'</div>';
+  rows.forEach((f,i)=>{
+    const c=FB_CAT[f.category]||FB_CAT.other;
+    h+='<section class="card" style="margin-bottom:12px"><div class="top" style="margin-bottom:6px"><div><span class="pill '+c[1]+'">'+esc(c[0])+'</span> <b>'+esc(f.display_name||'（未命名）')+'</b> <span class="mu" style="color:var(--mu);font-size:12px">'+esc(f.email||'')+'</span></div><span class="sp"></span><small>'+esc(fmt(f.created_at))+'</small></div>'
+     +'<p style="white-space:pre-wrap;word-break:break-word;margin:6px 0 8px;font-size:15px">'+esc(f.message)+'</p>'
+     +'<div class="mu" style="color:var(--mu);font-size:12px;margin-bottom:8px">'+esc(f.app_version||'')+(f.user_agent?' · '+esc(f.user_agent.slice(0,80)):'')+'</div>'
+     +(f.admin_note?'<div class="alert" style="margin-bottom:8px">備註：'+esc(f.admin_note)+'</div>':'')
+     +'<div class="act" style="justify-content:flex-start">'+(f.status==='new'?'<button class="btn ok" type="button" onclick="fbDone('+i+',\'done\')">'+ic('check')+'標為已處理</button>':'<span class="pill ok">已處理 '+esc(fmt(f.handled_at))+'</span><button class="btn sm" type="button" onclick="fbDone('+i+',\'new\')">'+ic('undo')+'重新開啟</button>')+'</div></section>';
+  });
+  $('main').innerHTML=h;
+}
+async function fbDone(i,status){
+  const f=S.fbRows[i];
+  const r=await ask({title:status==='done'?'標為已處理？':'重新開啟呢則意見？',body:status==='done'?'可以留低處理備註（只有管理員睇到）。':'會返回「未處理」。',ok:status==='done'?'已處理':'重新開啟',note:status==='done'});
+  if(!r)return;
+  try{await rpc('admin_feedback_set',{p_id:f.id,p_status:status,p_note:r.note||null});toast('已更新');await refreshBadges(true);vFeedback();}catch(e){toast(e.message);}
+}
+
+/* ---------- v139：操作記錄 ---------- */
+const AUDIT_ACT={exclude_catch:['排除魚獲','bad'],restore_catch:['恢復魚獲','ok'],ban_user:['停用帳戶','bad'],unban_user:['恢復帳戶','ok'],review_approved:['批准審核','ok'],review_rejected:['拒絕審核','bad'],review_pending:['撤銷審核',''],feedback_done:['意見已處理','ok'],feedback_new:['意見重開','']};
+async function vAudit(){
+  let rows;
+  try{rows=await rpc('admin_audit_list',{p_limit:200});}
+  catch(e){
+    if(/admin_audit|function|schema cache/i.test(e.message)){$('main').innerHTML=header('操作記錄')+'<div class="card">'+empty('alert','未啟用操作記錄','請先喺 Supabase SQL Editor 執行 migration-v139-admin-tools.sql')+'</div>';return;}
+    throw e;
+  }
+  let h=header('操作記錄');
+  h+='<p class="hint" style="color:var(--mu);margin:-6px 0 14px">只記錄 v139 之後嘅管理操作（誰、幾時、做咗乜、原因），最多顯示最近 200 筆。</p>';
+  if(!rows.length)h+='<div class="card">'+empty('log','未有操作記錄','之後嘅停用／排除／審核等操作會記錄喺呢度')+'</div>';
+  else h+='<div class="tw"><table class="t"><thead><tr><th>時間</th><th>管理員</th><th>操作</th><th>對象</th><th>原因／備註</th></tr></thead><tbody>'
+   +rows.map(l=>{const a=AUDIT_ACT[l.action]||[l.action,''],d=l.detail||{};
+     const tgt=d.name||d.owner||(d.species?d.species+(d.weight_kg?' '+d.weight_kg+'kg':''):'')||(l.target_id||'').slice(0,8);
+     return '<tr><td class="first" data-l="時間">'+esc(fmt(l.created_at))+'</td><td data-l="管理員">'+esc(l.admin_email||'—')+'</td><td data-l="操作"><span class="pill '+a[1]+'">'+esc(a[0])+'</span></td><td data-l="對象">'+esc(tgt)+(d.owner&&d.species?' · '+esc(d.species):'')+'</td><td data-l="原因">'+esc(d.reason||'—')+'</td></tr>';}).join('')
+   +'</tbody></table></div>';
+  $('main').innerHTML=h;
 }
 window.addEventListener('hashchange',()=>{const h=(location.hash||'').replace('#','');if(TABS.some(t=>t[0]===h)&&h!==S.tab&&$('main'))go(h);});
 boot();

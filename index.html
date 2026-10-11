@@ -340,6 +340,9 @@ button { touch-action: manipulation; }
   #photo-zoom img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; touch-action: pinch-zoom; }
   .pz-close { position: absolute; top: calc(12px + env(safe-area-inset-top)); right: 14px; width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(255,255,255,.18); color: #fff; font-size: 20px; cursor: pointer; }
   img[data-zoom] { cursor: zoom-in; }
+  .fb-cats { display: flex; gap: 8px; margin-bottom: 10px; }
+  .fb-cat { flex: 1; border: 1.5px solid var(--gray-3); background: #fff; color: var(--gray-5); font-weight: 700; font-size: 14px; padding: 10px 6px; border-radius: 12px; cursor: pointer; }
+  .fb-cat.on { border-color: var(--teal); background: var(--teal-light); color: var(--teal-dark); }
   .sp-chosen { display: flex; align-items: center; gap: 14px; }
   .sp-chosen .sp-card { width: 96px; flex: none; }
   .sp-change-btn { border: 1.5px solid var(--teal); background: #fff; color: var(--teal-dark); font-weight: 700; font-size: 14px; padding: 10px 16px; border-radius: 12px; cursor: pointer; }
@@ -1202,7 +1205,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v138</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v139</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -1249,6 +1252,9 @@ button { touch-action: manipulation; }
           <option value="kg">公斤</option><option value="g">克</option><option value="jin">斤</option><option value="tael">兩</option>
         </select>
         <div style="font-size:11px;color:var(--gray-4);margin-top:4px;">用於輸入同顯示。1 斤 = 16 兩 = 604.79 克（香港市制）</div>
+      </div>
+      <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
+        <button class="btn btn-outline" style="width:100%;" onclick="openFeedback()">💬 回報問題／意見</button>
       </div>
       <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
         <div style="font-size:13px;color:var(--gray-5);margin-bottom:8px;font-weight:600;">🔑 設定 / 更改密碼</div>
@@ -1835,6 +1841,56 @@ function speciesPhotoHtml(name, opts) {
   }
   return window.fishIconSvg ? window.fishIconSvg(name, opts.size || 96) : '🐟';
 }
+/* ===== v139：回報問題／意見（寫入 feedback 表，後台睇到）===== */
+let _fbCat = 'bug';
+function openFeedback() {
+  if (!state.user) { toast('請先登入'); return; }
+  closeNameDialog();
+  let ov = document.getElementById('feedback-modal');
+  if (!ov) { ov = document.createElement('div'); ov.className = 'modal-overlay'; ov.id = 'feedback-modal'; document.body.appendChild(ov); ov.addEventListener('click', e => { if (e.target === ov) closeFeedback(); }); }
+  _fbCat = 'bug';
+  ov.innerHTML = '<div class="modal-sheet" style="position:relative;" role="dialog" aria-label="回報問題／意見">'
+    + '<span class="modal-close" role="button" aria-label="關閉" onclick="closeFeedback()">✕</span>'
+    + '<div class="modal-title">💬 回報問題／意見</div>'
+    + '<div class="fb-cats" id="fb-cats">'
+    +   '<button type="button" class="fb-cat on" data-c="bug" onclick="fbPick(this)">🐞 問題</button>'
+    +   '<button type="button" class="fb-cat" data-c="idea" onclick="fbPick(this)">💡 建議</button>'
+    +   '<button type="button" class="fb-cat" data-c="other" onclick="fbPick(this)">💬 其他</button>'
+    + '</div>'
+    + '<textarea id="fb-text" class="modal-input" rows="5" maxlength="1000" placeholder="請描述你遇到嘅問題或者想有嘅功能（最多 1000 字）" style="resize:vertical;"></textarea>'
+    + '<div style="font-size:11px;color:var(--gray-4);margin:4px 0 10px;">會附上 App 版本同裝置類型方便我哋跟進，唔會附上其他個人資料。</div>'
+    + '<button type="button" class="btn btn-primary" id="fb-send" style="width:100%;" onclick="sendFeedback()">送出</button>'
+    + '<div id="fb-msg" role="status" aria-live="polite" style="font-size:13px;margin-top:8px;min-height:18px;font-weight:600;text-align:center;"></div></div>';
+  ov.classList.add('show');
+  setTimeout(() => { if (!(window.matchMedia && matchMedia('(pointer: coarse)').matches)) { const t = document.getElementById('fb-text'); if (t) t.focus(); } }, 300);
+}
+function fbPick(btn) { _fbCat = btn.dataset.c; document.querySelectorAll('#fb-cats .fb-cat').forEach(b => b.classList.toggle('on', b === btn)); }
+function closeFeedback() { const ov = document.getElementById('feedback-modal'); if (ov) ov.classList.remove('show'); }
+async function sendFeedback() {
+  const ta = document.getElementById('fb-text'), msg = document.getElementById('fb-msg'), btn = document.getElementById('fb-send');
+  const text = (ta.value || '').trim();
+  if (!text) { msg.style.color = '#dc2626'; msg.textContent = '請先輸入內容'; return; }
+  btn.disabled = true; msg.style.color = 'var(--gray-5)'; msg.textContent = '送出中…';
+  try {
+    const ver = (document.getElementById('app-version') || {}).textContent || '';
+    const { error } = await sb.from('feedback').insert({
+      user_id: state.user.id, category: _fbCat, message: text.slice(0, 1000),
+      app_version: ver.trim().slice(0, 20), user_agent: (navigator.userAgent || '').slice(0, 300)
+    });
+    if (error) throw error;
+    msg.style.color = '#16a34a'; msg.textContent = '✅ 已送出，多謝你嘅意見！';
+    ta.value = '';
+    setTimeout(closeFeedback, 1500);
+  } catch (e) {
+    msg.style.color = '#dc2626';
+    const m = String((e && e.message) || '');
+    msg.textContent = /rate_limit/.test(m) ? '一個鐘頭內送得太多次，請稍後再試' : '送出失敗，請檢查網絡後再試';
+    btn.disabled = false; return;
+  }
+  btn.disabled = false;
+}
+window.openFeedback = openFeedback; window.closeFeedback = closeFeedback; window.fbPick = fbPick; window.sendFeedback = sendFeedback;
+
 /* ===== v138：用戶上傳嘅魚獲相，點擊放大查看 ===== */
 function openPhotoZoom(url, alt) {
   if (!/^https:\/\//.test(url || '')) return;
@@ -5122,7 +5178,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v138</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v139</span>';
   }
   renderView(name);
 }
