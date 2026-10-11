@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v137';  // v137: 定位被拒絕說明加強
+const CACHE = 'hk-fishing-v138';  // v138: 魚獲相點擊放大
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
