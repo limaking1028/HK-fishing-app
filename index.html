@@ -1188,7 +1188,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v129</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v130</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -3648,6 +3648,7 @@ function renderMyView() {
   } else {
     totalTripValue = (Math.round(totalTripSec / 360) / 10).toFixed(1); totalTripSub = '小時';
   }
+  const totalWeightKg = myCatches.reduce((a, c) => a + (typeof c.weight === 'number' ? c.weight : 0), 0);
   const myRankings = getMyCatchRankings();
   // 各魚種數量（基於未過濾的全部記錄）
   const allMap = {};
@@ -3712,7 +3713,7 @@ function renderMyView() {
   view.innerHTML = subTabsHtml
     + '<div class="stats-row">'
     + '<div class="stat-card"><div class="stat-value">'+totalCatches+'</div><div class="stat-label">總魚獲</div></div>'
-    + '<div class="stat-card"><div class="stat-value">'+(biggest?weightDisplay(biggest).value:0)+'<span style="font-size:13px">'+(biggest?weightDisplay(biggest).unit:weightDisplay(null).unit)+'</span></div><div class="stat-label">重量王者'+(biggest?' ('+escapeHtml(biggest.species)+')':'')+'</div></div>'
+    + '<div class="stat-card"><div class="stat-value">'+weightDisplay({weight: totalWeightKg}).value+'<span style="font-size:13px">'+weightDisplay({weight: totalWeightKg}).unit+'</span></div><div class="stat-label">總重量</div></div>'
     + '<div class="stat-card"><div class="stat-value">'+speciesCount+'</div><div class="stat-label">魚種數</div></div>'
     + '<div class="stat-card" id="stat-total-time"><div class="stat-value">'+totalTripValue+'<span style="font-size:13px">'+totalTripSub+'</span></div><div class="stat-label">總釣魚時間</div>'+(state.activeTrip?'<div class="stat-sub">⏱ 行程進行中</div>':'')+'</div>'
     + '</div>'
@@ -5008,7 +5009,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v129</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v130</span>';
   }
   renderView(name);
 }
