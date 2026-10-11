@@ -164,9 +164,12 @@ button { touch-action: manipulation; }
 .tally-sub { font-size: 12px; color: var(--gray-5); margin-bottom: 12px; line-height: 1.5; text-align: center; }
 .tally-add { margin-bottom: 10px; }
 .tally-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--gray-2); }
+.tally-id { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .tally-fish { width: 72px; aspect-ratio: 16 / 9; flex: none; border-radius: 10px; overflow: hidden; background: var(--gray-2); display: flex; align-items: center; justify-content: center; }
 .tally-fish-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .tally-fish-emoji { font-size: 24px; line-height: 1; }
+.tally-del { flex: none; width: 40px; height: 48px; border: 1.5px solid var(--gray-3); background: #fff; border-radius: 12px; font-size: 17px; cursor: pointer; }
+.tally-del:active { background: var(--gray-2); }
 .tally-name { flex: 1; font-size: 16px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tally-minus { width: 48px; height: 56px; border-radius: 12px; border: 1px solid var(--gray-3); background: white; font-size: 24px; font-weight: 700; color: var(--gray-5); cursor: pointer; }
 .tally-plus { min-width: 84px; height: 56px; border-radius: 12px; border: none; background: var(--teal); color: white; font-size: 22px; font-weight: 800; cursor: pointer; }
@@ -183,11 +186,6 @@ button { touch-action: manipulation; }
 .tally-ph-add { width: 76px; height: 76px; border-radius: 10px; border: 2px dashed var(--gray-3); display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--gray-5); cursor: pointer; text-align: center; }
 .tally-item { border-bottom: 1px solid var(--gray-2); }
 .tally-item .tally-row { border-bottom: none; }
-.tally-sp-ph { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 0 0 10px; }
-.tally-sp-th { position: relative; width: 56px; height: 56px; }
-.tally-sp-th img { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; background: var(--gray-2); }
-.tally-sp-th button { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; border: none; background: rgba(0,0,0,.65); color: #fff; font-size: 11px; cursor: pointer; line-height: 1; }
-.tally-sp-add { display: inline-flex; align-items: center; height: 40px; padding: 0 12px; border: 1.5px dashed var(--gray-3); border-radius: 10px; font-size: 13px; color: var(--gray-5); cursor: pointer; }
 .tally-hint { font-size: 12px; color: var(--gray-4); margin-top: 6px; }
 .tally-chip { font-size: 12px; color: var(--teal-dark); }
 .tally-list-row { display: flex; justify-content: space-between; padding: 6px 2px; font-size: 14px; border-bottom: 1px solid var(--gray-2); }
@@ -1190,7 +1188,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v128</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v129</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -2877,15 +2875,11 @@ function renderTallySheet() {
   const tid = _tallyTrip, cur = tallyGet(tid);
   const trip = (state.trips || []).find(x => x.id === tid) || state.activeTrip || {};
     const rows = _tallyShown.map((sp, i) => {
-    const sph = tallySpPhotos(tid, sp);
-    const strip = (cur[sp] > 0)
-      ? '<div class="tally-sp-ph">' + sph.map((u, j) => '<span class="tally-sp-th"><img src="' + escapeHtml(u) + '" alt="' + escapeHtml(sp) + '" loading="lazy"><button type="button" aria-label="刪除相片" onclick="tallyDelPhoto(' + i + ',' + j + ')">✕</button></span>').join('')
-        + (sph.length < 2 ? '<label class="tally-sp-add">📷 ' + (sph.length ? '加相' : escapeHtml(sp) + '相片') + '<input type="file" accept="image/*" style="display:none" onchange="tallyAddSpPhoto(' + i + ',this)"></label>' : '') + '</div>'
-      : '';
-    return '<div class="tally-item"><div class="tally-row"><div class="tally-fish">' + tallyFishThumb(sp) + '</div><div class="tally-name">' + escapeHtml(sp) + '</div>'
+    return '<div class="tally-item"><div class="tally-row"><div class="tally-id"><div class="tally-fish">' + tallyFishThumb(sp) + '</div><div class="tally-name">' + escapeHtml(sp) + '</div></div>'
     + '<button type="button" class="tally-minus" aria-label="減一" onclick="tallyStep(' + i + ',-1)">−</button>'
     + '<input class="tally-qty" type="number" inputmode="numeric" min="0" max="9999" value="' + (cur[sp] || 0) + '" aria-label="' + escapeHtml(sp) + ' 數量" onchange="tallyType(' + i + ',this.value)">'
-    + '<button type="button" class="tally-plus" aria-label="加一" onclick="tallyStep(' + i + ',1)">＋1</button></div>' + strip + '</div>';
+    + '<button type="button" class="tally-plus" aria-label="加一" onclick="tallyStep(' + i + ',1)">＋1</button>'
+    + '<button type="button" class="tally-del" aria-label="刪除 ' + escapeHtml(sp) + '" onclick="tallyRemove(' + i + ')">🗑</button></div></div>';
   }).join('');
   const opts = FISH_SPECIES.filter(f => !f.custom && !_tallyShown.includes(f.name)).map(f => '<option value="' + escapeHtml(f.name) + '">' + f.icon + ' ' + escapeHtml(f.name) + '</option>').join('');
   const photos = tripHaulPhotos(tid).map(tallySafePhoto).filter(Boolean);
@@ -2910,6 +2904,15 @@ function renderTallySheet() {
     renderTallySheet();
   };
 }
+function tallyRemove(i) {
+  const sp = _tallyShown[i]; if (sp == null) return;
+  const q = tallyGet(_tallyTrip)[sp] || 0;
+  if (q > 0 && !confirm('刪除「' + sp + '」同已記嘅 ' + q + ' 條？')) return;
+  tallySet(_tallyTrip, sp, 0);
+  _tallyShown.splice(i, 1);
+  renderTallySheet();
+}
+window.tallyRemove = tallyRemove;
 function tallyStep(i, d) {
   const sp = _tallyShown[i]; if (sp == null) return;
   const q = tallySet(_tallyTrip, sp, (tallyGet(_tallyTrip)[sp] || 0) + d);
@@ -2932,34 +2935,7 @@ async function tallyAddPhoto(input) {
     toast('✅ 已加入收成相'); renderTallySheet();
   } catch (e) { toast('上載失敗：' + (e.message || '請檢查網絡'), 3500); }
 }
-async function tallyAddSpPhoto(i, input) {
-  const f = input.files && input.files[0]; input.value = '';
-  const sp = _tallyShown[i], tid = _tallyTrip;
-  if (!f || sp == null || !tid) return;
-  if (!sb || !state.user) { toast('請先登入'); return; }
-  const cur = tallySpPhotos(tid, sp); if (cur.length >= 2) return;
-  toast('上載相片中…', 4000);
-  try {
-    const url = await uploadCatchPhoto(f);
-    const arr = cur.concat([url]).slice(0, 2), q = tallyGet(tid)[sp] || 0;
-    if (!q) { toast('請先計數再加相'); return; }
-    const { error } = await sb.from('trip_tallies').upsert({ trip_id: tid, user_id: state.user.id, species: sp, qty: q, photos: arr }, { onConflict: 'trip_id,species' });
-    if (error) throw error;
-    delete _tally.dirty[tid + '|' + sp];
-    tallySetSpPhotos(tid, sp, arr);
-    toast('✅ 已加入相片'); renderTallySheet();
-  } catch (e) { toast('上載失敗：' + (e.message || '請檢查網絡'), 3500); }
-}
-async function tallyDelPhoto(i, j) {
-  const sp = _tallyShown[i], tid = _tallyTrip; if (sp == null || !tid) return;
-  const arr = tallySpPhotos(tid, sp).filter((_, k) => k !== j);
-  try {
-    const { error } = await sb.from('trip_tallies').update({ photos: arr }).eq('trip_id', tid).eq('species', sp);
-    if (error) throw error;
-    tallySetSpPhotos(tid, sp, arr); renderTallySheet();
-  } catch (e) { toast('刪除失敗：' + (e.message || '請檢查網絡'), 3000); }
-}
-window.tallyAddSpPhoto = tallyAddSpPhoto; window.tallyDelPhoto = tallyDelPhoto;
+
 window.openTallySheet = openTallySheet; window.closeTallySheet = closeTallySheet; window.tallyStep = tallyStep; window.tallyType = tallyType; window.tallyAddPhoto = tallyAddPhoto;
 tallyLoadLocal();
 
@@ -5032,7 +5008,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v128</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v129</span>';
   }
   renderView(name);
 }
