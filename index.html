@@ -164,6 +164,9 @@ button { touch-action: manipulation; }
 .tally-sub { font-size: 12px; color: var(--gray-5); margin-bottom: 12px; line-height: 1.5; text-align: center; }
 .tally-add { margin-bottom: 10px; }
 .tally-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--gray-2); }
+.tally-fish { width: 44px; height: 44px; flex: none; border-radius: 10px; overflow: hidden; background: var(--gray-2); display: flex; align-items: center; justify-content: center; }
+.tally-fish-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tally-fish-emoji { font-size: 24px; line-height: 1; }
 .tally-name { flex: 1; font-size: 16px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tally-minus { width: 48px; height: 56px; border-radius: 12px; border: 1px solid var(--gray-3); background: white; font-size: 24px; font-weight: 700; color: var(--gray-5); cursor: pointer; }
 .tally-plus { min-width: 84px; height: 56px; border-radius: 12px; border: none; background: var(--teal); color: white; font-size: 22px; font-weight: 800; cursor: pointer; }
@@ -1187,7 +1190,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v126</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v127</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -2864,18 +2867,22 @@ function openTallySheet(tripId) {
   renderTallySheet();
 }
 function closeTallySheet() { const ov = document.getElementById('tally-modal'); if (ov) ov.classList.remove('show'); tallySync(); renderActiveTripBanner(); if (state.view === 'trips') renderTripsView(); }
+function tallyFishThumb(sp) {
+  const f = FISH_SPECIES.find(x => x.name === sp);
+  if (f && f.photo) return fishPhotoImg(f.photo, f.icon, 'tally-fish-img').replace('alt=""', 'alt="' + escapeHtml(sp) + '"');
+  return '<div class="tally-fish-emoji">' + (f ? f.icon : '🐟') + '</div>';
+}
 function renderTallySheet() {
   const ov = document.getElementById('tally-modal'); if (!ov || !_tallyTrip) return;
   const tid = _tallyTrip, cur = tallyGet(tid);
   const trip = (state.trips || []).find(x => x.id === tid) || state.activeTrip || {};
-  const iconOf = n => { const f = FISH_SPECIES.find(x => x.name === n); return f ? f.icon : '🐟'; };
-  const rows = _tallyShown.map((sp, i) => {
+    const rows = _tallyShown.map((sp, i) => {
     const sph = tallySpPhotos(tid, sp);
     const strip = (cur[sp] > 0)
       ? '<div class="tally-sp-ph">' + sph.map((u, j) => '<span class="tally-sp-th"><img src="' + escapeHtml(u) + '" alt="' + escapeHtml(sp) + '" loading="lazy"><button type="button" aria-label="刪除相片" onclick="tallyDelPhoto(' + i + ',' + j + ')">✕</button></span>').join('')
         + (sph.length < 2 ? '<label class="tally-sp-add">📷 ' + (sph.length ? '加相' : escapeHtml(sp) + '相片') + '<input type="file" accept="image/*" style="display:none" onchange="tallyAddSpPhoto(' + i + ',this)"></label>' : '') + '</div>'
       : '';
-    return '<div class="tally-item"><div class="tally-row"><div class="tally-name">' + iconOf(sp) + ' ' + escapeHtml(sp) + '</div>'
+    return '<div class="tally-item"><div class="tally-row"><div class="tally-fish">' + tallyFishThumb(sp) + '</div><div class="tally-name">' + escapeHtml(sp) + '</div>'
     + '<button type="button" class="tally-minus" aria-label="減一" onclick="tallyStep(' + i + ',-1)">−</button>'
     + '<input class="tally-qty" type="number" inputmode="numeric" min="0" max="9999" value="' + (cur[sp] || 0) + '" aria-label="' + escapeHtml(sp) + ' 數量" onchange="tallyType(' + i + ',this.value)">'
     + '<button type="button" class="tally-plus" aria-label="加一" onclick="tallyStep(' + i + ',1)">＋1</button></div>' + strip + '</div>';
@@ -5025,7 +5032,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v126</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v127</span>';
   }
   renderView(name);
 }
