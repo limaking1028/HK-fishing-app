@@ -1188,7 +1188,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v131</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v132</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -4197,7 +4197,7 @@ function renderLeaderboardView() {
     + '5. 重量唔超過該魚種合理上限<br>'
     + '6. 同一張相只計一次<br>'
     + '<b>數量王者 / 品種王者</b>另外要求：魚獲屬於一個行程（喺行程時間內記錄）、兩條相隔最少 1 分鐘；同一行程同一魚種超過 30 條需人手審核。<br>'
-    + '<span style="color:var(--gray-4);">由系統自動判定，唔達標嘅魚獲仍會保存喺「我的魚獲」。排行榜只顯示名稱、魚種、重量、釣點同日期。</span></div>';
+    + '<span style="color:var(--gray-4);">由系統自動判定，唔達標嘅魚獲仍會保存喺「我的魚獲」。排行榜只顯示名稱、魚種、重量同日期，唔會顯示釣點。</span></div>';
 }
 function setLbType(t) { state.lbType = t; renderLeaderboardView(); }
 function setLbPeriod(p) { state.lbPeriod = p; renderLeaderboardView(); }
@@ -5009,7 +5009,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v131</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v132</span>';
   }
   renderView(name);
 }
