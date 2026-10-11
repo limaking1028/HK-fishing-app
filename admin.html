@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>管理後台 · 香港釣魚數據平台</title>
+<style>
+:root{--bg:#f3f6f8;--card:#fff;--tx:#12303a;--mu:#6b7f87;--bd:#dbe4e8;--pri:#0f6f80;--ok:#15803d;--bad:#b91c1c;--warn:#b45309}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1a1f;--card:#16262d;--tx:#e6f0f3;--mu:#8fa5ad;--bd:#27414b;--pri:#38b2c6;--ok:#4ade80;--bad:#f87171;--warn:#fbbf24}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang HK","Noto Sans TC",sans-serif}
+header{background:var(--pri);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+header h1{font-size:17px;margin:0}
+header small{opacity:.85}
+nav{display:flex;gap:6px;padding:10px 12px;overflow-x:auto;background:var(--card);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:5}
+nav button{border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:8px 14px;border-radius:20px;font-size:14px;white-space:nowrap;cursor:pointer}
+nav button.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+nav .badge{background:var(--bad);color:#fff;border-radius:10px;padding:0 6px;font-size:11px;margin-left:4px}
+main{max-width:980px;margin:0 auto;padding:14px 12px 60px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:12px}
+.card h3{margin:0 0 8px;font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.stat{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px}
+.stat b{display:block;font-size:24px;line-height:1.2}
+.stat span{color:var(--mu);font-size:12px}
+.bar{display:flex;align-items:center;gap:8px;font-size:13px;margin:5px 0}
+.bar i{display:block;height:10px;border-radius:5px;background:var(--pri);min-width:2px}
+.bar .l{width:150px;flex-shrink:0;color:var(--mu)}
+.days{display:flex;align-items:flex-end;gap:4px;height:90px}
+.days div{flex:1;background:var(--pri);border-radius:3px 3px 0 0;min-height:2px;position:relative}
+.days div span{position:absolute;top:-16px;left:0;right:0;text-align:center;font-size:10px;color:var(--mu)}
+.btn{border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:7px 12px;border-radius:8px;font-size:13px;cursor:pointer}
+.btn.ok{background:var(--ok);color:#fff;border-color:var(--ok)}
+.btn.bad{background:var(--bad);color:#fff;border-color:var(--bad)}
+.btn.pri{background:var(--pri);color:#fff;border-color:var(--pri)}
+.btn:disabled{opacity:.5}
+input[type=text],input[type=email],input[type=password],input[type=search]{width:100%;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx);font-size:15px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.ph{border:1px solid var(--bd);border-radius:10px;overflow:hidden;background:var(--card);font-size:12px}
+.ph img{width:100%;aspect-ratio:1;object-fit:cover;display:block;cursor:zoom-in;background:#0002}
+.ph .m{padding:6px}
+.tag{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;background:var(--bd);color:var(--tx)}
+.tag.ok{background:#16a34a22;color:var(--ok)}.tag.bad{background:#dc262622;color:var(--bad)}.tag.warn{background:#d9770622;color:var(--warn)}
+.mu{color:var(--mu);font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{padding:8px 6px;border-bottom:1px solid var(--bd);text-align:left;vertical-align:top}
+th{color:var(--mu);font-weight:500}
+.lb{position:fixed;inset:0;background:#000d;display:none;align-items:center;justify-content:center;z-index:50;padding:10px}
+.lb.show{display:flex}.lb img{max-width:100%;max-height:100%;border-radius:8px}
+.center{text-align:center;padding:40px 10px;color:var(--mu)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111;color:#fff;padding:9px 16px;border-radius:20px;font-size:13px;z-index:60;display:none}
+</style>
+</head>
+<body>
+<header><h1>🎣 管理後台</h1><small id="who"></small></header>
+<div id="app"><div class="center">載入中…</div></div>
+<div class="lb" id="lb" onclick="this.classList.remove('show')"><img id="lbimg" alt=""></div>
+<div class="toast" id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script src="./lib/leaderboard.js"></script>
+<script>
+const SB_URL='https://lucizjohiycxdynrkjus.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1Y2l6am9oaXljeGR5bnJranVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0NTA2MjgsImV4cCI6MjEwNjAyNjYyOH0.O_fpj_TK9d1zDHHc5SciYaQkB_-meuFfpbrIQbsJboU';
+const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,storage:window.localStorage}});
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safeImg=u=>(typeof u==='string'&&u.indexOf(SB_URL+'/storage/')===0)?u:'';
+const fmt=t=>t?new Date(t).toLocaleString('sv-SE',{timeZone:'Asia/Hong_Kong'}).slice(0,16):'—';   // YYYY-MM-DD HH:mm（香港時間）
+const ago=t=>{if(!t)return'從未';const d=(Date.now()-new Date(t))/864e5;return d<1?'今日':d<2?'昨日':Math.floor(d)+' 日前';};
+const rt=c=>(window.lbLib&&lbLib.reasonText)?lbLib.reasonText(c):c;
+function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display='none',2500);}
+function zoom(u){const s=safeImg(u);if(!s)return;$('lbimg').src=s;$('lb').classList.add('show');}
+async function rpc(name,args){const {data,error}=await sb.rpc(name,args||{});if(error){throw new Error(error.message||'錯誤');}return data;}
+const S={tab:'overview',pending:0,photos:[],photoUser:null,photoDone:false};
+
+// ---------- 登入 ----------
+function showLogin(msg){
+  $('who').textContent='';
+  $('app').innerHTML='<main><div class="card"><h3>登入</h3><p class="mu">如果你喺同一部瀏覽器已經登入咗 App，會自動沿用。否則請用 App 嘅電郵同密碼登入。</p>'
+   +(msg?'<p style="color:var(--bad)">'+esc(msg)+'</p>':'')
+   +'<div style="display:grid;gap:8px;max-width:360px"><input type="email" id="em" placeholder="電郵" autocomplete="username"><input type="password" id="pw" placeholder="密碼" autocomplete="current-password"><button class="btn pri" onclick="doLogin()">登入</button></div></div></main>';
+}
+async function doLogin(){
+  const {error}=await sb.auth.signInWithPassword({email:$('em').value.trim(),password:$('pw').value});
+  if(error){showLogin('登入失敗：'+error.message);return;}
+  boot();
+}
+async function logout(){await sb.auth.signOut();showLogin();}
+async function boot(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){showLogin();return;}
+  let ok=false;try{ok=await rpc('is_admin');}catch(e){ok=false;}
+  if(!ok){$('app').innerHTML='<main><div class="card"><h3>冇權限</h3><p class="mu">呢個帳戶唔係管理員，或者資料庫（v112）未設定好。</p><button class="btn" onclick="logout()">登出</button></div></main>';return;}
+  $('who').innerHTML='管理員 · <a href="#" style="color:#fff" onclick="logout();return false">登出</a>';
+  $('app').innerHTML='<nav id="nav"></nav><main id="main"></main>';
+  try{S.pending=(await rpc('admin_overview')).pending_reviews||0;}catch(e){}
+  go(S.tab);
+}
+function renderNav(){
+  const T=[['overview','📊 總覽'],['review','🛡️ 審核中心'],['photos','📷 相片牆'],['users','👥 用戶']];
+  $('nav').innerHTML=T.map(t=>'<button class="'+(S.tab===t[0]?'on':'')+'" onclick="go(\''+t[0]+'\')">'+t[1]+(t[0]==='review'&&S.pending?'<span class="badge">'+S.pending+'</span>':'')+'</button>').join('');
+}
+async function go(tab){
+  S.tab=tab;renderNav();$('main').innerHTML='<div class="center">載入中…</div>';
+  try{await ({overview:vOverview,review:vReview,photos:vPhotos,users:vUsers})[tab]();}
+  catch(e){$('main').innerHTML='<div class="card"><h3>載入失敗</h3><p class="mu">'+esc(e.message)+'</p></div>';}
+}
+
+// ---------- 總覽 ----------
+async function vOverview(){
+  const o=await rpc('admin_overview');S.pending=o.pending_reviews||0;renderNav();
+  const pct=o.catches_total?Math.round(o.eligible_total*100/o.catches_total):0;
+  const st=(n,l)=>'<div class="stat"><b>'+esc(n)+'</b><span>'+l+'</span></div>';
+  const rs=o.reasons||[],rmax=Math.max(1,...rs.map(r=>r.n));
+  const dl=o.daily||[],dmax=Math.max(1,...dl.map(d=>d.n));
+  $('main').innerHTML='<div class="grid">'
+   +st(o.users_total,'註冊用戶')+st(o.users_7d,'近 7 日新用戶')+st(o.users_active_7d,'近 7 日有登入')
+   +st(o.catches_total,'魚獲總數')+st(o.catches_today,'今日新增魚獲')+st(o.catches_7d,'近 7 日魚獲')
+   +st(o.trips_total,'行程總數')+st(o.with_photo,'有相片魚獲')+st(pct+'%','符合上榜比例')
+   +st(o.pending_reviews,'待審核')+st(o.excluded_total,'管理員排除')+'</div>'
+   +'<div class="card" style="margin-top:12px"><h3>近 14 日每日魚獲</h3>'+(dl.length?'<div class="days">'+dl.map(d=>'<div style="height:'+Math.max(3,Math.round(d.n*100/dmax))+'%" title="'+esc(d.d)+'：'+d.n+' 條 / '+d.u+' 人"><span>'+d.n+'</span></div>').join('')+'</div><div class="mu" style="margin-top:4px">'+esc(dl[0].d)+' → '+esc(dl[dl.length-1].d)+'（柱上數字＝魚獲數）</div>':'<div class="mu">暫時冇資料</div>')+'</div>'
+   +'<div class="card"><h3>近 30 日未能上榜原因</h3>'+(rs.length?rs.map(r=>'<div class="bar"><span class="l">'+esc(rt(r.reason))+'</span><i style="width:'+Math.round(r.n*100/rmax)+'%"></i><b>'+r.n+'</b></div>').join(''):'<div class="mu">冇資料</div>')+'</div>';
+}
+
+// ---------- 審核 ----------
+async function vReview(){
+  const [q,done]=await Promise.all([rpc('admin_review_queue'),rpc('admin_review_done')]);
+  S.pending=q.length;renderNav();
+  let h='<div class="card"><h3>待審核（同一行程 + 同一魚種超過 30 條）</h3><p class="mu">批准後先會計入數量榜 / 品種榜；拒絕就唔計。請睇相片有冇重複、盜用或同一條魚影多次。</p></div>';
+  if(!q.length)h+='<div class="center">冇待審核項目 🎉</div>';
+  q.forEach((g,i)=>{
+    h+='<div class="card"><div class="row" style="justify-content:space-between"><div><b>'+esc(g.display_name||'（未命名）')+'</b> · '+esc(g.species)+' <span class="tag warn">'+g.catch_count+' 條</span><div class="mu">行程 '+fmt(g.started_at)+' · '+esc(g.spot||'')+'</div></div></div>'
+     +'<div class="photos" style="margin:10px 0">'+(g.catches||[]).map(c=>{const u=safeImg(c.photo_url);return '<div class="ph">'+(u?'<img loading="lazy" src="'+esc(u)+'" onclick="zoom(this.src)">':'')+'<div class="m">'+fmt(c.created_at).slice(5)+'<br>'+esc(c.weight_kg)+' kg</div></div>';}).join('')+'</div>'
+     +'<input type="text" id="rn'+i+'" placeholder="備註（可選）"><div class="row" style="margin-top:8px"><button class="btn ok" onclick="decide('+i+',\'approved\')">✅ 批准</button><button class="btn bad" onclick="decide('+i+',\'rejected\')">⛔ 拒絕</button></div></div>';
+  });
+  S.queue=q;
+  h+='<div class="card"><h3>最近審核紀錄</h3>'+(done.length?'<table><tr><th>用戶</th><th>魚種</th><th>結果</th><th>時間</th><th></th></tr>'+done.map(d=>'<tr><td>'+esc(d.display_name||'')+'</td><td>'+esc(d.species)+'</td><td><span class="tag '+(d.status==='approved'?'ok':'bad')+'">'+(d.status==='approved'?'已批准':'已拒絕')+'</span><div class="mu">'+esc(d.note||'')+'</div></td><td class="mu">'+fmt(d.reviewed_at)+'</td><td><button class="btn" onclick="undo(\''+esc(d.trip_id)+'\',\''+esc(d.species)+'\')">撤銷</button></td></tr>').join('')+'</table>':'<div class="mu">未有紀錄</div>')+'</div>';
+  $('main').innerHTML=h;
+}
+async function decide(i,status){
+  const g=S.queue[i];if(!confirm((status==='approved'?'批准':'拒絕')+'「'+(g.display_name||'')+'」嘅 '+g.species+' '+g.catch_count+' 條？'))return;
+  try{await rpc('admin_review_set',{p_trip:g.trip_id,p_species:g.species,p_status:status,p_note:($('rn'+i).value||'').slice(0,200)||null});toast('已更新');vReview();}catch(e){toast(e.message);}
+}
+async function undo(trip,sp){
+  if(!confirm('撤銷呢個審核結果？（會返回待審核）'))return;
+  try{await rpc('admin_review_set',{p_trip:trip,p_species:sp,p_status:'pending'});toast('已撤銷');vReview();}catch(e){toast(e.message);}
+}
+
+// ---------- 相片牆 ----------
+async function vPhotos(reset=true){
+  if(reset){S.photos=[];S.photoDone=false;}
+  const before=S.photos.length?S.photos[S.photos.length-1].created_at:null;
+  const rows=await rpc('admin_photos',{p_limit:40,p_before:before,p_user:S.photoUser});
+  if(rows.length<40)S.photoDone=true;
+  S.photos=S.photos.concat(rows);drawPhotos();
+}
+function drawPhotos(){
+  const tag=p=>p.excluded?'<span class="tag bad">已排除</span>':p.eligible?'<span class="tag ok">上榜</span>':'<span class="tag" title="'+esc(rt(p.reason))+'">未上榜</span>';
+  let h='<div class="card"><div class="row"><b>📷 魚獲相片</b>'+(S.photoUser?'<button class="btn" onclick="photoUser(null)">✕ 取消只睇呢位用戶</button>':'<span class="mu">撳用戶名可以只睇佢嘅相片</span>')+'</div></div>';
+  h+='<div class="photos">'+S.photos.map((p,i)=>{const u=safeImg(p.photo_url);return '<div class="ph">'+(u?'<img loading="lazy" src="'+esc(u)+'" onclick="zoom(this.src)">':'<div style="aspect-ratio:1" class="center">無相</div>')
+    +'<div class="m"><a href="#" onclick="photoUser(\''+esc(p.user_id)+'\');return false">'+esc(p.display_name||'—')+'</a><br>'+esc(p.species)+' '+esc(p.weight_kg)+'kg<br><span class="mu">'+fmt(p.created_at).slice(5)+'</span><br>'+tag(p)
+    +(p.eligible||p.excluded?'<br><button class="btn" style="padding:3px 8px;margin-top:4px" onclick="excl('+i+')">'+(p.excluded?'恢復':'排除')+'</button>':'')+'</div></div>';}).join('')+'</div>';
+  if(!S.photos.length)h+='<div class="center">暫時冇相片</div>';
+  if(!S.photoDone&&S.photos.length)h+='<div class="center"><button class="btn" onclick="vPhotos(false)">載入更多</button></div>';
+  $('main').innerHTML=h;
+}
+function photoUser(id){S.photoUser=id;vPhotos(true);}
+async function excl(i){
+  const p=S.photos[i],to=!p.excluded;
+  if(!confirm(to?'將呢條魚獲標為「不計排行榜」？':'恢復呢條魚獲（會重新判定資格）？'))return;
+  try{const r=await rpc('admin_set_excluded',{p_catch:p.id,p_excluded:to});p.excluded=r.excluded;p.eligible=r.eligible;p.reason=r.reason;drawPhotos();toast('已更新');}catch(e){toast(e.message);}
+}
+
+// ---------- 用戶 ----------
+async function vUsers(){
+  $('main').innerHTML='<div class="card"><input type="search" id="us" placeholder="搜尋電郵或顯示名稱" onkeydown="if(event.key===\'Enter\')loadUsers()"></div><div id="ul"><div class="center">載入中…</div></div>';
+  loadUsers();
+}
+async function loadUsers(){
+  try{
+    const rows=await rpc('admin_users',{p_limit:200,p_search:($('us')&&$('us').value.trim())||null});S.users=rows;
+    $('ul').innerHTML='<div class="card" style="overflow-x:auto"><div class="mu" style="margin-bottom:6px">共 '+rows.length+' 位（最多顯示 200）</div><table><tr><th>用戶</th><th>註冊</th><th>最後登入</th><th>魚獲</th><th>上榜</th><th>行程</th><th></th></tr>'
+     +rows.map((u,i)=>'<tr><td><b>'+esc(u.display_name||'—')+'</b>'+(u.is_admin?' <span class="tag ok">管理員</span>':'')+(u.banned?' <span class="tag bad">已停用</span>':'')+'<div class="mu">'+esc(u.email||'')+'</div></td><td class="mu">'+fmt(u.created_at).slice(0,10)+'</td><td class="mu">'+ago(u.last_sign_in_at)+'</td><td>'+u.catch_count+'</td><td>'+u.eligible_count+'</td><td>'+u.trip_count+'</td><td>'
+     +'<button class="btn" onclick="seePhotos(\''+esc(u.id)+'\')">相片</button> '+(u.is_admin?'':'<button class="btn '+(u.banned?'':'bad')+'" onclick="ban('+i+')">'+(u.banned?'恢復':'停用')+'</button>')+'</td></tr>').join('')+'</table></div>';
+  }catch(e){$('ul').innerHTML='<div class="card mu">'+esc(e.message)+'</div>';}
+}
+function seePhotos(id){S.photoUser=id;go('photos');}
+async function ban(i){
+  const u=S.users[i],to=!u.banned;
+  if(!confirm((to?'停用':'恢復')+'帳戶「'+(u.display_name||u.email)+'」？'+(to?'\n停用後佢仍可保存自己嘅記錄，但唔再出現喺排行榜，亦無法登入。':'')))return;
+  try{await rpc('admin_set_ban',{p_user:u.id,p_banned:to});toast('已更新');loadUsers();}catch(e){toast(e.message);}
+}
+sb.auth.onAuthStateChange(()=>{});
+boot();
+</script>
+</body>
+</html>
