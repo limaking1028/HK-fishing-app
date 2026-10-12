@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v139';  // v139: 意見箱
+const CACHE = 'hk-fishing-v141';  // v141: 環境快照（行程開始／結束、魚獲按時間揀天氣）
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+

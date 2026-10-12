@@ -1205,7 +1205,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v139</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v141</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -2725,22 +2725,26 @@ function submitCatch() {
   // Route M: 未同意就不做 enrichment(預設 false,GDPR 友善)
   // Route L+: 同步 enrichment（時間/月相/太陽/潮汐/地理）— 不阻塞送出，失敗不影響
   if (catchItem.optedInAnalytics) {
+    // v141：冇 GPS 時用釣點預設座標計潮汐／天氣（只用於統計，唔會寫入魚獲嘅 GPS 欄位）
+    const spotLoc = condLocation(catchItem.latitude, catchItem.longitude, spotRaw);
     try {
       if (window.catchStatsLib) {
         catchItem.stats = window.catchStatsLib.enrich({
           dateStr: catchItem.date,
           timeStr: catchItem.time,
-          lat: catchItem.latitude,
-          lng: catchItem.longitude,
+          lat: spotLoc.lat,
+          lng: spotLoc.lng,
           spot: catchItem.spot
         });
+        if (catchItem.stats) catchItem.stats.locBasis = spotLoc.basis;
       }
     } catch (e) { console.warn('[stats enrichment failed]', e); }
     // Route L+: 異步天氣 enrichment（不阻塞，失敗設為 unavailable）
-    if (window.catchStatsLib && catchItem.latitude != null && catchItem.longitude != null) {
+    if (window.catchStatsLib && spotLoc.lat != null) {
       // 天氣最多等 4 秒，之後連同魚獲一次寫入雲端（不再事後 update，避免 id 未就緒更新落空）
+      // v141：按魚獲時間揀返嗰個鐘頭嘅天氣，唔再一律用「而家」
       statsPromise = withTimeout(window.catchStatsLib.enrichWeatherAsync(
-        catchItem.stats = catchItem.stats || {}, catchItem.latitude, catchItem.longitude, catchItem.date
+        catchItem.stats = catchItem.stats || {}, spotLoc.lat, spotLoc.lng, catchItem.date, catchItem.time
       ), 4000, '天氣').then(stats => { catchItem.stats = stats; })
         .catch(e => console.warn('[stats weather async failed]', e));
     }
@@ -2867,7 +2871,31 @@ async function dbUpdateTrip(tripId, patch) {
   return true;
 }
 
-async function dbEndTrip(tripId, endedAt, stats) {
+/* ===== v141：環境快照（潮汐／月相／太陽／天氣），用嚟做將來嘅個人分析 =====
+ * 只喺用戶同意「匿名統計」時記錄（同魚獲 stats 一樣）。冇 GPS 就用釣點預設座標。 */
+function condLocation(lat, lng, spotName) {
+  if (lat != null && lng != null) return { lat: lat, lng: lng, basis: 'gps' };
+  const main = String(spotName || '').split('（')[0].trim();
+  const sp = FISHING_SPOTS.find(x => x.name === main);
+  if (sp && sp.lat != null && sp.lng != null) return { lat: sp.lat, lng: sp.lng, basis: 'spot' };
+  return { lat: null, lng: null, basis: 'none' };
+}
+async function tripConditions(trip, atMs, timeoutMs) {
+  if (!getAnalyticsConsent() || !window.catchStatsLib || !window.catchStatsLib.snapshotConditions || !trip) return null;
+  try {
+    const loc = condLocation(trip.latitude, trip.longitude, trip.spot);
+    return await window.catchStatsLib.snapshotConditions(
+      { atMs: atMs || Date.now(), lat: loc.lat, lng: loc.lng, spot: trip.spot, locBasis: loc.basis }, timeoutMs || 4000);
+  } catch (e) { console.warn('[trip conditions failed]', e); return null; }
+}
+// 開始快照喺背景寫入；資料庫未有欄位（未跑 migration-v141）就靜靜略過，唔打擾用戶
+async function dbSaveTripStartConditions(tripId, snap) {
+  if (!sb || !state.user || !snap) return;
+  const { error } = await sb.from('fishing_trips').update({ start_conditions: snap }).eq('id', tripId).eq('user_id', state.user.id);
+  if (error) console.warn('[trips] start_conditions 未能寫入', error.message);
+}
+
+async function dbEndTrip(tripId, endedAt, stats, endConditions) {
   if (!sb || !state.user) return false;
   const endPatch = {
     ended_at: endedAt,
@@ -2875,7 +2903,12 @@ async function dbEndTrip(tripId, endedAt, stats) {
     total_weight: Math.round(weightLib.fromKg(stats.totalWeight || 0, 'jin') * 100) / 100,  // 舊欄位（斤）
     total_weight_kg: stats.totalWeight || 0                                                  // 標準重量（公斤）
   };
+  if (endConditions) endPatch.end_conditions = endConditions;
   let { data, error } = await sb.from('fishing_trips').update(endPatch).eq('id', tripId).eq('user_id', state.user.id).select();
+  if (error && /end_conditions/.test(error.message || '')) {
+    delete endPatch.end_conditions;    // 未執行 migration-v141：照樣結束行程，只係唔記快照
+    ({ data, error } = await sb.from('fishing_trips').update(endPatch).eq('id', tripId).eq('user_id', state.user.id).select());
+  }
   if (error && /total_weight_kg/.test(error.message || '')) {
     delete endPatch.total_weight_kg;   // 未執行 migration-v108：只寫舊欄位
     ({ data, error } = await sb.from('fishing_trips').update(endPatch).eq('id', tripId).eq('user_id', state.user.id).select());
@@ -3425,6 +3458,9 @@ async function confirmStartTrip() {
   window.tripsLib.startTimer(tickActiveTripBanner, 1000);
   renderActiveTripBanner();
   toast('🎣 行程已開始：' + fullSpot);
+  // v141：背景記低開始時嘅環境（唔阻住用戶）
+  { const t0 = state.activeTrip, at0 = new Date(trip.started_at).getTime() || Date.now();
+    tripConditions(t0, at0, 8000).then(snap => dbSaveTripStartConditions(t0.id, snap)); }
   // 重新載入 trips 並跳到記錄 tab 讓用戶加第一條魚
   state.trips = await dbLoadTrips();
   renderTripsView();
@@ -3438,16 +3474,20 @@ async function endTrip(skipConfirm) {
     const summary = window.tripsLib.summarizeTripCatches(state.activeTrip, state.catches);
     const tt = tallyTotal(state.activeTrip.id);
     const noPhoto = tt > 0 && tripHaulPhotos(state.activeTrip.id).length === 0;
-    if (!confirm('結束當前行程？\n\n已記錄 ' + summary.count + ' 條魚，共 ' + fmtWeight(summary.totalWeight)
+    const empty = summary.count === 0 && !tt;
+    if (!confirm('結束當前行程？\n\n' + (empty
+        ? '今次未有記錄魚獲。冇魚都照樣結束行程就得，空軍記錄對日後分析「咩情況最易上魚」一樣有用。'
+        : '已記錄 ' + summary.count + ' 條魚，共 ' + fmtWeight(summary.totalWeight))
       + (tt ? '\n快速計數 ' + tt + ' 條' : '')
       + (noPhoto ? '\n\n💡 你有快速計數但未有收成相，建議先撳「🔢 計數」加 1–3 張相。仍然結束？' : ''))) return;
   }
   const endedAt = new Date().toISOString();
   const stats = window.tripsLib.summarizeTripCatches(state.activeTrip, state.catches);
-  await tallySync();
+  // v141：結束時嘅環境快照（天氣最多等 3 秒，唔會卡住結束）
+  const [endCond] = await Promise.all([tripConditions(state.activeTrip, new Date(endedAt).getTime(), 3000), tallySync()]);
   const ok = await dbEndTrip(state.activeTrip.id, endedAt, {
     count: stats.count + tallyTotal(state.activeTrip.id), totalWeight: stats.totalWeight
-  });
+  }, endCond);
   if (!ok) return;
   window.tripsLib.stopTimer();
   window.tripsLib.clearActiveTrip();
@@ -5178,7 +5218,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v139</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v141</span>';
   }
   renderView(name);
 }
