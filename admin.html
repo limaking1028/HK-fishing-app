@@ -112,19 +112,40 @@ input:focus,textarea:focus{outline:none;border-color:var(--brand);box-shadow:var
 label.f{display:block;font-size:13px;font-weight:600;margin:0 0 6px}
 code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--surface-2);border:1px solid var(--bd-2);border-radius:6px;padding:1px 6px}
 
-/* ---- v145：數據格拖動 ---- */
-.kpi-bar{display:flex;align-items:center;gap:10px;margin:2px 0 10px;min-height:34px}
-.kpi-bar .hint{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--mu);margin:0}
-.kpi-bar .hint svg.i{width:16px;height:16px}
-.kpi-bar .btn{margin-left:auto}
-.kpi.drag{cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation;transition:box-shadow .16s,transform .2s}
+/* ---- v146：數據格排列 ---- */
+.kpi-bar{display:flex;align-items:center;gap:8px;margin:2px 0 10px;min-height:36px;flex-wrap:wrap}
+.kpi-bar .hint{font-size:12.5px;color:var(--mu);margin:0;flex:1 1 220px}
+.kpi-bar .sp{display:none}
+.kpi.drag{cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;transition:box-shadow .16s ease-out,background .16s ease-out}
 .kpi.drag:hover{box-shadow:0 4px 16px rgba(12,38,44,.08)}
 .kpi.drag:focus-visible{box-shadow:var(--ring)}
-.kpi.kpi-press{transform:scale(.97);transition:transform .35s ease}
-.kpi.kpi-slot{background:transparent;box-shadow:none;border:1.5px dashed color-mix(in srgb,var(--brand) 45%,var(--bd))}
+.kpi.kpi-press{background:var(--surface-2);box-shadow:0 0 0 2px color-mix(in srgb,var(--brand) 35%,transparent)}
+.kpi.kpi-slot{background:transparent;box-shadow:none;border:1.5px dashed color-mix(in srgb,var(--brand) 50%,var(--bd))}
 .kpi.kpi-slot>*{visibility:hidden}
-.kpi-ghost{position:fixed;z-index:90;margin:0;pointer-events:none;cursor:grabbing;box-shadow:0 18px 40px rgba(6,26,31,.22),0 0 0 1.5px var(--brand);transform-origin:center;will-change:transform}
+.kpi-ghost{position:fixed;z-index:90;margin:0;pointer-events:none;box-shadow:0 18px 40px rgba(6,26,31,.22),0 0 0 2px var(--brand);will-change:transform,translate}
 body.kpi-dragging,body.kpi-dragging *{cursor:grabbing!important;user-select:none!important;-webkit-user-select:none!important}
+.kpi-editing .kpi{border-style:dashed;border-color:color-mix(in srgb,var(--brand) 40%,var(--bd));cursor:default}
+.kpi-ctl{display:flex;align-items:center;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--bd-2)}
+.kpi-mv{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:9px;border:1px solid var(--bd);background:var(--surface);color:var(--tx);cursor:pointer;transition:background .12s ease-out}
+.kpi-mv:hover:not(:disabled){background:var(--brand-weak);border-color:color-mix(in srgb,var(--brand) 40%,var(--bd));color:var(--brand)}
+.kpi-mv:active:not(:disabled){background:color-mix(in srgb,var(--brand) 18%,var(--surface))}
+.kpi-mv:disabled{opacity:.4;cursor:not-allowed}
+.kpi-mv svg.i{width:18px;height:18px}
+.kpi-pos{font-size:12px;color:var(--mu);min-width:38px;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kpi-handle{margin-left:auto;display:inline-grid;place-items:center;width:36px;height:36px;border-radius:9px;color:var(--mu);cursor:grab;touch-action:none}
+.kpi-handle:hover{background:var(--surface-2);color:var(--tx)}
+@media (max-width:1023px){
+  html{scroll-padding-top:64px;scroll-padding-bottom:84px} /* 焦點唔會被頂欄／底部分頁遮住 */
+  .kpi-mv,.kpi-handle{width:44px;height:44px}
+  .kpi-editing .kpi{padding-left:12px;padding-right:12px}
+  .kpi-ctl{gap:6px}
+  .kpi-pos{position:absolute;top:12px;right:12px;min-width:0;padding:1px 7px;border-radius:9px;background:var(--surface-2);border:1px solid var(--bd-2);font-size:11px;line-height:18px;white-space:nowrap}
+  .kpi-handle{margin-left:auto}
+  .kpi-editing .kpi .l{padding-right:44px}          /* 留位畀角落嘅位置標記，長標籤會換行唔會重疊 */
+  .kpi-bar{justify-content:flex-end}
+  .kpi-bar .hint{flex-basis:100%}
+}
+@media (prefers-reduced-motion:reduce){.kpi-ghost{box-shadow:0 0 0 2px var(--brand)}}
 /* ---- 圖表 ---- */
 .bars{display:flex;align-items:flex-end;gap:5px;height:150px;padding-top:22px;border-bottom:1px solid var(--bd);
   background:repeating-linear-gradient(to top,transparent 0,transparent 31px,var(--bd-2) 31px,var(--bd-2) 32px)}
@@ -277,6 +298,8 @@ dialog.lb .x{position:absolute;top:-8px;right:-4px;background:#fff;color:#000;bo
   <symbol id="i-log" viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></symbol>
   <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
   <symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.2"/><circle cx="15" cy="6" r="1.2"/><circle cx="9" cy="12" r="1.2"/><circle cx="15" cy="12" r="1.2"/><circle cx="9" cy="18" r="1.2"/><circle cx="15" cy="18" r="1.2"/></symbol>
+  <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
   <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></symbol>
 </svg>
 
@@ -416,12 +439,8 @@ async function vOverview(){
     photo:k('image','有相片魚獲',o.with_photo,o.catches_total?Math.round(o.with_photo*100/o.catches_total)+'% 有相':''),
     eligible:k('pct','符合上榜比例',pct+'%',o.eligible_total+' / '+o.catches_total),
     excluded:k('ban','管理員已排除',o.excluded_total,'')};
-  const order=kpiOrder(Object.keys(tiles)),custom=kpiSaved().length>0;
-  h+='<div class="kpi-bar"><span class="hint" id="kpiHint">'+ic('grip')+'按住數據格拖動，可以調整位置</span>'
-   +(custom?'<button class="btn sm" type="button" onclick="kpiReset()">'+ic('undo')+'重設排列</button>':'')+'</div>';
-  h+='<div class="grid kpis" id="kpiGrid" aria-describedby="kpiHelp">'
-   +order.map(key=>tiles[key].replace('<div class="kpi">','<div class="kpi drag" data-k="'+key+'" tabindex="0" aria-roledescription="可拖動數據格">')).join('')
-   +'</div><p id="kpiHelp" class="sr">用 Alt 加方向鍵移動已選取嘅數據格。</p><div class="grid two" style="margin-top:12px">'
+  S.kpiTiles=tiles;
+  h+='<section id="kpiWrap" aria-label="主要數據"></section><div class="grid two" style="margin-top:12px">'
    +'<section class="card" aria-labelledby="h1"><h2 id="h1">近 14 日每日魚獲</h2><p class="hint">柱頂數字＝魚獲條數</p>'
    +(dl.length?'<div class="bars" role="img" aria-label="近 14 日每日魚獲條數圖表">'+dl.map(d=>'<div class="c" title="'+esc(d.d)+'：'+d.n+' 條 / '+d.u+' 人"><b>'+d.n+'</b><i style="height:'+Math.max(3,Math.round(d.n*100/dmax))+'%"></i></div>').join('')+'</div><div class="xl" aria-hidden="true">'+dl.map(d=>'<span>'+esc(String(d.d).slice(5))+'</span>').join('')+'</div>'
      +'<details class="tbl"><summary>查看數據表</summary><div class="tw" style="margin-top:8px"><table class="t"><thead><tr><th>日期</th><th>魚獲</th><th>用戶</th></tr></thead><tbody>'+dl.map(d=>'<tr><td data-l="日期">'+esc(d.d)+'</td><td data-l="魚獲">'+d.n+'</td><td data-l="用戶">'+d.u+'</td></tr>').join('')+'</tbody></table></div></details>'
@@ -429,92 +448,156 @@ async function vOverview(){
    +'<section class="card" aria-labelledby="h2"><h2 id="h2">近 30 日未能上榜原因</h2><p class="hint">睇下用戶最常卡喺邊一項</p>'
    +(rs.length?rs.map(r=>'<div class="hb"><span>'+esc(rt(r.reason))+'</span><div class="t"><i style="width:'+Math.max(2,Math.round(r.n*100/rsum))+'%"></i></div><b>'+r.n+' · '+Math.round(r.n*100/rsum)+'%</b></div>').join(''):empty('check','冇未能上榜嘅魚獲'))+'</section></div>';
   $('main').innerHTML=h;
-  kpiDragInit($('kpiGrid'));
+  kpiRender();
 }
 
-/* ---------- v145：總覽數據格拖動排列（次序存喺呢部瀏覽器）---------- */
+/* ---------- v146：總覽數據格排列（按 ui-ux-pro-max 規範重做）----------
+ * 三種方法都得（WCAG 2.2 dragging-alternative）：
+ *   1. 拖動：滑鼠按住移動；手機長按 0.35 秒；「調整排列」模式入面由把手即刻拖
+ *   2. 單指點按：「調整排列」模式每格有「向前／向後」掣（44px）
+ *   3. 鍵盤：選取數據格後 Alt + 方向鍵
+ * 次序存喺呢部瀏覽器；有自訂次序時可以「重設排列」。 */
 const KPI_KEY='adm_kpi_order_v1';
+const KPI_MOTION={lift:160,settle:220,drop:110,press:350}; // 統一動畫時間（入場較慢、離場較快）
+const kpiReduce=()=>!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
 function kpiSaved(){try{const a=JSON.parse(localStorage.getItem(KPI_KEY)||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}}
 function kpiOrder(keys){const sv=kpiSaved().filter(x=>keys.includes(x));return sv.concat(keys.filter(x=>!sv.includes(x)));}
 function kpiSave(grid){try{localStorage.setItem(KPI_KEY,JSON.stringify([...grid.querySelectorAll('.kpi[data-k]')].map(e=>e.dataset.k)));}catch(e){}}
-function kpiReset(){try{localStorage.removeItem(KPI_KEY);}catch(e){}go('overview','keep');toast('已重設排列');}
-// FLIP：DOM 改動前後量位置，再用 transform 補間，令其他格順滑讓位
-function kpiFlip(grid,mutate,skip){
+function kpiLabel(el){return ((el.querySelector('.l')||{}).textContent||'').trim();}
+function kpiStatus(msg){const st=$('kpiStatus');if(st){st.textContent='';requestAnimationFrame(()=>{st.textContent=msg;});}}
+
+function kpiRender(){
+  const wrap=$('kpiWrap'),tiles=S.kpiTiles;if(!wrap||!tiles)return;
+  const order=kpiOrder(Object.keys(tiles)),custom=kpiSaved().length>0,ed=!!S.kpiEdit,n=order.length;
+  wrap.innerHTML='<div class="kpi-bar">'
+    +'<p class="hint" id="kpiHint">'+(ed?'拖動把手或者用箭咀掣調整次序，完成後撳「完成」。':'按住數據格可以拖動排列，或者撳「調整排列」。')+'</p>'
+    +'<span class="sp"></span>'
+    +(custom?'<button class="btn sm" type="button" onclick="kpiReset()">'+ic('undo')+'<span>重設</span></button>':'')
+    +'<button class="btn sm'+(ed?' pri':'')+'" type="button" aria-pressed="'+ed+'" onclick="kpiToggleEdit()">'+(ed?ic('check')+'<span>完成</span>':ic('grip')+'<span>調整排列</span>')+'</button></div>'
+    +'<p id="kpiStatus" class="sr" role="status" aria-atomic="true"></p>'
+    +'<div class="grid kpis'+(ed?' kpi-editing':'')+'" id="kpiGrid" aria-describedby="kpiHelp">'
+    +order.map((key,i)=>tiles[key].replace('<div class="kpi">','<div class="kpi drag" data-k="'+key+'" tabindex="0" aria-roledescription="可移動數據格">')
+       .replace(/<\/div>$/,(ed?kpiCtl(i,n):'')+'</div>')).join('')
+    +'</div><p id="kpiHelp" class="sr">選取數據格後，用 Alt 加方向鍵移動位置。</p>';
+  kpiDragInit($('kpiGrid'));
+}
+function kpiCtl(i,n){
+  return '<div class="kpi-ctl">'
+    +'<button type="button" class="kpi-mv" data-d="-1" aria-label="向前移" '+(i===0?'disabled':'')+'>'+ic('chev-l')+'</button>'
+    +'<span class="kpi-pos" aria-hidden="true">'+(i+1)+' / '+n+'</span>'
+    +'<button type="button" class="kpi-mv" data-d="1" aria-label="向後移" '+(i===n-1?'disabled':'')+'>'+ic('chev-r')+'</button>'
+    +'<span class="kpi-handle" aria-hidden="true" title="拖動">'+ic('grip')+'</span></div>';
+}
+function kpiToggleEdit(){S.kpiEdit=!S.kpiEdit;kpiRender();kpiStatus(S.kpiEdit?'已進入調整排列模式':'已完成調整排列');
+  const b=document.querySelector('.kpi-bar [aria-pressed]');if(b)b.focus();}
+function kpiReset(){try{localStorage.removeItem(KPI_KEY);}catch(e){}kpiRender();kpiStatus('已重設為原本次序');toast('已重設排列');}
+// 每次次序改變後：更新位置數字同掣嘅可用狀態（唔重畫，保持焦點）
+function kpiRefreshCtl(grid){
+  const kids=[...grid.querySelectorAll('.kpi[data-k]')],n=kids.length;
+  kids.forEach((el,i)=>{const p=el.querySelector('.kpi-pos');if(p)p.textContent=(i+1)+' / '+n;
+    el.querySelectorAll('.kpi-mv').forEach(b=>{b.disabled=(b.dataset.d==='-1'&&i===0)||(b.dataset.d==='1'&&i===n-1);});});
+  const bar=document.querySelector('.kpi-bar');
+  if(bar&&kpiSaved().length&&!bar.querySelector('[onclick="kpiReset()"]'))bar.querySelector('[aria-pressed]').insertAdjacentHTML('beforebegin','<button class="btn sm" type="button" onclick="kpiReset()">'+ic('undo')+'<span>重設</span></button>');
+}
+// FLIP：其他格順滑讓位；減少動態效果時直接跳位
+function kpiFlip(grid,mutate){
+  if(kpiReduce()){mutate();return;}
   const els=[...grid.querySelectorAll('.kpi[data-k]')],r0=new Map(els.map(e=>[e,e.getBoundingClientRect()]));
   mutate();
-  els.forEach(e=>{if(e===skip)return;const a=r0.get(e),b=e.getBoundingClientRect(),dx=a.left-b.left,dy=a.top-b.top;
-    if(!dx&&!dy)return;e.style.transition='none';e.style.transform='translate('+dx+'px,'+dy+'px)';
-    requestAnimationFrame(()=>{e.style.transition='transform .2s cubic-bezier(.2,.8,.2,1)';e.style.transform='';});});
+  els.forEach(e=>{const a=r0.get(e),b=e.getBoundingClientRect(),dx=a.left-b.left,dy=a.top-b.top;if(!dx&&!dy)return;
+    e.style.transition='none';e.style.transform='translate('+dx+'px,'+dy+'px)';
+    requestAnimationFrame(()=>{e.style.transition='transform '+KPI_MOTION.settle+'ms cubic-bezier(.2,.9,.25,1)';e.style.transform='';});});
+}
+function kpiMoveBy(el,d){
+  const grid=el.parentNode,kids=[...grid.querySelectorAll('.kpi[data-k]')],i=kids.indexOf(el),j=i+d;
+  if(j<0||j>=kids.length)return false;
+  kpiFlip(grid,()=>{grid.insertBefore(el,d>0?kids[j].nextSibling:kids[j]);});
+  kpiSave(grid);kpiRefreshCtl(grid);kpiStatus('「'+kpiLabel(el)+'」移到第 '+(j+1)+' 位，共 '+kids.length+' 位');
+  return true;
 }
 function kpiDragInit(grid){
   if(!grid)return;
-  let st=null; // {el,ghost,offX,offY,x,y,raf,moved}
-  const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let st=null;
   function start(el,x,y,touch){
     const r=el.getBoundingClientRect(),g=el.cloneNode(true);
-    g.classList.add('kpi-ghost');g.removeAttribute('tabindex');g.removeAttribute('data-k');g.setAttribute('aria-hidden','true');
-    g.style.width=r.width+'px';g.style.height=r.height+'px';g.style.left=r.left+'px';g.style.top=r.top+'px';
-    document.body.appendChild(g);el.classList.add('kpi-slot');document.body.classList.add('kpi-dragging');
-    st={el,ghost:g,offX:x-r.left,offY:y-r.top,x,y,raf:0,start:el.dataset.k,startIdx:[...grid.children].indexOf(el)};
-    if(touch&&navigator.vibrate)try{navigator.vibrate(12);}catch(e){}
+    g.classList.add('kpi-ghost');['tabindex','data-k','aria-roledescription'].forEach(a=>g.removeAttribute(a));g.setAttribute('aria-hidden','true');
+    g.querySelectorAll('button').forEach(b=>b.setAttribute('tabindex','-1'));
+    Object.assign(g.style,{width:r.width+'px',height:r.height+'px',left:r.left+'px',top:r.top+'px'});
+    document.body.appendChild(g);
+    if(!kpiReduce()){g.animate([{transform:'scale(1)'},{transform:'scale(1.03)'}],{duration:KPI_MOTION.lift,easing:'cubic-bezier(.2,.9,.25,1)',fill:'forwards'});}
+    el.classList.add('kpi-slot');document.body.classList.add('kpi-dragging');
+    st={el,g,offX:x-r.left,offY:y-r.top,x,y,raf:0,startIdx:[...grid.children].indexOf(el)};
+    if(touch&&navigator.vibrate)try{navigator.vibrate(10);}catch(e){}
+    kpiStatus('已拎起「'+kpiLabel(el)+'」，拖到新位置後放手；按 Esc 取消');
     loop();
   }
   function move(x,y){
     if(!st)return;st.x=x;st.y=y;
-    st.ghost.style.transform='translate('+(x-st.offX-parseFloat(st.ghost.style.left))+'px,'+(y-st.offY-parseFloat(st.ghost.style.top))+'px) scale(1.03)';
+    st.g.style.translate=(x-st.offX-parseFloat(st.g.style.left))+'px '+(y-st.offY-parseFloat(st.g.style.top))+'px';
     const hit=document.elementFromPoint(x,y),over=hit&&hit.closest&&hit.closest('#kpiGrid .kpi[data-k]');
     if(!over||over===st.el)return;
     const kids=[...grid.querySelectorAll('.kpi[data-k]')],from=kids.indexOf(st.el),to=kids.indexOf(over);
-    kpiFlip(grid,()=>{grid.insertBefore(st.el,to>from?over.nextSibling:over);},null);
+    kpiFlip(grid,()=>{grid.insertBefore(st.el,to>from?over.nextSibling:over);});
+    kpiRefreshCtl(grid);
   }
-  function loop(){ // 拖到畫面邊緣自動捲動
-    if(!st)return;const m=70,v=st.y<m?-(m-st.y)/4:(st.y>innerHeight-m-60?(st.y-(innerHeight-m-60))/4:0);
+  function loop(){ // 拖到頂／底邊緣自動捲動（避開頂欄同底部分頁）
+    if(!st)return;const top=90,bot=innerHeight-110;
+    const v=st.y<top?-(top-st.y)/5:(st.y>bot?(st.y-bot)/5:0);
     if(v){window.scrollBy(0,v);move(st.x,st.y);}
     st.raf=requestAnimationFrame(loop);
   }
   function end(cancel){
     if(!st)return;const s0=st;st=null;cancelAnimationFrame(s0.raf);
-    if(cancel){const kids=[...grid.querySelectorAll('.kpi[data-k]')];grid.insertBefore(s0.el,kids.filter(e=>e!==s0.el)[s0.startIdx]||null);}
-    const r=s0.el.getBoundingClientRect(),g=s0.ghost;
-    const done=()=>{g.remove();s0.el.classList.remove('kpi-slot');document.body.classList.remove('kpi-dragging');};
-    if(reduce)done();else{g.style.transition='transform .18s ease';g.style.transform='translate('+(r.left-parseFloat(g.style.left))+'px,'+(r.top-parseFloat(g.style.top))+'px)';setTimeout(done,180);}
-    if(!cancel){kpiSave(grid);const n=[...grid.children].indexOf(s0.el)+1;if(n-1!==s0.startIdx)kpiAnnounce(s0.el,n);}
+    if(cancel){const kids=[...grid.querySelectorAll('.kpi[data-k]')].filter(e=>e!==s0.el);kpiFlip(grid,()=>grid.insertBefore(s0.el,kids[s0.startIdx]||null));}
+    const done=()=>{s0.g.remove();s0.el.classList.remove('kpi-slot');document.body.classList.remove('kpi-dragging');kpiRefreshCtl(grid);};
+    if(kpiReduce())done();
+    else{const r=s0.el.getBoundingClientRect();
+      s0.g.animate([{translate:s0.g.style.translate||'0 0',transform:'scale(1.03)'},{translate:(r.left-parseFloat(s0.g.style.left))+'px '+(r.top-parseFloat(s0.g.style.top))+'px',transform:'scale(1)'}],
+        {duration:KPI_MOTION.drop,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'}).onfinish=done;}
+    const n=[...grid.querySelectorAll('.kpi[data-k]')].indexOf(s0.el)+1;
+    if(cancel)kpiStatus('已取消，「'+kpiLabel(s0.el)+'」返回原位');
+    else{kpiSave(grid);if(n-1!==s0.startIdx){kpiStatus('「'+kpiLabel(s0.el)+'」移到第 '+n+' 位');if(navigator.vibrate&&s0.touch)try{navigator.vibrate(6);}catch(e){}}else kpiStatus('次序冇改變');}
   }
-  // 滑鼠／觸控筆：按住移動 5px 開始拖
+  // 箭咀掣（單指點按替代方案）
+  grid.addEventListener('click',e=>{const b=e.target.closest('.kpi-mv');if(!b||b.disabled)return;
+    const el=b.closest('.kpi[data-k]');kpiMoveBy(el,+b.dataset.d);
+    // 移到盡頭時掣會停用，焦點轉去另一個掣
+    requestAnimationFrame(()=>{(b.disabled?el.querySelector('.kpi-mv:not([disabled])'):b)?.focus();});});
+  // 滑鼠／觸控筆：移動 5px 先開始（避免誤觸）
   grid.addEventListener('pointerdown',e=>{
-    if(e.pointerType==='touch'||e.button!==0)return;
+    if(e.pointerType==='touch'||e.button!==0||e.target.closest('button'))return;
     const el=e.target.closest('.kpi[data-k]');if(!el)return;
     const sx=e.clientX,sy=e.clientY;e.preventDefault();
+    const off=()=>{removeEventListener('pointermove',mm);removeEventListener('pointerup',up);removeEventListener('pointercancel',cc);};
     const mm=ev=>{if(!st&&Math.hypot(ev.clientX-sx,ev.clientY-sy)>5)start(el,sx,sy,false);if(st)move(ev.clientX,ev.clientY);};
-    const up=()=>{removeEventListener('pointermove',mm);removeEventListener('pointerup',up);removeEventListener('pointercancel',cc);if(st)end(false);else el.focus();};
-    const cc=()=>{removeEventListener('pointermove',mm);removeEventListener('pointerup',up);removeEventListener('pointercancel',cc);end(true);};
+    const up=()=>{off();if(st)end(false);else el.focus();};
+    const cc=()=>{off();end(true);};
     addEventListener('pointermove',mm);addEventListener('pointerup',up);addEventListener('pointercancel',cc);
   });
-  // 手指：長按 0.35 秒先開始拖（之前移動就當係捲動）
+  // 手指：一般模式長按 0.35 秒；調整模式由把手即刻開始。開始前移動超過 8px 當捲動
   grid.addEventListener('touchstart',e=>{
-    if(e.touches.length!==1)return;const el=e.target.closest('.kpi[data-k]');if(!el)return;
-    const t=e.touches[0],sx=t.clientX,sy=t.clientY;el.classList.add('kpi-press');
-    let timer=setTimeout(()=>{timer=0;el.classList.remove('kpi-press');start(el,sx,sy,true);},350);
-    const tm=ev=>{const p=ev.touches[0];if(st){ev.preventDefault();move(p.clientX,p.clientY);}else if(timer&&Math.hypot(p.clientX-sx,p.clientY-sy)>8){clearTimeout(timer);timer=0;el.classList.remove('kpi-press');}};
-    const te=ev=>{clearTimeout(timer);el.classList.remove('kpi-press');removeEventListener('touchmove',tm);removeEventListener('touchend',te);removeEventListener('touchcancel',te);if(st)end(ev.type==='touchcancel');};
+    if(e.touches.length!==1||e.target.closest('button'))return;
+    const el=e.target.closest('.kpi[data-k]');if(!el)return;
+    const handle=!!e.target.closest('.kpi-handle'),t=e.touches[0],sx=t.clientX,sy=t.clientY;
+    if(S.kpiEdit&&!handle)return; // 調整模式：卡身留畀捲動同點按
+    let timer=0;
+    if(handle){e.preventDefault();start(el,sx,sy,true);st.touch=true;}
+    else{el.classList.add('kpi-press');timer=setTimeout(()=>{timer=0;el.classList.remove('kpi-press');start(el,sx,sy,true);st.touch=true;},KPI_MOTION.press);}
+    const off=()=>{removeEventListener('touchmove',tm);removeEventListener('touchend',te);removeEventListener('touchcancel',te);};
+    const tm=ev=>{const p=ev.touches[0];if(st){ev.preventDefault();move(p.clientX,p.clientY);}
+      else if(timer&&Math.hypot(p.clientX-sx,p.clientY-sy)>8){clearTimeout(timer);timer=0;el.classList.remove('kpi-press');}};
+    const te=ev=>{clearTimeout(timer);el.classList.remove('kpi-press');off();if(st)end(ev.type==='touchcancel');};
     addEventListener('touchmove',tm,{passive:false});addEventListener('touchend',te);addEventListener('touchcancel',te);
-  },{passive:true});
+  },{passive:false});
   grid.addEventListener('contextmenu',e=>{if(e.target.closest('.kpi[data-k]'))e.preventDefault();});
-  addEventListener('keydown',e=>{if(st&&e.key==='Escape')end(true);});
-  // 鍵盤：Alt + 方向鍵
+  // 鍵盤：Alt + 方向鍵移動；拖動中 Esc 取消；調整模式 Esc 完成
   grid.addEventListener('keydown',e=>{
-    const el=e.target.closest('.kpi[data-k]');if(!el||!e.altKey)return;
-    const kids=[...grid.querySelectorAll('.kpi[data-k]')],i=kids.indexOf(el);
+    if(e.key==='Escape'){if(st){e.preventDefault();end(true);}else if(S.kpiEdit){e.preventDefault();kpiToggleEdit();}return;}
+    const el=e.target.closest('.kpi[data-k]');if(!el||!e.altKey||e.target!==el)return;
     const d={ArrowLeft:-1,ArrowUp:-1,ArrowRight:1,ArrowDown:1}[e.key];if(!d)return;
-    e.preventDefault();const j=i+d;if(j<0||j>=kids.length)return;
-    kpiFlip(grid,()=>{grid.insertBefore(el,d>0?kids[j].nextSibling:kids[j]);},null);
-    el.focus();kpiSave(grid);kpiAnnounce(el,j+1);
+    e.preventDefault();if(kpiMoveBy(el,d))el.focus();
   });
-}
-function kpiAnnounce(el,n){
-  const l=(el.querySelector('.l')||{}).textContent||'';
-  const hint=$('kpiHint');if(hint){hint.setAttribute('role','status');hint.lastChild.textContent='「'+l.trim()+'」已移到第 '+n+' 位';}
-  const bar=hint&&hint.parentNode;if(bar&&!bar.querySelector('button'))bar.insertAdjacentHTML('beforeend','<button class="btn sm" type="button" onclick="kpiReset()">'+ic('undo')+'重設排列</button>');
+  if(!grid._esc){grid._esc=1;document.addEventListener('keydown',e=>{if(e.key==='Escape'&&st)end(true);});}
 }
 
 /* ---------- 審核 ---------- */
