@@ -209,6 +209,7 @@ dialog.lb .x{position:absolute;top:-8px;right:-4px;background:#fff;color:#000;bo
   <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
   <symbol id="i-log" viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></symbol>
   <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></symbol>
 </svg>
 
 <div id="app" aria-live="polite"><div class="login"><div class="sk" style="width:min(400px,100%);height:220px"></div></div></div>
@@ -232,8 +233,8 @@ const ago=t=>{if(!t)return'從未登入';const d=(Date.now()-new Date(t))/864e5;
 const rt=c=>(window.lbLib&&lbLib.reasonText)?lbLib.reasonText(c):(c||'');
 const toast=(m)=>{const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('show'),2600);};
 async function rpc(name,args){const {data,error}=await sb.rpc(name,args||{});if(error)throw new Error(error.message||'發生錯誤');return data;}
-const S={tab:'overview',detail:null,pending:0,fbNew:0,fbFilter:'new',photos:[],photoUser:null,photoUserName:'',photoFilter:'all',photoDone:false,users:[],queue:[],updated:null,email:''};
-const TABS=[['overview','總覽','home'],['review','審核中心','shield'],['feedback','意見箱','chat'],['photos','相片牆','image'],['usage','使用分析','pulse'],['users','用戶','users'],['audit','操作記錄','log']];
+const S={tab:'overview',detail:null,pending:0,fbNew:0,fbFilter:'new',photos:[],photoUser:null,photoUserName:'',photoFilter:'all',photoDone:false,fbCat:'all',users:[],queue:[],updated:null,email:''};
+const TABS=[['overview','總覽','home'],['review','審核中心','shield'],['feedback','意見箱','chat'],['photos','相片牆','image'],['usage','使用分析','pulse'],['insights','付費準備','spark'],['users','用戶','users'],['audit','操作記錄','log']];
 
 /* ---------- Dialog ---------- */
 function ask(o){ // {title, body, ok, danger, note}
@@ -321,7 +322,7 @@ async function go(tab,keep){
   if(keep!=='keep')S.detail=null;
   S.tab=tab;history.replaceState(null,'','#'+tab);renderNav();
   const m=$('main');m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+loading();
-  try{await ({overview:vOverview,review:vReview,feedback:vFeedback,photos:vPhotos,usage:vUsage,users:()=>S.detail?vUserDetail():vUsers(),audit:vAudit})[tab]();S.updated=new Date().toLocaleTimeString('zh-HK',{hour12:false,hour:'2-digit',minute:'2-digit'});}
+  try{await ({overview:vOverview,review:vReview,feedback:vFeedback,photos:vPhotos,usage:vUsage,insights:vInsights,users:()=>S.detail?vUserDetail():vUsers(),audit:vAudit})[tab]();S.updated=new Date().toLocaleTimeString('zh-HK',{hour12:false,hour:'2-digit',minute:'2-digit'});}
   catch(e){m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+'<div class="card err" role="alert"><h2>載入失敗</h2><p class="hint" style="color:inherit">'+esc(e.message)+'</p><button class="btn" onclick="go(S.tab)">'+ic('refresh')+'再試一次</button></div>';}
   window.scrollTo(0,0);
 }
@@ -456,6 +457,55 @@ async function vUsage(){
   $('main').innerHTML=h;
 }
 
+/* ---------- v143：付費準備 ---------- */
+const PRICE_ORDER=['唔會付費','每月 HK$10 以下','每月 HK$10–20','每月 HK$20–40','每月 HK$40 以上'];
+async function vInsights(){
+  let d;
+  try{d=await rpc('admin_insights');}
+  catch(e){
+    if(/admin_insights|schema cache|function/i.test(e.message)){$('main').innerHTML=header('付費準備')+'<div class="card">'+empty('alert','未啟用付費準備','請先喺 Supabase SQL Editor 執行 migration-v143-admin-insights.sql')+'</div>';return;}
+    throw e;
+  }
+  const it=d.interest||{},dt=d.data||{};
+  const k=(icn,l,v,s)=>'<div class="kpi"><span class="l">'+ic(icn)+l+'</span><span class="v">'+esc(v)+'</span><span class="s">'+esc(s||'')+'</span></div>';
+  const pc=(a,b)=>b?Math.round(a*100/b)+'%':'—';
+  // 價錢：保持選項次序（係有次序嘅尺度，唔按人數排）
+  const pr=(it.prices||[]).slice().sort((a,b)=>{const ia=PRICE_ORDER.indexOf(a.name),ib=PRICE_ORDER.indexOf(b.name);return (ia<0?99:ia)-(ib<0?99:ib);});
+  const priced=pr.reduce((s,x)=>s+x.n,0),willing=pr.filter(x=>x.name!=='唔會付費').reduce((s,x)=>s+x.n,0);
+  const top=(it.features||[])[0];
+  let h=header('付費準備');
+  h+='<p class="hint" style="color:var(--mu);margin:-6px 0 14px">用嚟判斷「進階分析」值唔值得做、點樣定價。興趣登記嚟自 App 統計頁嘅「我有興趣」（同一用戶只計最新一次）。環境數據（潮汐、天氣等）只有開咗匿名統計嘅用戶先會記錄。</p>';
+  h+='<h2 style="font-size:16px;margin:0 0 10px">進階分析興趣登記</h2><div class="grid kpis">'
+   +k('users','登記人數',it.users||0,'累計')
+   +k('pct','願意付費',pc(willing,priced),priced?willing+' / '+priced+' 位有揀價錢':'未有人揀價錢')
+   +k('spark','最想要',top?top.name:'—',top?top.n+' 人':'').replace('class="v"','class="v" style="font-size:20px;line-height:1.3"')
+   +'</div>';
+  h+='<div class="grid two" style="margin-top:12px"><section class="card" aria-labelledby="in1"><h2 id="in1">想要嘅功能</h2><p class="hint">可多選 · 幾多人揀</p>'
+   +((it.features||[]).length?hbars(it.features,'n',' 人'):empty('spark','未有登記','用戶喺 App「我的統計」撳「我有興趣」後會顯示'))+'</section>'
+   +'<section class="card" aria-labelledby="in2"><h2 id="in2">可接受價錢</h2><p class="hint">每位用戶揀一個</p>'
+   +(pr.length?hbars(pr,'n',' 人'):empty('pct','未有數據'))+'</section></div>';
+  const rc=it.recent||[];
+  h+='<section class="card" style="margin-top:12px"><h2>最近登記</h2>'+(rc.length?'<div class="tw" style="box-shadow:none;margin-top:8px"><table class="t"><thead><tr><th>用戶</th><th>想要</th><th>價錢</th><th>其他想法</th><th>時間</th><th></th></tr></thead><tbody>'
+   +rc.map(x=>'<tr><td class="first" data-l="用戶"><b>'+esc(x.display_name||'—')+'</b><span class="sub">'+esc(x.email||'')+'</span></td><td data-l="想要">'+esc(x.feats||'—')+'</td><td data-l="價錢">'+esc(x.price||'—')+'</td><td data-l="其他想法">'+esc(x.note||'—')+'</td><td data-l="時間">'+esc(fmt(x.created_at))+'</td><td class="actions"><button class="btn sm" onclick="openUser(\''+esc(x.user_id)+'\')">'+ic('users')+'詳情</button></td></tr>').join('')
+   +'</tbody></table></div>':empty('spark','未有登記'))+'</section>';
+
+  h+='<h2 style="font-size:16px;margin:22px 0 4px">分析數據儲備（近 30 日）</h2><p class="hint" style="color:var(--mu);margin:0 0 10px">由 '+esc(dt.since||'')+' 起計。進階分析要靠呢啲數據，越多越準。</p>';
+  if(dt.recording_users&&dt.consent_users*2<dt.recording_users)h+='<div class="alert" role="status">'+ic('alert')+'過半有記錄嘅用戶未開「匿名統計」，佢哋唔會有環境數據。推出付費功能前，可以考慮喺 App 提示用戶開返。</div>';
+  if(dt.trips_stale)h+='<div class="alert" role="status">'+ic('trip')+dt.trips_stale+' 個行程開咗超過 24 小時仲未結束，用戶可能忘記撳結束，會令時長同有魚率唔準。</div>';
+  h+='<div class="grid kpis">'
+   +k('users','開咗匿名統計',pc(dt.consent_users,dt.recording_users),(dt.consent_users||0)+' / '+(dt.recording_users||0)+' 位有記錄嘅用戶')
+   +k('fish','魚獲有環境數據',pc(dt.catches_stats,dt.catches),(dt.catches_stats||0)+' / '+(dt.catches||0)+' 條（潮汐、月相等）')
+   +k('pulse','魚獲有天氣',pc(dt.catches_weather,dt.catches),(dt.catches_weather||0)+' / '+(dt.catches||0)+' 條')
+   +k('trip','行程有開始快照',pc(dt.trips_start,dt.trips),(dt.trips_start||0)+' / '+(dt.trips||0)+' 個')
+   +k('trip','行程有結束快照',pc(dt.trips_end,dt.trips_ended),(dt.trips_end||0)+' / '+(dt.trips_ended||0)+' 個已結束')
+   +k('pct','空軍率',pc(dt.trips_empty,dt.trips_ended),(dt.trips_empty||0)+' 個已結束行程冇魚')
+   +'</div>';
+  h+='<h2 style="font-size:16px;margin:22px 0 10px">累積數據（全期）</h2><div class="grid kpis">'
+   +k('fish','有環境數據嘅魚獲',dt.all_catches_stats||0,'條 · 一直累積')
+   +k('trip','有環境快照嘅行程',dt.all_trips_snap||0,'個 · 一直累積')+'</div>';
+  $('main').innerHTML=h;
+}
+
 /* ---------- 用戶 ---------- */
 let sT=null;
 async function vUsers(){
@@ -504,20 +554,27 @@ function enableNotify(){
 }
 
 /* ---------- v139：意見箱 ---------- */
-const FB_CAT={bug:['問題','bad'],idea:['建議','brand'],other:['其他','']};
-async function vFeedback(){
-  let rows;
-  try{rows=await rpc('admin_feedback_list',{p_status:S.fbFilter==='all'?null:S.fbFilter,p_limit:200});}
+const FB_CAT={bug:['問題','bad'],idea:['建議','brand'],other:['其他',''],interest:['興趣登記','warn']};
+const INT_TAG='【進階分析興趣登記】';
+const fbKind=f=>(f.message||'').indexOf(INT_TAG)===0?'interest':(FB_CAT[f.category]?f.category:'other');
+function vFeedbackDraw(){vFeedback(S.fbRows);}
+async function vFeedback(cached){
+  let rows=Array.isArray(cached)?cached:null;
+  if(!rows)try{rows=await rpc('admin_feedback_list',{p_status:S.fbFilter==='all'?null:S.fbFilter,p_limit:300});}
   catch(e){
     if(/admin_feedback|function|schema cache/i.test(e.message)){$('main').innerHTML=header('意見箱')+'<div class="card">'+empty('alert','未啟用意見箱','請先喺 Supabase SQL Editor 執行 migration-v139-admin-tools.sql')+'</div>';return;}
     throw e;
   }
   S.fbRows=rows;
+  const cnt={all:rows.length,bug:0,idea:0,other:0,interest:0};rows.forEach(f=>cnt[fbKind(f)]++);
+  const vis=rows.map((f,i)=>[f,i]).filter(x=>S.fbCat==='all'||fbKind(x[0])===S.fbCat);
   let h=header('意見箱');
-  h+='<div class="chips" role="group" aria-label="篩選">'+[['new','未處理'],['done','已處理'],['all','全部']].map(f=>'<button class="chip" type="button" aria-pressed="'+(S.fbFilter===f[0])+'" onclick="S.fbFilter=\''+f[0]+'\';go(\'feedback\')">'+f[1]+'</button>').join('')+'</div>';
-  if(!rows.length)h+='<div class="card">'+empty('chat',S.fbFilter==='new'?'冇未處理嘅意見':'暫時冇意見','用戶喺 App「設定 → 回報問題／意見」送出後會顯示喺呢度')+'</div>';
-  rows.forEach((f,i)=>{
-    const c=FB_CAT[f.category]||FB_CAT.other;
+  h+='<div class="chips" role="group" aria-label="狀態篩選">'+[['new','未處理'],['done','已處理'],['all','全部']].map(f=>'<button class="chip" type="button" aria-pressed="'+(S.fbFilter===f[0])+'" onclick="S.fbFilter=\''+f[0]+'\';go(\'feedback\')">'+f[1]+'</button>').join('')+'</div>';
+  h+='<div class="chips" role="group" aria-label="類別篩選" style="margin-top:-6px">'+[['all','所有類別'],['bug','問題'],['idea','建議'],['other','其他'],['interest','興趣登記']].map(f=>'<button class="chip" type="button" aria-pressed="'+(S.fbCat===f[0])+'" onclick="S.fbCat=\''+f[0]+'\';vFeedbackDraw()">'+f[1]+' '+cnt[f[0]]+'</button>').join('')
+    +(S.fbCat==='interest'?'<button class="chip" type="button" onclick="go(\'insights\')">'+ic('spark')+'睇統計</button>':'')+'</div>';
+  if(!vis.length)h+='<div class="card">'+empty('chat',S.fbFilter==='new'?'冇未處理嘅意見':'暫時冇意見',rows.length?'試下轉換類別':'用戶喺 App「設定 → 回報問題／意見」送出後會顯示喺呢度')+'</div>';
+  vis.forEach(([f,i])=>{
+    const c=FB_CAT[fbKind(f)];
     h+='<section class="card" style="margin-bottom:12px"><div class="top" style="margin-bottom:6px"><div><span class="pill '+c[1]+'">'+esc(c[0])+'</span> <b>'+esc(f.display_name||'（未命名）')+'</b> <span class="mu" style="color:var(--mu);font-size:12px">'+esc(f.email||'')+'</span></div><span class="sp"></span><small>'+esc(fmt(f.created_at))+'</small></div>'
      +'<p style="white-space:pre-wrap;word-break:break-word;margin:6px 0 8px;font-size:15px">'+esc(f.message)+'</p>'
      +'<div class="mu" style="color:var(--mu);font-size:12px;margin-bottom:8px">'+esc(f.app_version||'')+(f.user_agent?' · '+esc(f.user_agent.slice(0,80)):'')+'</div>'
@@ -595,7 +652,7 @@ async function vUserDetail(){
      +'<td data-l="快速計數">'+(tl.length?tl.map(e=>'<span class="pill">'+esc(e[0])+' '+esc(e[1])+'</span>').join(' '):'—')+'</td>'
      +'<td data-l="收成相">'+((x.haul_photos||[]).map(safeImg).filter(Boolean).map(u=>'<button class="im" type="button" aria-label="放大相片" style="border:0;padding:0;background:none;cursor:zoom-in" onclick="zoom(\''+esc(u)+'\',\'收成相\')"><img src="'+esc(u)+'" alt="" loading="lazy" style="width:44px;height:44px;object-fit:cover;border-radius:8px"></button>').join(' ')||'—')+'</td></tr>';}).join('')+'</tbody></table></div>':empty('trip','未有行程'))+'</section>';
   const fbs=d.feedback||[];
-  if(fbs.length)h+='<section class="card" style="margin-top:12px"><h2>意見回饋</h2>'+fbs.map(f=>'<div style="padding:8px 0;border-bottom:1px solid var(--bd)"><span class="pill '+((FB_CAT[f.category]||[])[1]||'')+'">'+esc((FB_CAT[f.category]||FB_CAT.other)[0])+'</span> <span class="pill '+(f.status==='done'?'ok':'warn')+'">'+(f.status==='done'?'已處理':'未處理')+'</span> <small>'+esc(fmt(f.created_at))+'</small><p style="white-space:pre-wrap;word-break:break-word;margin:6px 0 0">'+esc(f.message)+'</p></div>').join('')+'</section>';
+  if(fbs.length)h+='<section class="card" style="margin-top:12px"><h2>意見回饋</h2>'+fbs.map(f=>'<div style="padding:8px 0;border-bottom:1px solid var(--bd)"><span class="pill '+FB_CAT[fbKind(f)][1]+'">'+esc(FB_CAT[fbKind(f)][0])+'</span> <span class="pill '+(f.status==='done'?'ok':'warn')+'">'+(f.status==='done'?'已處理':'未處理')+'</span> <small>'+esc(fmt(f.created_at))+'</small><p style="white-space:pre-wrap;word-break:break-word;margin:6px 0 0">'+esc(f.message)+'</p></div>').join('')+'</section>';
   const au=d.audit||[];
   if(au.length)h+='<section class="card" style="margin-top:12px"><h2>相關管理操作</h2>'+au.map(l=>{const a=AUDIT_ACT[l.action]||[l.action,''],dd=l.detail||{};return '<div style="padding:6px 0;border-bottom:1px solid var(--bd);font-size:13px"><span class="pill '+a[1]+'">'+esc(a[0])+'</span> '+esc(fmt(l.created_at))+' · '+esc(l.admin_email||'—')+(dd.reason?' · '+esc(dd.reason):'')+'</div>';}).join('')+'</section>';
   $('main').innerHTML=h;
