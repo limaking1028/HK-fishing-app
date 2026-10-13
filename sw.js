@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v150';  // v150: 潮汐預報高低潮改用連續序列判斷，資料不全標示
+const CACHE = 'hk-fishing-v151';  // v151: 潮汐 CHK/KCQ 改用官方數據，修正潮汐判斷與潮差標示
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
