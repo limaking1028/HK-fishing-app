@@ -1250,7 +1250,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v142</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v148</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -3855,9 +3855,11 @@ function renderMyView() {
   const totalCatches = myCatches.length;
   const biggest = myCatches.reduce((max, c) => c.weight > (max?.weight||0) ? c : max, null);
   const speciesCount = new Set(myCatches.map(c => c.species)).size;
-  // Route H+: 總釣魚時間（已完成行程 + 進行中行程的當前時長）
-  const totalTripSec = (state.trips || []).reduce((sum, t) =>
-    sum + (window.tripsLib ? window.tripsLib.tripDurationSec(t) : 0), 0);
+  // Route H+: 總釣魚時間（已結束行程 + 目前進行中行程的當前時長；示範同未結束嘅舊行程唔計）
+  const tt = window.tripsLib
+    ? window.tripsLib.totalTripStats(state.trips, state.activeTrip && state.activeTrip.id)
+    : { sec: 0, orphans: 0 };
+  const totalTripSec = tt.sec;
   let totalTripValue, totalTripSub;
   if (totalTripSec < 60) {
     totalTripValue = '0'; totalTripSub = '分鐘';
@@ -3933,7 +3935,7 @@ function renderMyView() {
     + '<div class="stat-card"><div class="stat-value">'+totalCatches+'</div><div class="stat-label">總魚獲</div></div>'
     + '<div class="stat-card"><div class="stat-value">'+weightDisplay({weight: totalWeightKg}).value+'<span style="font-size:13px">'+weightDisplay({weight: totalWeightKg}).unit+'</span></div><div class="stat-label">總重量</div></div>'
     + '<div class="stat-card"><div class="stat-value">'+speciesCount+'</div><div class="stat-label">魚種數</div></div>'
-    + '<div class="stat-card" id="stat-total-time"><div class="stat-value">'+totalTripValue+'<span style="font-size:13px">'+totalTripSub+'</span></div><div class="stat-label">總釣魚時間</div>'+(state.activeTrip?'<div class="stat-sub">⏱ 行程進行中</div>':'')+'</div>'
+    + '<div class="stat-card" id="stat-total-time"><div class="stat-value">'+totalTripValue+'<span style="font-size:13px">'+totalTripSub+'</span></div><div class="stat-label">總釣魚時間</div>'+(state.activeTrip?'<div class="stat-sub">⏱ 行程進行中</div>':'')+(tt.orphans?'<div class="stat-sub">另有 '+tt.orphans+' 個未結束行程未計入</div>':'')+'</div>'
     + '</div>'
     + biggestHtml
     + '<div class="filter-row"><button class="filter-chip '+(state.myFilter==='all'?'active':'')+'" onclick="setMyFilter(\'all\')">全部</button><button class="filter-chip '+(state.myFilter==='month'?'active':'')+'" onclick="setMyFilter(\'month\')">本月</button><button class="filter-chip '+(state.myFilter==='quarter'?'active':'')+'" onclick="setMyFilter(\'quarter\')">本季</button></div>'
@@ -3947,13 +3949,15 @@ function renderMyView() {
       if (!el || state.view !== 'my' || state.mySubTab !== 'log') {
         clearInterval(state._myTimeTick); state._myTimeTick = null; return;
       }
-      const sec = (state.trips || []).reduce((s, t) =>
-        s + (window.tripsLib ? window.tripsLib.tripDurationSec(t) : 0), 0);
+      const t2 = window.tripsLib
+        ? window.tripsLib.totalTripStats(state.trips, state.activeTrip && state.activeTrip.id)
+        : { sec: 0, orphans: 0 };
+      const sec = t2.sec;
       let v, u;
       if (sec < 60) { v = '0'; u = '分鐘'; }
       else if (sec < 3600) { v = String(Math.floor(sec / 60)); u = '分鐘'; }
       else { v = (Math.round(sec / 360) / 10).toFixed(1); u = '小時'; }
-      el.innerHTML = '<div class="stat-value">'+v+'<span style="font-size:13px">'+u+'</span></div><div class="stat-label">總釣魚時間</div><div class="stat-sub">⏱ 行程進行中</div>';
+      el.innerHTML = '<div class="stat-value">'+v+'<span style="font-size:13px">'+u+'</span></div><div class="stat-label">總釣魚時間</div><div class="stat-sub">⏱ 行程進行中</div>'+(t2.orphans?'<div class="stat-sub">另有 '+t2.orphans+' 個未結束行程未計入</div>':'');
     }, 60000);  // 每分鐘更新一次
   } else {
     state._myTimeTick = null;
@@ -5404,7 +5408,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v142</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v148</span>';
   }
   renderView(name);
 }
