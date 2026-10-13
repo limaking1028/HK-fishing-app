@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v148';  // v148: 總釣魚時間只計已結束＋進行中行程
+const CACHE = 'hk-fishing-v149';  // v149: 開行程前檢查資料庫未結束行程
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+

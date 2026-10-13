@@ -1250,7 +1250,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v148</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v149</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -2960,7 +2960,14 @@ async function dbEndTrip(tripId, endedAt, stats, endConditions) {
   }
   if (error) { console.error('dbEndTrip failed', error); toast('結束行程失敗：' + error.message); return false; }
   if (!data || data.length === 0) {
-    console.warn('[trips] dbEndTrip matched 0 rows - tripId:', tripId, 'userId:', state.user.id);
+    // 冇更新到任何行：要睇清楚資料庫入面行程係咪真係已結束（例如被另一部機結束）
+    const { data: chk, error: chkErr } = await sb.from('fishing_trips')
+      .select('ended_at').eq('id', tripId).eq('user_id', state.user.id).maybeSingle();
+    if (chkErr || !chk || !chk.ended_at) {
+      console.error('[trips] dbEndTrip matched 0 rows - tripId:', tripId, 'userId:', state.user.id);
+      toast('結束行程失敗，行程仍然進行中，請重試');
+      return false;
+    }
   }
   return true;
 }
@@ -3196,8 +3203,52 @@ function tickActiveTripBanner() {
 }
 
 // ===== 開始 / 結束行程 =====
-function startTrip() {
+// 以資料庫為準查有冇未結束嘅行程（唔靠本機記錄）。回傳 {trip} / {trip:null} / {error:true}
+async function dbFindOpenTrip() {
+  if (!sb || !state.user) return { error: true };
+  const { data, error } = await sb.from('fishing_trips')
+    .select('*')
+    .eq('user_id', state.user.id)
+    .is('ended_at', null)
+    .order('started_at', { ascending: false })
+    .limit(1);
+  if (error) { console.warn('dbFindOpenTrip failed', error); return { error: true }; }
+  const t = (data || [])[0];
+  if (!t) return { trip: null };
+  return { trip: {
+    id: t.id, userId: t.user_id,
+    startedAt: t.started_at, endedAt: null,
+    spot: t.spot || '', spotArea: t.spot_area || '',
+    method: t.method || '', bait: t.bait || '',
+    latitude: t.latitude ? parseFloat(t.latitude) : null,
+    longitude: t.longitude ? parseFloat(t.longitude) : null,
+    notes: t.notes || '', catchCount: 0, totalWeight: 0, haulPhotos: [],
+    isDemo: false
+  } };
+}
+
+// 將資料庫入面嘅未結束行程設為「進行中」，並提示用戶先結束佢
+async function adoptOpenTrip(trip, msg) {
+  state.activeTrip = trip;
+  state.tripPicking = false; state.editingActiveTrip = false;
+  window.tripsLib.saveActiveTrip(trip);
+  window.tripsLib.startTimer(tickActiveTripBanner, 1000);
+  state.trips = await dbLoadTrips();
+  renderActiveTripBanner();
+  renderTripsView();
+  if (state.view === 'record') renderRecordView();
+  toast(msg);
+}
+
+async function startTrip() {
   if (!sb || !state.user) { toast('請先登入'); return; }
+  if (state.activeTrip) { toast('已有進行中嘅行程，請先結束佢'); return; }
+  const open = await dbFindOpenTrip();
+  if (open.error) { toast('暫時無法確認有冇未結束嘅行程，請稍後再試'); return; }
+  if (open.trip) {
+    await adoptOpenTrip(open.trip, '⚠️ 你有一個未結束嘅行程，已帶你返去。請先結束佢，先可以開新行程');
+    return;
+  }
   // Route H+: 進入 picker 模式（GPS 自動檢測釣點）
   state.tripPicking = true;
   state.tripPickingSpot = '';
@@ -3472,6 +3523,14 @@ async function confirmStartTrip() {
       if (state.view === 'record') renderRecordView();
       toast('✅ 行程已更新');
     }
+    return;
+  }
+
+  // 最後一關：開新行程前再查一次資料庫（防止雙擊、或者另一部機同時開）
+  const open = await dbFindOpenTrip();
+  if (open.error) { toast('暫時無法確認有冇未結束嘅行程，請稍後再試'); return; }
+  if (open.trip) {
+    await adoptOpenTrip(open.trip, '⚠️ 你已有一個未結束嘅行程，已帶你返去。請先結束佢');
     return;
   }
 
@@ -3788,18 +3847,19 @@ function renderTripDetailView(id) {
 // ===== Boot: 還原進行中行程 =====
 async function resumeActiveTrip() {
   const saved = window.tripsLib.loadActiveTrip();
-  if (!saved) return;
-  // 從 trips 找對應的還在進行的 trip
+  // 以資料庫為準：先揀本機記錄嗰個；本機記錄唔見咗（清咗資料、換機）就還原資料庫入面最新嘅未結束行程
   state.trips = await dbLoadTrips();
-  const t = state.trips.find(x => x.id === saved.id && !x.endedAt);
+  const open = state.trips.filter(x => !x.isDemo && !x.endedAt);   // 已按開始時間由新到舊排
+  const t = (saved && open.find(x => x.id === saved.id)) || open[0] || null;
   if (t) {
     state.activeTrip = t;
+    window.tripsLib.saveActiveTrip(t);
     window.tripsLib.startTimer(tickActiveTripBanner, 1000);
     renderActiveTripBanner();
     // trips view 如果當前頁也要更新
     if (state.view === 'trips') renderTripsView();
   } else {
-    // 行程已被結束（可能被其他裝置結束）→ 清除 localStorage
+    // 冇未結束嘅行程 → 清除本機記錄
     window.tripsLib.clearActiveTrip();
   }
 }
@@ -5408,7 +5468,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v148</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v149</span>';
   }
   renderView(name);
 }
