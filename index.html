@@ -930,13 +930,15 @@ button { touch-action: manipulation; }
   .tide-forecast-row:first-of-type { border-top: none; }
   .tide-forecast-date { font-weight: 700; color: var(--dark); min-width: 56px; }
   .tide-forecast-date .lbl { color: var(--orange); font-size: 10px; margin-right: 2px; }
-  .tide-forecast-range { min-width: 60px; font-weight: 700; }
+  .tide-forecast-range { min-width: 74px; font-weight: 700; white-space: nowrap; }
   .tide-forecast-range.lg { color: #f97316; }
   .tide-forecast-range.md { color: #16a34a; }
   .tide-forecast-range.sm { color: var(--gray-5); }
+  .tide-forecast-range.none { color: #b45309; font-weight: 600; }
   .tide-forecast-events { flex: 1; color: var(--gray-6); font-size: 10px; line-height: 1.4; }
   .tide-forecast-events .hi { color: #f97316; }
   .tide-forecast-events .lo { color: #0d9488; }
+  .tide-forecast-events .uk { color: var(--gray-5); }
   .tide-card-advice { padding: 8px 10px; background: #fff8ed; border-radius: 8px; font-size: 12px; line-height: 1.7; margin-top: 8px; }
   .tide-card-advice div { margin: 2px 0; color: #444; }
   .tide-card-action {
@@ -1250,7 +1252,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v149</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v150</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -4900,19 +4902,30 @@ function renderMapTideList(view) {
           const dd = new Date(d.ms);
           const md = (dd.getMonth()+1) + '/' + dd.getDate();
           const wd = wdNames[dd.getDay()];
-          const rangeCls = d.range >= 1.5 ? 'lg' : d.range >= 1.0 ? 'md' : 'sm';
-          const rangeIco = d.range >= 1.5 ? '🔥' : d.range >= 1.0 ? '✅' : '⚠️';
-          // 高低潮按時間先後排列
-          const evHtml = (d.events || []).slice().sort((a, b) => a.ms - b.ms).map(e =>
-            `<span class="${e.type === 'high' ? 'hi' : 'lo'}">${e.type === 'high' ? '▲' : '▼'}${window.tidesLib.formatTime(e.ms)} ${e.height.toFixed(2)}</span>`).join(' ');
+          // 潮差 → 大潮／中潮／小潮（文字標示，唔再單靠 emoji）
+          let rangeCls = 'none', rangeTxt = '暫無預報';
+          if (d.hasData && d.complete) {
+            rangeCls = d.range >= 1.5 ? 'lg' : d.range >= 1.0 ? 'md' : 'sm';
+            const name = d.range >= 1.5 ? '大潮' : d.range >= 1.0 ? '中潮' : '小潮';
+            rangeTxt = name + ' ' + d.range.toFixed(2) + 'm';
+          } else if (d.hasData) {
+            rangeTxt = '資料不全';
+          }
+          // 高低潮按時間先後排列；資料唔全時標示「?」代表未能確定高低
+          const evHtml = (d.events || []).map(e => {
+            const sym = e.type === 'high' ? '▲' : e.type === 'low' ? '▼' : '•';
+            const cls = e.type === 'high' ? 'hi' : e.type === 'low' ? 'lo' : 'uk';
+            return `<span class="${cls}">${sym}${window.tidesLib.formatTime(e.ms)} ${e.height.toFixed(2)}</span>`;
+          }).join(' ') || '<span class="uk">當日未有潮汐數據</span>';
           return `<div class="tide-forecast-row">
             <div class="tide-forecast-date">${d.label ? `<span class="lbl">${d.label}</span>` : ''}${md}<span style="color:var(--gray-4);font-weight:400;"> ${wd}</span></div>
-            <div class="tide-forecast-range ${rangeCls}">${rangeIco} ${d.range.toFixed(2)}m</div>
+            <div class="tide-forecast-range ${rangeCls}">${rangeTxt}</div>
             <div class="tide-forecast-events">${evHtml}</div>
           </div>`;
         }).join('');
         return `<div class="tide-card-forecast">
           <div class="tide-card-forecast-title">📅 未來 5 天潮汐（${f5.length} 日）</div>
+          <div style="font-size:10px;color:var(--gray-5);margin:-2px 0 4px;line-height:1.4;">潮差 = 當日最高與最低潮之差：≥1.5m 大潮 · ≥1.0m 中潮 · 其餘小潮</div>
           ${rows}
         </div>`;
       })()}
@@ -5468,7 +5481,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v149</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v150</span>';
   }
   renderView(name);
 }
