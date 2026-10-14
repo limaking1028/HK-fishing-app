@@ -414,21 +414,22 @@ const rt=c=>(window.lbLib&&lbLib.reasonText)?lbLib.reasonText(c):(c||'');
 const toast=(m)=>{const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('show'),2600);};
 async function rpc(name,args){const {data,error}=await sb.rpc(name,args||{});if(error)throw new Error(error.message||'發生錯誤');return data;}
 const S={tab:'overview',detail:null,pending:0,fbNew:0,fbFilter:'new',photos:[],photoUser:null,photoUserName:'',photoFilter:'all',photoDone:false,fbCat:'all',users:[],queue:[],updated:null,email:''};
-const TABS=[['overview','總覽','home'],['review','審核中心','shield'],['feedback','意見箱','chat'],['photos','相片牆','photos'],['usage','使用分析','chart'],['insights','付費準備','coins'],['users','用戶','users'],['audit','操作記錄','log']];
+const TABS=[['overview','總覽','home'],['review','審核中心','shield'],['feedback','意見箱','chat'],['photos','相片牆','photos'],['usage','使用分析','chart'],['insights','付費準備','coins'],['users','用戶','users'],['cleanup','測試清理','alert'],['todo','上架待辦','check'],['audit','操作記錄','log']];
 
 /* ---------- Dialog ---------- */
-function ask(o){ // {title, body, ok, danger, note}
+function ask(o){ // {title, body, ok, danger, note, confirm}
   return new Promise(res=>{
     const d=$('dlg');
     $('dlgBody').innerHTML='<h3>'+esc(o.title)+'</h3><p>'+esc(o.body||'')+'</p>'
       +(o.note?'<label class="f" for="dnote">備註（可選）</label><input type="text" id="dnote" maxlength="200" autocomplete="off">':'')
+      +(o.confirm?'<label class="f" for="dconf">請輸入 DELETE 以確認</label><input type="text" id="dconf" autocomplete="off" aria-describedby="dconfh"><small id="dconfh" class="hint" style="color:var(--mu)">大寫英文字母，輸入正確後先會執行。</small>':'')
       +'<div class="row"><button type="button" class="btn" id="dno">取消</button><button type="button" class="btn '+(o.danger?'bad':'pri')+'" id="dyes">'+esc(o.ok||'確定')+'</button></div>';
     let val=null;
     const done=v=>{val=v;d.close();};
     $('dno').onclick=()=>done(null);
-    $('dyes').onclick=()=>done({note:o.note?($('dnote').value||'').trim():''});
+    $('dyes').onclick=()=>done({note:o.note?($('dnote').value||'').trim():'',confirm:o.confirm?($('dconf').value||'').trim():''});
     d.onclose=()=>res(val);
-    d.showModal(); (o.note?$('dnote'):$('dno')).focus();
+    d.showModal(); (o.confirm?$('dconf'):o.note?$('dnote'):$('dno')).focus();
   });
 }
 function zoom(u,cap){const s=safeImg(u);if(!s)return;$('lbimg').src=s;$('lbimg').alt=cap||'魚獲相片';$('lbcap').textContent=cap||'';$('lb').showModal();}
@@ -549,14 +550,14 @@ function header(title,extra){
 function loading(tab){ // 骨架形狀跟返每頁實際版面
   const sk=(c,n)=>('<div class="sk '+c+'"></div>').repeat(n||1),kp=n=>'<div class="grid kpis">'+sk('kpi-s',n)+'</div>',two='<div class="grid two" style="margin-top:12px">'+sk('panel',2)+'</div>';
   const map={overview:sk('bar')+kp(8)+two,review:sk('panel tall',2),feedback:sk('chips-s')+sk('panel',3),photos:sk('chips-s')+'<div class="photos">'+sk('sq',10)+'</div>',
-    usage:kp(4)+two,insights:kp(3)+two,users:sk('bar')+'<div class="sk-rows">'+sk('row',7)+'</div>',audit:'<div class="sk-rows">'+sk('row',8)+'</div>'};
+    usage:kp(4)+two,insights:kp(3)+two,users:sk('bar')+'<div class="sk-rows">'+sk('row',7)+'</div>',audit:'<div class="sk-rows">'+sk('row',8)+'</div>',cleanup:'<div class="sk-rows">'+sk('row',6)+'</div>',todo:'<div class="sk-rows">'+sk('row',6)+'</div>'};
   return '<div aria-busy="true" aria-label="載入中">'+(map[tab]||map.overview)+'</div>';
 }
 async function go(tab,keep){
   if(keep!=='keep')S.detail=null;
   S.tab=tab;history.replaceState(null,'','#'+tab);renderNav();
   const m=$('main');m.classList.add('enter');clearTimeout(S.enterT);m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+loading(tab);
-  try{await ({overview:vOverview,review:vReview,feedback:vFeedback,photos:vPhotos,usage:vUsage,insights:vInsights,users:()=>S.detail?vUserDetail():vUsers(),audit:vAudit})[tab]();S.updated=new Date().toLocaleTimeString('zh-HK',{hour12:false,hour:'2-digit',minute:'2-digit'});}
+  try{await ({overview:vOverview,review:vReview,feedback:vFeedback,photos:vPhotos,usage:vUsage,insights:vInsights,users:()=>S.detail?vUserDetail():vUsers(),audit:vAudit,cleanup:vCleanup,todo:vTodo})[tab]();S.updated=new Date().toLocaleTimeString('zh-HK',{hour12:false,hour:'2-digit',minute:'2-digit'});}
   catch(e){m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+'<div class="card err" role="alert"><h2>載入失敗</h2><p class="hint" style="color:inherit">'+esc(e.message)+'</p><button class="btn" onclick="go(S.tab)">'+ic('refresh')+'再試一次</button></div>';}
   window.scrollTo({top:0,behavior:'instant'});
   S.enterT=setTimeout(()=>{const mm=$('main');if(mm)mm.classList.remove('enter');},900);
@@ -977,8 +978,89 @@ async function fbDone(i,status){
   try{await rpc('admin_feedback_set',{p_id:f.id,p_status:status,p_note:r.note||null});toast('已更新');await refreshBadges(true);vFeedback();}catch(e){toast(e.message);}
 }
 
+/* ---------- 測試清理（用戶級別，唔影響其他用戶） ---------- */
+function cleanupBack(){S.cleanupUser=null;go('cleanup','keep');}
+async function vCleanup(){
+  if(S.cleanupUser)return vCleanupDetail();
+  S.cleanupUsers=(await rpc('admin_users',{p_limit:200}))||[];
+  let h=header('測試清理');
+  h+='<p class="hint" style="color:var(--mu);margin:-6px 0 14px">揀一個帳戶，先查看佢嘅數據數量。建議先移出排行榜；只有確定係測試數據先做永久刪除（不可復原，帳戶本身會保留）。</p>';
+  h+='<section class="card"><label class="f" for="cuq">搜尋（電郵或名稱）</label><input type="search" id="cuq" value="'+esc(S.cleanupQ||'')+'" oninput="cleanupFilter(this.value)" autocomplete="off" style="width:100%"></section>';
+  h+='<div id="cuTable" style="margin-top:12px"></div>';
+  $('main').innerHTML=h;
+  drawCleanupTable();
+}
+function cleanupFilter(q){S.cleanupQ=q;drawCleanupTable();}
+function drawCleanupTable(){
+  const box=$('cuTable');if(!box)return;
+  const q=(S.cleanupQ||'').trim().toLowerCase(),all=S.cleanupUsers||[];
+  const rows=all.filter(u=>!q||(String(u.email||'')+' '+String(u.display_name||'')).toLowerCase().includes(q));
+  box.innerHTML=!rows.length?'<div class="card">'+empty('search','找不到帳戶','試下其他關鍵字')+'</div>'
+   :'<div class="tw"><table class="t"><thead><tr><th>電郵</th><th>名稱</th><th>魚獲數</th><th>狀態</th><th></th></tr></thead><tbody>'
+    +rows.map(u=>'<tr><td class="first" data-l="電郵">'+esc(u.email||'—')+'</td><td data-l="名稱">'+esc(u.display_name||'（未命名）')+'</td><td data-l="魚獲數">'+(u.catch_count||0)+'</td><td data-l="狀態">'+(u.is_admin?'<span class="pill warn">管理員</span>':u.banned?'<span class="pill bad">已停用</span>':'—')+'</td><td data-l=""><button type="button" class="btn sm" onclick="cleanupOpen(\''+esc(u.id)+'\')">查看</button></td></tr>').join('')
+    +'</tbody></table></div>';
+}
+async function cleanupOpen(id){S.cleanupUser=id;await go('cleanup','keep');}
+async function vCleanupDetail(){
+  const s=await rpc('admin_user_stats',{p_user:S.cleanupUser});
+  const off=s.is_admin?' disabled':'';
+  let h=header('測試清理');
+  h+='<button type="button" class="btn sm" onclick="cleanupBack()">'+ic('chev-l')+'<span>返回名單</span></button>';
+  h+='<section class="card" style="margin-top:12px"><h2>'+esc(s.display_name||'（未命名）')+'</h2>'
+   +(s.is_admin?'<p class="pill bad" role="note">此帳戶係管理員，無法刪除數據</p>':'')
+   +'<dl style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:12px 0">'
+   +'<dt>魚獲</dt><dd style="margin:0">'+s.catch_count+' 條（已移出排行榜 '+s.excluded_count+' 條）</dd>'
+   +'<dt>行程</dt><dd style="margin:0">'+s.trip_count+' 個（未結束 '+s.open_trip_count+' 個）</dd>'
+   +'<dt>最早魚獲</dt><dd style="margin:0">'+(s.first_catch_at?esc(fmt(s.first_catch_at)):'—')+'</dd>'
+   +'<dt>最近魚獲</dt><dd style="margin:0">'+(s.last_catch_at?esc(fmt(s.last_catch_at)):'—')+'</dd></dl>'
+   +'<div style="display:flex;flex-wrap:wrap;gap:8px">'
+   +'<button type="button" class="btn" onclick="cleanupExclude(true)"'+off+'>移出排行榜</button>'
+   +'<button type="button" class="btn" onclick="cleanupExclude(false)"'+off+'>恢復排行榜</button>'
+   +'<button type="button" class="btn bad" onclick="cleanupDelete()"'+off+'>永久刪除全部魚獲與行程</button></div>'
+   +'<p class="hint" style="color:var(--mu);margin-top:10px">永久刪除唔會刪除帳戶；相片檔案暫時仍保留喺儲存空間，需要另外清理。</p></section>';
+  $('main').innerHTML=h;
+}
+async function cleanupExclude(excluded){
+  if(!S.cleanupUser)return;
+  const r=await ask({title:excluded?'將全部魚獲移出排行榜？':'恢復全部魚獲嘅排行榜資格？',body:'只影響排行榜顯示，唔會刪除數據。',ok:'確定',note:true});
+  if(r===null)return;
+  try{const n=await rpc('admin_set_user_excluded',{p_user:S.cleanupUser,p_excluded:excluded,p_reason:r.note||null});toast((excluded?'已移出 ':'已恢復 ')+n+' 條魚獲');await go('cleanup','keep');}
+  catch(e){toast(e.message);}
+}
+async function cleanupDelete(){
+  if(!S.cleanupUser)return;
+  const r=await ask({title:'永久刪除全部魚獲與行程？',body:'不可復原。帳戶會保留，但呢個用戶嘅魚獲同行程會全部消失。請確定已經匯出或者備份。',ok:'永久刪除',danger:true,note:true,confirm:true});
+  if(r===null)return;
+  if(r.confirm!=='DELETE'){toast('未有正確輸入 DELETE，已取消');return;}
+  try{const res=await rpc('admin_delete_user_records',{p_user:S.cleanupUser,p_confirm:'DELETE',p_reason:r.note||null});toast('已刪除 '+res.catches+' 條魚獲、'+res.trips+' 個行程');S.cleanupUser=null;await go('cleanup','keep');}
+  catch(e){toast(e.message);}
+}
+
+/* ---------- 上架待辦 ---------- */
+const TODO_ST={todo:['待辦','warn'],doing:['進行中',''],done:['已完成','ok']};
+const TODO_NEXT={todo:'doing',doing:'done',done:'todo'};
+async function vTodo(){
+  const rows=(await rpc('admin_todo_list'))||[];
+  S.todoRows=rows;
+  const finished=rows.filter(t=>t.status==='done').length;
+  let h=header('上架待辦');
+  h+='<p class="hint" style="color:var(--mu);margin:-6px 0 14px">Play 上架用嘅待辦清單，只有管理員睇到。已完成 '+finished+' / '+rows.length+'。點擊狀態按鈕會順序切換：待辦 → 進行中 → 已完成。</p>';
+  h+='<section class="card"><form onsubmit="todoAdd(event)" style="display:flex;gap:8px;flex-wrap:wrap"><input type="text" id="tdt" maxlength="200" required autocomplete="off" placeholder="新增待辦事項" aria-label="新增待辦事項" style="flex:1;min-width:200px"><button type="submit" class="btn pri">新增</button></form></section>';
+  h+='<section class="card" style="margin-top:12px">';
+  h+=rows.length?rows.map((t,i)=>'<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--bd)">'
+    +'<button type="button" class="btn sm" onclick="todoCycle('+i+')" aria-label="更改狀態：'+esc(t.title)+'（現為'+TODO_ST[t.status][0]+'）"><span class="pill '+TODO_ST[t.status][1]+'">'+TODO_ST[t.status][0]+'</span></button>'
+    +'<span style="flex:1;min-width:0;word-break:break-word;'+(t.status==='done'?'text-decoration:line-through;color:var(--mu)':'')+'">'+esc(t.title)+(t.note?'<small style="display:block;color:var(--mu)">'+esc(t.note)+'</small>':'')+'</span>'
+    +'<button type="button" class="btn sm bad" onclick="todoDelete('+i+')" aria-label="刪除：'+esc(t.title)+'">'+ic('x')+'</button></div>').join('')
+    :empty('check','未有待辦事項','在上面新增第一項');
+  h+='</section>';
+  $('main').innerHTML=h;
+}
+async function todoCycle(i){const t=S.todoRows[i];if(!t)return;try{await rpc('admin_todo_save',{p_id:t.id,p_status:TODO_NEXT[t.status]});await go('todo','keep');}catch(e){toast(e.message);}}
+async function todoAdd(ev){ev.preventDefault();const v=($('tdt').value||'').trim();if(!v)return;try{await rpc('admin_todo_save',{p_title:v});await go('todo','keep');}catch(e){toast(e.message);}}
+async function todoDelete(i){const t=S.todoRows[i];if(!t)return;const r=await ask({title:'刪除呢項待辦？',body:t.title,ok:'刪除',danger:true});if(r===null)return;try{await rpc('admin_todo_delete',{p_id:t.id});await go('todo','keep');}catch(e){toast(e.message);}}
+
 /* ---------- v139：操作記錄 ---------- */
-const AUDIT_ACT={exclude_catch:['排除魚獲','bad'],restore_catch:['恢復魚獲','ok'],ban_user:['停用帳戶','bad'],unban_user:['恢復帳戶','ok'],review_approved:['批准審核','ok'],review_rejected:['拒絕審核','bad'],review_pending:['撤銷審核',''],feedback_done:['意見已處理','ok'],feedback_new:['意見重開','']};
+const AUDIT_ACT={exclude_catch:['排除魚獲','bad'],restore_catch:['恢復魚獲','ok'],ban_user:['停用帳戶','bad'],unban_user:['恢復帳戶','ok'],review_approved:['批准審核','ok'],review_rejected:['拒絕審核','bad'],review_pending:['撤銷審核',''],feedback_done:['意見已處理','ok'],feedback_new:['意見重開',''],exclude_user_catches:['排除用戶全部魚獲','bad'],restore_user_catches:['恢復用戶全部魚獲','ok'],delete_user_records:['永久刪除用戶紀錄','bad']};
 async function vAudit(){
   let rows;
   try{rows=await rpc('admin_audit_list',{p_limit:200});}
