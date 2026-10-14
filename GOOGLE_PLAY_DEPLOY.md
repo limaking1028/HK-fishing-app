@@ -12,7 +12,7 @@
 | 項目 | 狀態 | 備註 |
 |---|---|---|
 | TWA 配置 `twa-manifest.json` | ⚠️ 未完成 | `versionCode` 仲係 89、`versionName` 仲係 v89；keystore 密碼仲係佔位符 |
-| Digital Asset Links `.well-known/assetlinks.json` | ❌ 未完成 | `sha256_cert_fingerprints` 仲係佔位符，要等 keystore 生成後先填 |
+| Digital Asset Links `.well-known/assetlinks.json` | 🟡 進行中 | 位置：`limaking1028.github.io` repo 根目錄；upload key 指紋已填（待部署驗證），Play App Signing 指紋待首次上傳 AAB 後加入 |
 | PWA Manifest `manifest.json` | ✅ | |
 | App 圖示 512 `icon-512.png` / `store-assets/play-store-icon-512.png` | ✅ | 512×512 |
 | Feature Graphic `feature-graphic.png` | ✅ | 1024×500 |
@@ -70,29 +70,33 @@ Bubblewrap 會：
 
 ### Step 4：填 SHA-256 到 assetlinks.json，並部署
 
-```bash
-keytool -list -v -keystore android.keystore -alias hkfishing
+> ⚠️ **assetlinks.json 必須放喺網域根目錄**，即係 `limaking1028.github.io` 呢個 user-site repo 嘅 `main` 分支，路徑 `.well-known/assetlinks.json`。**唔可以放喺 HK-fishing-app repo**，否則 Android 驗證唔會通過。
+
+**4.1 攞 upload key 指紋（keystore 生成時已經有）**
+
+```cmd
+"C:\Users\ivanl\.bubblewrap\jdk\jdk-17.0.11+9\bin\keytool.exe" -list -v -keystore C:\Users\ivanl\android.keystore -alias android
 ```
 
-複製 SHA-256 指紋，**去掉冒號**，填入 `.well-known/assetlinks.json` 嘅 `sha256_cert_fingerprints`：
+搵 `SHA256:` 一行，**去掉冒號**，填入 `sha256_cert_fingerprints`。
+
+**4.2 等 Play App Signing 指紋（第一次上傳 AAB 之後）**
+
+Play 會用自己嘅 App signing key 重新簽署。第一次上傳成功後，喺 Play Console → 設定 → 應用程式完整性 → 應用程式簽署，攞 **App signing key certificate** 嘅 SHA-256（去掉冒號），**加入同一個陣列**：
 
 ```json
-"sha256_cert_fingerprints": ["3A2B1C4D5E6F..."]
+[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"app.hkfishing.twa","sha256_cert_fingerprints":["upload key 指紋","Play App Signing 指紋"]}}]
 ```
 
-然後提交並推上 GitHub Pages：
+**4.3 部署並驗證**
 
-```bash
-git add .well-known/assetlinks.json
-git commit -m "chore: 加入 Android app 簽署指紋（Digital Asset Links）"
-git push origin main
-```
-
-部署後用瀏覽器打開以下網址，確認返回 JSON（HTTP 200）：
+編輯 `limaking1028.github.io` repo 嘅 `.well-known/assetlinks.json`，commit 去 `main`，然後用無痕視窗打開：
 
 ```
-https://limaking1028.github.io/HK-fishing-app/.well-known/assetlinks.json
+https://limaking1028.github.io/.well-known/assetlinks.json
 ```
+
+確認返回 JSON（HTTP 200）。
 
 ### Step 5：構建 App Bundle（.aab）
 
