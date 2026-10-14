@@ -414,7 +414,7 @@ const rt=c=>(window.lbLib&&lbLib.reasonText)?lbLib.reasonText(c):(c||'');
 const toast=(m)=>{const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('show'),2600);};
 async function rpc(name,args){const {data,error}=await sb.rpc(name,args||{});if(error)throw new Error(error.message||'發生錯誤');return data;}
 const S={tab:'overview',detail:null,pending:0,fbNew:0,fbFilter:'new',photos:[],photoUser:null,photoUserName:'',photoFilter:'all',photoDone:false,fbCat:'all',users:[],queue:[],updated:null,email:''};
-const TABS=[['overview','總覽','home'],['review','審核中心','shield'],['feedback','意見箱','chat'],['photos','相片牆','photos'],['usage','使用分析','chart'],['insights','付費準備','coins'],['users','用戶','users'],['cleanup','測試清理','alert'],['todo','上架待辦','check'],['audit','操作記錄','log']];
+const TABS=[['overview','總覽','home'],['review','審核中心','shield'],['feedback','意見箱','chat'],['photos','相片牆','photos'],['usage','使用分析','chart'],['insights','付費準備','coins'],['users','用戶','users'],['cleanup','測試清理','alert'],['todo','上架待辦','check'],['tester','測試進度','users'],['monitor','系統監察','pulse'],['audit','操作記錄','log']];
 
 /* ---------- Dialog ---------- */
 function ask(o){ // {title, body, ok, danger, note, confirm}
@@ -550,14 +550,14 @@ function header(title,extra){
 function loading(tab){ // 骨架形狀跟返每頁實際版面
   const sk=(c,n)=>('<div class="sk '+c+'"></div>').repeat(n||1),kp=n=>'<div class="grid kpis">'+sk('kpi-s',n)+'</div>',two='<div class="grid two" style="margin-top:12px">'+sk('panel',2)+'</div>';
   const map={overview:sk('bar')+kp(8)+two,review:sk('panel tall',2),feedback:sk('chips-s')+sk('panel',3),photos:sk('chips-s')+'<div class="photos">'+sk('sq',10)+'</div>',
-    usage:kp(4)+two,insights:kp(3)+two,users:sk('bar')+'<div class="sk-rows">'+sk('row',7)+'</div>',audit:'<div class="sk-rows">'+sk('row',8)+'</div>',cleanup:'<div class="sk-rows">'+sk('row',6)+'</div>',todo:'<div class="sk-rows">'+sk('row',6)+'</div>'};
+    usage:kp(4)+two,insights:kp(3)+two,users:sk('bar')+'<div class="sk-rows">'+sk('row',7)+'</div>',audit:'<div class="sk-rows">'+sk('row',8)+'</div>',cleanup:'<div class="sk-rows">'+sk('row',6)+'</div>',todo:'<div class="sk-rows">'+sk('row',6)+'</div>',tester:'<div class="sk-rows">'+sk('row',6)+'</div>',monitor:'<div class="sk-rows">'+sk('row',6)+'</div>'};
   return '<div aria-busy="true" aria-label="載入中">'+(map[tab]||map.overview)+'</div>';
 }
 async function go(tab,keep){
   if(keep!=='keep')S.detail=null;
   S.tab=tab;history.replaceState(null,'','#'+tab);renderNav();
   const m=$('main');m.classList.add('enter');clearTimeout(S.enterT);m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+loading(tab);
-  try{await ({overview:vOverview,review:vReview,feedback:vFeedback,photos:vPhotos,usage:vUsage,insights:vInsights,users:()=>S.detail?vUserDetail():vUsers(),audit:vAudit,cleanup:vCleanup,todo:vTodo})[tab]();S.updated=new Date().toLocaleTimeString('zh-HK',{hour12:false,hour:'2-digit',minute:'2-digit'});}
+  try{await ({overview:vOverview,review:vReview,feedback:vFeedback,photos:vPhotos,usage:vUsage,insights:vInsights,users:()=>S.detail?vUserDetail():vUsers(),audit:vAudit,cleanup:vCleanup,todo:vTodo,tester:vTester,monitor:vMonitor})[tab]();S.updated=new Date().toLocaleTimeString('zh-HK',{hour12:false,hour:'2-digit',minute:'2-digit'});}
   catch(e){m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+'<div class="card err" role="alert"><h2>載入失敗</h2><p class="hint" style="color:inherit">'+esc(e.message)+'</p><button class="btn" onclick="go(S.tab)">'+ic('refresh')+'再試一次</button></div>';}
   window.scrollTo({top:0,behavior:'instant'});
   S.enterT=setTimeout(()=>{const mm=$('main');if(mm)mm.classList.remove('enter');},900);
@@ -1059,8 +1059,63 @@ async function todoCycle(i){const t=S.todoRows[i];if(!t)return;try{await rpc('ad
 async function todoAdd(ev){ev.preventDefault();const v=($('tdt').value||'').trim();if(!v)return;try{await rpc('admin_todo_save',{p_title:v});await go('todo','keep');}catch(e){toast(e.message);}}
 async function todoDelete(i){const t=S.todoRows[i];if(!t)return;const r=await ask({title:'刪除呢項待辦？',body:t.title,ok:'刪除',danger:true});if(r===null)return;try{await rpc('admin_todo_delete',{p_id:t.id});await go('todo','keep');}catch(e){toast(e.message);}}
 
+/* ---------- 測試進度（Play 封閉測試：12 人 × 14 日） ---------- */
+function hkDateStr(offsetDays){return new Date(Date.now()+8*3600e3+(offsetDays||0)*864e5).toISOString().slice(0,10);}
+function annLocal(iso){return iso?new Date(new Date(iso).getTime()+8*3600e3).toISOString().slice(0,16):'';}
+async function vTester(){
+  const d=await rpc('admin_tester_progress',{p_start:S.testerStart||hkDateStr(-13)});
+  const users=d.users||[];
+  let h=header('測試進度');
+  h+='<p class="hint" style="color:var(--mu);margin:-6px 0 14px">計算 App 內每位用戶連續活躍嘅日數（香港時間，以前景使用時間為準）。Play 封閉測試要求 12 位測試者連續 14 日參與，呢度只計 App 用戶，請同 Play Console 測試者名單對照。</p>';
+  h+='<section class="card"><form onsubmit="testerSet(event)" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end"><div><label class="f" for="tsd">統計起始日（香港）</label><input type="date" id="tsd" value="'+esc(d.start)+'" required></div><button type="submit" class="btn pri">套用</button><button type="button" class="btn" onclick="testerSet(null,\'reset\')">近 14 日</button></form></section>';
+  h+='<div class="grid two" style="margin-top:12px"><section class="card"><h2>已達 14 日連續</h2><p style="font-size:28px;margin:6px 0 0"><b>'+(d.qualified||0)+'</b> <span style="color:var(--mu);font-size:16px">/ 12 目標</span></p></section>'
+   +'<section class="card"><h2>統計區間</h2><p style="margin:6px 0 0">'+esc(d.start)+' → '+esc(d.today)+'（'+(d.days_elapsed||0)+' 日）</p><p class="hint" style="color:var(--mu);margin-top:4px">有活躍用戶 '+users.length+' 人</p></section></div>';
+  h+='<section class="card" style="margin-top:12px"><h2>用戶連續活躍</h2>'
+   +(users.length?'<div class="tw" style="box-shadow:none;margin-top:8px"><table class="t"><thead><tr><th>用戶</th><th>最長連續</th><th>活躍日數</th><th>最近活躍</th><th></th></tr></thead><tbody>'
+    +users.map(u=>'<tr><td class="first" data-l="用戶"><b>'+esc(u.display_name||'（未命名）')+'</b><div style="color:var(--mu);font-size:12px">'+esc(u.email||'—')+'</div></td><td data-l="最長連續"><span class="pill '+(u.best_streak>=14?'ok':'')+'">'+u.best_streak+' 日</span></td><td data-l="活躍日數">'+u.active_days+'</td><td data-l="最近活躍">'+esc(u.last_day||'—')+'</td><td data-l=""><button type="button" class="btn sm" onclick="openUser(\''+esc(u.id)+'\')">查看</button></td></tr>').join('')
+    +'</tbody></table></div>':empty('users','期間內未有活躍用戶','試下調整統計起始日'))
+   +'</section>';
+  $('main').innerHTML=h;
+}
+async function testerSet(ev,mode){
+  if(ev)ev.preventDefault();
+  S.testerStart=mode==='reset'?null:(($('tsd')&&$('tsd').value)||null);
+  await go('tester','keep');
+}
+
+/* ---------- 系統監察：公告橫幅 + 客戶端錯誤 ---------- */
+async function vMonitor(){
+  const [ann,errs]=await Promise.all([rpc('admin_get_announcement'),rpc('admin_client_errors',{p_days:S.errDays||7})]);
+  const a=ann||{enabled:false,message:'',level:'info',until:null};
+  const lvOpt=(v,t)=>'<option value="'+v+'"'+(a.level===v?' selected':'')+'>'+t+'</option>';
+  let h=header('系統監察');
+  h+='<section class="card"><h2>公告橫幅</h2><p class="hint" style="color:var(--mu)">開啟後，所有用戶打開 App 頂部會見到公告。用戶按「關閉」後，除非你更新內容，否則唔會再見到。</p>'
+   +'<form onsubmit="annSave(event)" style="display:grid;gap:10px;margin-top:10px">'
+   +'<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="annOn"'+(a.enabled?' checked':'')+'> 開啟公告</label>'
+   +'<div><label class="f" for="annMsg">內容（最多 200 字）</label><textarea id="annMsg" maxlength="200" rows="2" style="width:100%">'+esc(a.message||'')+'</textarea></div>'
+   +'<div><label class="f" for="annLv">類別</label><select id="annLv">'+lvOpt('info','一般（藍色）')+lvOpt('warn','注意（橙色）')+lvOpt('bad','緊急（紅色）')+'</select></div>'
+   +'<div><label class="f" for="annUntil">自動過期（可選，香港時間）</label><input type="datetime-local" id="annUntil" value="'+esc(annLocal(a.until))+'"></div>'
+   +'<div><button type="submit" class="btn pri">儲存公告</button></div></form></section>';
+  h+='<section class="card" style="margin-top:12px"><h2>App 客戶端錯誤</h2>'
+   +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 10px"><label for="errD">期間</label><select id="errD" onchange="errDays(this.value)">'
+   +[[1,'今日'],[7,'近 7 日'],[30,'近 30 日']].map(([v,t])=>'<option value="'+v+'"'+((S.errDays||7)===v?' selected':'')+'>'+t+'</option>').join('')+'</select></div>'
+   +'<p class="hint" style="color:var(--mu)">同一條錯誤會合併計算。次數多、影響人數多嘅優先修正。</p>'
+   +(errs.length?errs.map(e=>'<div style="padding:10px 0;border-bottom:1px solid var(--bd)"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="pill bad">'+e.count+' 次</span><span class="pill warn">'+e.users+' 人</span>'+(e.versions||[]).map(v=>'<span class="pill">'+esc(v)+'</span>').join('')+'<small style="color:var(--mu)">'+esc(fmt(e.last_at))+'</small></div><div style="margin-top:6px;word-break:break-word;font-family:monospace;font-size:13px">'+esc(e.message)+'</div>'+(e.sample_stack?'<details style="margin-top:4px"><summary>堆疊追蹤</summary><pre style="white-space:pre-wrap;font-size:12px;overflow:auto">'+esc(e.sample_stack)+'</pre></details>':'')+'</div>').join(''):empty('check','期間內無錯誤','未有記錄到客戶端錯誤'))
+   +'</section>';
+  $('main').innerHTML=h;
+}
+function errDays(v){S.errDays=Number(v)||7;go('monitor','keep');}
+async function annSave(ev){
+  ev.preventDefault();
+  const on=$('annOn').checked,msg=($('annMsg').value||'').trim(),lv=$('annLv').value,u=$('annUntil').value;
+  if(on&&!msg){toast('請輸入公告內容');return;}
+  const r=await ask({title:on?'發佈公告？':'關閉公告？',body:on?'所有用戶會即時見到呢個公告（已關閉嘅用戶除外）。':'用戶將唔再見到公告。',ok:'確定'});
+  if(r===null)return;
+  try{await rpc('admin_set_announcement',{p_enabled:on,p_message:msg||null,p_level:lv,p_until:u?u+':00+08:00':null});toast('已儲存公告');await go('monitor','keep');}
+  catch(e){toast(e.message);}
+}
 /* ---------- v139：操作記錄 ---------- */
-const AUDIT_ACT={exclude_catch:['排除魚獲','bad'],restore_catch:['恢復魚獲','ok'],ban_user:['停用帳戶','bad'],unban_user:['恢復帳戶','ok'],review_approved:['批准審核','ok'],review_rejected:['拒絕審核','bad'],review_pending:['撤銷審核',''],feedback_done:['意見已處理','ok'],feedback_new:['意見重開',''],exclude_user_catches:['排除用戶全部魚獲','bad'],restore_user_catches:['恢復用戶全部魚獲','ok'],delete_user_records:['永久刪除用戶紀錄','bad']};
+const AUDIT_ACT={exclude_catch:['排除魚獲','bad'],restore_catch:['恢復魚獲','ok'],ban_user:['停用帳戶','bad'],unban_user:['恢復帳戶','ok'],review_approved:['批准審核','ok'],review_rejected:['拒絕審核','bad'],review_pending:['撤銷審核',''],feedback_done:['意見已處理','ok'],feedback_new:['意見重開',''],exclude_user_catches:['排除用戶全部魚獲','bad'],restore_user_catches:['恢復用戶全部魚獲','ok'],delete_user_records:['永久刪除用戶紀錄','bad'],announcement_on:['開啟公告','warn'],announcement_off:['關閉公告','']};
 async function vAudit(){
   let rows;
   try{rows=await rpc('admin_audit_list',{p_limit:200});}

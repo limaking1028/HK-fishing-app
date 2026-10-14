@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v151';  // v151: 潮汐 CHK/KCQ 改用官方數據，修正潮汐判斷與潮差標示
+const CACHE = 'hk-fishing-v152';  // v152: 客戶端錯誤回報 + 公告橫幅 + 後台測試進度／系統監察
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+

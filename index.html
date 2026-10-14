@@ -1252,7 +1252,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v151</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v152</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -5481,7 +5481,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v151</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v152</span>';
   }
   renderView(name);
 }
@@ -6221,6 +6221,64 @@ if ('serviceWorker' in navigator) {
     regs.forEach(reg => reg.unregister());
   });
 }
+/* ---------- v152：客戶端錯誤回報 + 公告橫幅（失敗都唔影響 App 運作） ---------- */
+const APP_BUILD_LABEL = 'v152';
+const ERR_REPORTED = new Set();
+let errReportCount = 0;
+function reportClientError(err, source) {
+  try {
+    if (!sb || errReportCount >= 20) return;
+    const msg = String((err && err.message) || err || 'unknown').slice(0, 500);
+    const key = msg.slice(0, 120);
+    if (ERR_REPORTED.has(key)) return;   // 同一個錯誤每次 session 只報一次
+    ERR_REPORTED.add(key);
+    errReportCount++;
+    sb.rpc('log_client_error', {
+      p_message: msg,
+      p_stack: String((err && err.stack) || '').slice(0, 2000),
+      p_source: String(source || '').slice(0, 60),
+      p_version: APP_BUILD_LABEL,
+      p_url: location.pathname.slice(0, 200)
+    }).then(() => {}, () => {});
+  } catch (e) { /* 回報本身出錯就忽略 */ }
+}
+window.addEventListener('error', e => reportClientError(e.error || e.message, 'error'));
+window.addEventListener('unhandledrejection', e => reportClientError(e.reason, 'promise'));
+
+const ANN_DISMISS_KEY = 'hk_fishing_ann_dismissed';
+async function loadAnnouncement() {
+  try {
+    if (!sb) return;
+    const { data, error } = await sb.rpc('get_announcement');
+    if (error || !data || !data.message) return;
+    let dismissed = null;
+    try { dismissed = localStorage.getItem(ANN_DISMISS_KEY); } catch (e) {}
+    if (String(dismissed) === String(data.id)) return;
+    const palette = { info: ['#e8f4ff', '#1d4f7a'], warn: ['#fff4e8', '#8a5a1c'], bad: ['#ffe8e8', '#8a1c1c'] };
+    const [bg, fg] = palette[data.level] || palette.info;
+    const bar = document.createElement('div');
+    bar.id = 'annBanner';
+    bar.setAttribute('role', 'status');
+    bar.style.cssText = 'position:sticky;top:0;z-index:9999;display:flex;gap:10px;align-items:flex-start;padding:10px 12px;font-size:14px;line-height:1.5;background:' + bg + ';color:' + fg + ';border-bottom:1px solid rgba(0,0,0,.08);';
+    const txt = document.createElement('span');
+    txt.style.flex = '1';
+    txt.textContent = data.message;   // 用 textContent，防止注入
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = '關閉';
+    btn.setAttribute('aria-label', '關閉公告');
+    btn.style.cssText = 'border:1px solid currentColor;background:transparent;color:inherit;border-radius:8px;padding:2px 10px;cursor:pointer;';
+    btn.onclick = () => {
+      try { localStorage.setItem(ANN_DISMISS_KEY, String(data.id)); } catch (e) {}
+      bar.remove();
+    };
+    bar.append(txt, btn);
+    document.body.prepend(bar);
+  } catch (e) { console.warn('[announcement]', e); }
+}
+// 等 init() 建立 Supabase client 之後再讀取公告
+setTimeout(loadAnnouncement, 1500);
+
 document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
