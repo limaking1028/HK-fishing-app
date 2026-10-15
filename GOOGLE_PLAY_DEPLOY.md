@@ -16,14 +16,14 @@
 | PWA Manifest `manifest.json` | ✅ | |
 | App 圖示 512 `icon-512.png` / `store-assets/play-store-icon-512.png` | ✅ | 512×512 |
 | Feature Graphic `feature-graphic.png` | ✅ | 1024×500 |
-| 手機截圖 `store-assets/screenshots/phone-01.png` 至 `phone-06.png` | ⚠️ 需重新截圖 | 尺寸正確（1080×1920），但係舊版 UI 同示範數據，建議用 v151 重新截 |
-| 私隱政策 `privacy.html` | ⚠️ 需更新 | 「生效版本」仲寫住 v107，要對照新功能更新 |
+| 手機截圖（1080×1920） | ❌ 待重新截 | 舊版截圖（舊 UI 同示範數據）已由 repo 刪除，要用最新版本重新截，可用 `scripts/capture-playstore-screenshots.py` |
+| 私隱政策 `privacy.html` | ✅ | 生效版本 v152，已包括錯誤紀錄同管理員內部查看 |
 | 刪除帳戶 | ✅ | App 內「設定 → 永久刪除帳戶」（`deleteAccount()`，調用 `delete_my_account()`，見 `migration-v107-hardening.sql`）；網頁申請頁 `delete-account.html` |
-| 簽署 keystore `android.keystore` | ❌ 未生成 | 要用 Bubblewrap 生成，並安全備份 |
+| 簽署 keystore `android.keystore` | ✅ 已生成 | 存放喺本機 `C:\Users\ivanl\android.keystore`（唔入 repo）；之前密碼曾曝光，要用 `keytool -storepasswd` 更換並安全備份 |
 | `.gitignore` 排除 keystore | ✅ | `android.keystore`、`*.keystore`、`google-play-service-account.json`、`google-services.json` |
-| `android/` 專案資料夾 | ❌ 未生成 | `bubblewrap init` 會生成 |
-| AAB 構建 | ❌ 未完成 | |
-| Play Console 開發者帳戶 | ❌ 未註冊 | $25 USD 一次性，要完成身份驗證 |
+| `android/` 專案資料夾 | ✅ 已生成 | 喺本機，唔入 repo |
+| AAB 構建 | ✅ 已完成 | 本機 `C:\Users\ivanl\app-release-bundle.aab`，待開發者帳戶驗證完成後上傳封閉測試 |
+| Play Console 開發者帳戶 | 🟡 已建立，身份驗證進行中 | $25 USD 一次性；仲要完成證件上傳、Android 裝置驗證同聯絡電話驗證 |
 | Google OAuth 同意畫面 | ⚠️ 要確認 | 要由「測試」改為「正式」，否則只有測試用戶可以登入 |
 | Supabase Redirect URL | ⚠️ 要確認 | 要包括 `https://limaking1028.github.io/HK-fishing-app/**` |
 
@@ -124,7 +124,7 @@ bubblewrap build
 - 完整說明：見下方「應用程式描述」
 - 應用程式圖示：`store-assets/play-store-icon-512.png`
 - Feature Graphic：`feature-graphic.png`（1024×500）
-- 手機截圖：`store-assets/screenshots/`（建議用 v151 重新截）
+- 手機截圖：待用最新版本重新截（舊版已刪除）
 - 隱私權政策 URL：`https://limaking1028.github.io/HK-fishing-app/privacy.html`
 
 #### 6.4 App 存取權（審核用測試帳戶）
@@ -212,9 +212,9 @@ App 需要登入才能使用主要功能，所以要喺「App 存取權」提供
 - 數量：2–8 張（建議 4–5 張）
 
 ### 現有檔案
-`store-assets/screenshots/phone-01.png` 至 `phone-06.png`（1080×1920，已加中文標題）。
+舊版截圖（`phone-01.png` 至 `phone-06.png`）因為係舊版 UI 同示範數據，已經刪除（git 歷史仲可以還原）。
 
-**注意**：呢批截圖用嘅係舊版 UI 同示範數據。上架前建議用 v151 重新截，特別係首頁、記錄頁、地圖、行程、潮汐預報。
+**注意**：上架前要用最新版本重新截（1080×1920），特別係首頁、記錄頁、地圖、行程、潮汐預報。
 
 ### 舊截圖腳本（現時唔適用）
 `scripts/capture-playstore-screenshots.py` 需要測試帳戶，而且係舊版畫面，暫時唔建議使用。
