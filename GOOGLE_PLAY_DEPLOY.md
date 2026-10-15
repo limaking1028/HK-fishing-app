@@ -23,7 +23,7 @@
 | `.gitignore` 排除 keystore | ✅ | `android.keystore`、`*.keystore`、`google-play-service-account.json`、`google-services.json` |
 | `android/` 專案資料夾 | ❌ 未生成 | `bubblewrap init` 會生成 |
 | AAB 構建 | ❌ 未完成 | |
-| Play Console 開發者帳戶 | ❌ 未註冊 | $25 USD 一次性，要完成身份驗證 |
+| Play Console 開發者帳戶 | 🟡 已建立，身份驗證進行中 | $25 USD 一次性；仲要完成證件上傳、Android 裝置驗證同聯絡電話驗證 |
 | Google OAuth 同意畫面 | ⚠️ 要確認 | 要由「測試」改為「正式」，否則只有測試用戶可以登入 |
 | Supabase Redirect URL | ⚠️ 要確認 | 要包括 `https://limaking1028.github.io/HK-fishing-app/**` |
 
