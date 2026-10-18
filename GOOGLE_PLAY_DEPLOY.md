@@ -78,11 +78,11 @@ Bubblewrap 會：
 "C:\Users\ivanl\.bubblewrap\jdk\jdk-17.0.11+9\bin\keytool.exe" -list -v -keystore C:\Users\ivanl\android.keystore -alias android
 ```
 
-搵 `SHA256:` 一行，**去掉冒號**，填入 `sha256_cert_fingerprints`。
+搵 `SHA256:` 一行，**原樣保留冒號同大寫**（格式 `AB:CD:12:…`，共 32 組），填入 `sha256_cert_fingerprints`。
 
 **4.2 等 Play App Signing 指紋（第一次上傳 AAB 之後）**
 
-Play 會用自己嘅 App signing key 重新簽署。第一次上傳成功後，喺 Play Console → 設定 → 應用程式完整性 → 應用程式簽署，攞 **App signing key certificate** 嘅 SHA-256（去掉冒號），**加入同一個陣列**：
+Play 會用自己嘅 App signing key 重新簽署。第一次上傳成功後，喺 Play Console → 設定 → 應用程式完整性 → 應用程式簽署，攞 **App signing key certificate** 嘅 SHA-256（同樣保留冒號同大寫），**加入同一個陣列**：
 
 ```json
 [{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"app.hkfishing.twa","sha256_cert_fingerprints":["upload key 指紋","Play App Signing 指紋"]}}]
