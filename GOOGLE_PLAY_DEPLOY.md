@@ -166,7 +166,7 @@ App 需要登入才能使用主要功能，所以要喺「App 存取權」提供
 #### 6.8 上傳 AAB 並提交
 - 選單 → 測試 或 正式版 → 建立新版本
 - 上傳 `app-release-bundle.aab`
-- 版本名稱：1.0.0（與 `twa-manifest.json` 一致）
+- 版本名稱：Console 預設用 `3 (3)`（已上傳 AAB 嘅 versionCode 係 3，只供內部識別，測試者睇唔到）。之後每次上傳，versionCode 都要大過上一次。repo 內 `twa-manifest.json` 係舊樣本，實際打包用嘅係本機另一份，要以本機為準。
 - 提交審核（通常 1–3 日）
 
 ---
