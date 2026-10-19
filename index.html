@@ -1252,7 +1252,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v152</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v153</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -2448,6 +2448,16 @@ function updateCatchTidePreview(spot, dateStr, timeStr) {
   el.innerHTML = html;
 }
 
+// v153：定位後備（Android App 有時高精度 GPS 會報「位置不可用」）
+// 先試高精度；如果「位置不可用」或「逾時」，自動改用網絡／Wi-Fi 定位再試一次。
+function getPositionRobust(onOk, onErr, opts) {
+  const first = Object.assign({ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }, opts || {});
+  navigator.geolocation.getCurrentPosition(onOk, (err) => {
+    if (!err || err.code === 1) { onErr(err); return; }
+    navigator.geolocation.getCurrentPosition(onOk, onErr,
+      { enableHighAccuracy: false, timeout: 20000, maximumAge: 300000 });
+  }, first);
+}
 // ===== GPS Location =====
 function getCurrentLocation() {
   const btn = document.getElementById('gps-btn');
@@ -2469,7 +2479,7 @@ function getCurrentLocation() {
   if (titleEl) titleEl.textContent = '📡 GPS 自動識別中...';
   if (box) box.classList.add('loading');
 
-  navigator.geolocation.getCurrentPosition(
+  getPositionRobust(
     (pos) => {
       const rawLat = pos.coords.latitude;
       const rawLng = pos.coords.longitude;
@@ -2551,7 +2561,7 @@ function getCurrentLocation() {
       state.selectedSpot = '其他';
       toast(msg);
     },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
   );
 }
 /* Route L: GPS → 釣點三層自動識別 */
@@ -3300,7 +3310,7 @@ async function retripActiveGPS() {
   if (!state.activeTrip) return;
   if (!navigator.geolocation) { toast('瀏覽器不支援定位'); return; }
   toast('🔍 重新定位中...');
-  navigator.geolocation.getCurrentPosition(
+  getPositionRobust(
     async (pos) => {
       const lat = Math.round(pos.coords.latitude * 1000) / 1000;
       const lng = Math.round(pos.coords.longitude * 1000) / 1000;
@@ -3350,6 +3360,14 @@ async function retripActiveGPS() {
 
 
 // v110: 定位被拒絕時，按裝置顯示重新允許的步驟（網頁無法再次彈出詢問）
+// v153：偵測係咪喺 Google Play 版 App（TWA）入面運行
+function isAndroidApp() {
+  try {
+    if ((document.referrer || '').indexOf('android-app://app.hkfishing.twa') === 0) { sessionStorage.setItem('twa', '1'); return true; }
+    if (sessionStorage.getItem('twa') === '1') return true;
+  } catch (e) {}
+  return /Android/i.test(navigator.userAgent || '') && window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+}
 function gpsDeniedHelp(err) {
   const ua = navigator.userAgent || '';
   const ios = /iPhone|iPad|iPod/i.test(ua);
@@ -3360,10 +3378,16 @@ function gpsDeniedHelp(err) {
       + '③ 撳網址列左邊「ᴀA」→「網站設定」→「位置」→「允許」<br>'
       + '④ <b>關閉無痕／私人瀏覽</b>（無痕模式會直接拒絕定位）<br>'
       + '⑤ 完全關閉 Safari 再開，或撳下面「重新載入」'
-    : '<b>Android：</b><br>'
-      + '① 手機下拉選單確認「<b>定位</b>」已開啟<br>'
-      + '② 撳網址列左邊圖示 →「權限」→「位置」→「允許」<br>'
-      + '③ 撳下面「重新載入」';
+    : (isAndroidApp()
+      ? '<b>Android App：</b><br>'
+        + '① 手機下拉選單確認「<b>定位</b>」已開啟<br>'
+        + '② 設定 → 應用程式 → <b>釣港</b> → 權限 → <b>位置</b> →「使用應用程式時允許」，並開啟「使用精確位置」<br>'
+        + '③ 設定 → 應用程式 → <b>Chrome</b> → 權限 → 位置 → 同樣允許<br>'
+        + '④ 完全關閉釣港再開，或撳下面「重新載入」'
+      : '<b>Android：</b><br>'
+        + '① 手機下拉選單確認「<b>定位</b>」已開啟<br>'
+        + '② 撳網址列左邊圖示 →「權限」→「位置」→「允許」<br>'
+        + '③ 撳下面「重新載入」');
   const tech = (err && err.message) ? '<br><span style="opacity:.6">技術訊息：' + escapeHtml(String(err.message)).slice(0, 120) + '</span>' : '';
   return '<div style="font-size:12px;line-height:1.6;color:var(--gray-6);margin-top:6px;">' + steps + tech +
     '<br><button type="button" onclick="location.reload()" style="margin-top:6px;padding:6px 12px;border-radius:8px;border:1px solid var(--gray-3);background:#fff;font-size:12px;">🔄 重新載入</button></div>';
@@ -3396,7 +3420,7 @@ function tripGetGPS() {
   if (!navigator.geolocation) { status.textContent = '瀏覽器不支援定位'; status.className = 'gps-status error'; return; }
   btn.disabled = true; btn.classList.add('loading'); btn.textContent = '⏳ 定位中...';
   status.textContent = '正在取得位置...'; status.className = 'gps-status';
-  navigator.geolocation.getCurrentPosition(
+  getPositionRobust(
     async (pos) => {
       const lat = Math.round(pos.coords.latitude * 1000) / 1000;
       const lng = Math.round(pos.coords.longitude * 1000) / 1000;
@@ -5481,7 +5505,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v152</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v153</span>';
   }
   renderView(name);
 }
@@ -6222,7 +6246,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 /* ---------- v152：客戶端錯誤回報 + 公告橫幅（失敗都唔影響 App 運作） ---------- */
-const APP_BUILD_LABEL = 'v152';
+const APP_BUILD_LABEL = 'v153';
 const ERR_REPORTED = new Set();
 let errReportCount = 0;
 function reportClientError(err, source) {

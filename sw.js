@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v152';  // v152: 客戶端錯誤回報 + 公告橫幅 + 後台測試進度／系統監察
+const CACHE = 'hk-fishing-v153';  // v153: Android App GPS「位置不可用」自動改用網絡定位 + App 權限教學
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
