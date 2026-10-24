@@ -29,7 +29,7 @@
     "signingKey": {
       "alias": "hkfishing",
       "keystorePath": "./android.keystore",
-      "_note": "Do NOT put the real password here (public repo). Bubblewrap asks for it at build time, or set env BUBBLEWRAP_KEYSTORE_PASSWORD / BUBBLEWRAP_KEY_PASSWORD."
+      "keystorePasswordValue": "CHANGE_ME_BEFORE_BUILD"
     }
   },
   "_comment": [
