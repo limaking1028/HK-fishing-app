@@ -2454,8 +2454,20 @@ function getPositionRobust(onOk, onErr, opts) {
   const first = Object.assign({ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }, opts || {});
   navigator.geolocation.getCurrentPosition(onOk, (err) => {
     if (!err || err.code === 1) { onErr(err); return; }
-    navigator.geolocation.getCurrentPosition(onOk, onErr,
-      { enableHighAccuracy: false, timeout: 20000, maximumAge: 300000 });
+    navigator.geolocation.getCurrentPosition(onOk, (err2) => {
+      if (!err2 || err2.code === 1) { onErr(err2); return; }
+      // v154：Android App（TWA 定位委派）冷啟動時，原生定位會即刻報 code 2。
+      // 再用 watchPosition 等多 25 秒，攞到第一個位置就停。
+      let done = false, wid = null;
+      const finish = (fn, v) => { if (done) return; done = true; if (wid !== null) navigator.geolocation.clearWatch(wid); fn(v); };
+      const timer = setTimeout(() => finish(onErr, err2), 25000);
+      try {
+        wid = navigator.geolocation.watchPosition(
+          (pos) => { clearTimeout(timer); finish(onOk, pos); },
+          (e3) => { if (e3 && e3.code === 1) { clearTimeout(timer); finish(onErr, e3); } },
+          { enableHighAccuracy: true, timeout: 25000, maximumAge: 600000 });
+      } catch (e) { clearTimeout(timer); finish(onErr, err2); }
+    }, { enableHighAccuracy: false, timeout: 20000, maximumAge: 600000 });
   }, first);
 }
 // ===== GPS Location =====
