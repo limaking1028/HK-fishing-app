@@ -24,6 +24,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.browser.trusted.TrustedWebActivityCallbackRemote;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -100,12 +101,12 @@ public class HkLocationHandler implements ExtraCommandHandler {
     }
 
     private boolean hasFine() {
-        return mContext.checkCallingOrSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+        return ContextCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED;
     }
 
     private boolean hasAny() {
-        return hasFine() || mContext.checkCallingOrSelfPermission(
+        return hasFine() || ContextCompat.checkSelfPermission(mContext,
                 Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
     }
 
