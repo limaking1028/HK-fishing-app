@@ -28,8 +28,7 @@
   "signedBundleConfig": {
     "signingKey": {
       "alias": "hkfishing",
-      "keystorePath": "./android.keystore",
-      "keystorePasswordValue": "CHANGE_ME_BEFORE_BUILD"
+      "keystorePath": "./android.keystore"
     }
   },
   "_comment": [

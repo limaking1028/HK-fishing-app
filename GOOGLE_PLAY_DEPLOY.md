@@ -54,7 +54,7 @@ Bubblewrap 會：
 2. 輸出 SHA-256 指紋（格式類似 `3A:2B:1C:...`）
 3. 要求你設定 keystore 密碼
 
-**設定密碼後，記得修改 `twa-manifest.json` 嘅 `keystorePasswordValue`**（而家係 `CHANGE_ME_BEFORE_BUILD`）。
+**密碼唔好寫入 `twa-manifest.json`（呢個 repo 係公開嘅）。** 執行 `bubblewrap build` 時喺提示輸入密碼；或者先設定環境變數 `BUBBLEWRAP_KEYSTORE_PASSWORD`（keystore 密碼）同 `BUBBLEWRAP_KEY_PASSWORD`（key 密碼）（見 [Bubblewrap CLI README](https://github.com/GoogleChromeLabs/bubblewrap/tree/main/packages/cli)）。
 密碼建議放入密碼管理器，唔好寫入 repo。
 
 ### Step 3：更新版本號
