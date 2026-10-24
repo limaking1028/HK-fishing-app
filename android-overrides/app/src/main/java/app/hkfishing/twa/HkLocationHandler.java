@@ -78,6 +78,7 @@ public class HkLocationHandler implements ExtraCommandHandler {
     @NonNull @Override
     public Bundle handleExtraCommand(Context context, String commandName, Bundle args,
                                      @Nullable TrustedWebActivityCallbackRemote callback) {
+        Log.w(TAG, "cmd=" + commandName);
         mContext = context.getApplicationContext();
         Bundle result = new Bundle();
         result.putBoolean(EXTRA_COMMAND_SUCCESS, false);
@@ -169,10 +170,12 @@ public class HkLocationHandler implements ExtraCommandHandler {
         if (l.hasAccuracy()) b.putDouble("accuracy", l.getAccuracy());
         if (l.hasBearing()) b.putDouble("bearing", l.getBearing());
         if (l.hasSpeed()) b.putDouble("speed", l.getSpeed());
+        Log.w(TAG, "location sent");
         run(CB_LOCATION, b);
     }
 
     private void error(String msg) {
+        Log.w(TAG, "error: " + msg);
         Bundle b = new Bundle();
         b.putString("message", msg);
         run(CB_ERROR, b);
