@@ -11,8 +11,8 @@
   "iconUrl": "https://limaking1028.github.io/HK-fishing-app/icon-512.png",
   "maskableIconUrl": "https://limaking1028.github.io/HK-fishing-app/icon-maskable-512.png",
   "splashScreenFadeOutDuration": 300,
-  "versionCode": 89,
-  "versionName": "v89",
+  "versionCode": 4,
+  "versionName": "v154",
   "shortcuts": [],
   "splashStatisticsUrl": null,
   "shareTarget": null,
@@ -29,7 +29,7 @@
     "signingKey": {
       "alias": "hkfishing",
       "keystorePath": "./android.keystore",
-      "keystorePasswordValue": "CHANGE_ME_BEFORE_BUILD"
+      "_note": "Do NOT put the real password here (public repo). Bubblewrap asks for it at build time, or set env BUBBLEWRAP_KEYSTORE_PASSWORD / BUBBLEWRAP_KEY_PASSWORD."
     }
   },
   "_comment": [
