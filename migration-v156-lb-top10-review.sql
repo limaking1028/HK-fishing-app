@@ -1,8 +1,7 @@
 -- ============================================================
 -- v156：重量王者「頭 10 名／魚種紀錄」人手審核
 --
---   * 以「全期」計，每人最大一條有效魚獲排頭 10 名，或者係某魚種最重嘅一條，
---     如果未經管理員批准，就屬於「待審核」：
+--   * 未經管理員批准、會擠入公開頭 10 名或者會成為魚種紀錄嘅魚獲 = 「待審核」（規則見 lb_pending_ids）：
 --       - 其他用戶喺重量王者睇唔到（該用戶改為顯示佢下一條已可公開嘅魚獲）
 --       - 魚獲主人自己仍然睇到，lb_biggest 多回傳 pending = true，App 顯示「待審核」
 --   * 批准：admin_lb_approve（記低批准時嘅魚種同重量；之後改魚種或重量要重新審核）
@@ -22,6 +21,12 @@ alter table public.lb_catch_approval enable row level security;   -- 無 policy
 revoke all on public.lb_catch_approval from anon, authenticated;
 
 -- 待審核魚獲 id（只供 SECURITY DEFINER 函數內部用）
+-- 規則（唔會用未批准嘅魚獲「補位」）：
+--   頭 10 名：每個時段（全期／年／季／月）用「已批准」魚獲排每人最佳，第 10 名重量 = 門檻 T。
+--     未批准而重量 >= T 嘅魚獲 = 待審核；已批准唔夠 10 個人時，該時段所有未批准魚獲都係待審核。
+--     所以公開榜頭 10 名一定全部係已批准，可能少過 10 個。
+--   魚種紀錄：該魚種最重嘅「已批准」魚獲 = 紀錄 R。未批准而重過 R = 待審核；
+--     未有已批准時，最重嗰條（或並列）未批准 = 待審核。
 create or replace function public.lb_pending_ids()
 returns setof uuid
 language sql
@@ -30,25 +35,34 @@ security definer
 set search_path = public
 as $$
   with cand as (
-    select c.* from public.catches c
+    select c.id, c.user_id, c.species, c.weight_kg, c.date,
+           exists (select 1 from public.lb_catch_approval a
+                    where a.catch_id = c.id and a.species = c.species and a.weight_kg = c.weight_kg) as ok
+      from public.catches c
      where c.leaderboard_eligible and c.user_id is not null and not public.is_banned(c.user_id)
   ),
-  best as (
-    select distinct on (c.user_id) c.* from cand c
-     order by c.user_id, c.weight_kg desc, c.date asc, c.created_at asc
+  per as (
+    select p, public.lb_period_start(p) as s from unnest(array['all','year','quarter','month']) p
   ),
-  top10 as (
-    select b.id from best b order by b.weight_kg desc, b.date asc, b.created_at asc limit 10
+  abest as (
+    select distinct on (per.p, c.user_id) per.p, c.weight_kg
+      from per join cand c on c.ok and c.date >= per.s
+     order by per.p, c.user_id, c.weight_kg desc
+  ),
+  thr as (
+    select per.p, per.s,
+           (select a.weight_kg from abest a where a.p = per.p order by a.weight_kg desc offset 9 limit 1) as t
+      from per
   ),
   rec as (
-    select c.id from cand c
-     where c.weight_kg = (select max(x.weight_kg) from cand x where x.species = c.species)
+    select species, max(weight_kg) filter (where ok) as r, max(weight_kg) filter (where not ok) as u
+      from cand group by species
   )
-  select c.id
-    from cand c
-   where c.id in (select id from top10 union select id from rec)
-     and not exists (select 1 from public.lb_catch_approval a
-                      where a.catch_id = c.id and a.species = c.species and a.weight_kg = c.weight_kg);
+  select c.id from cand c join thr on c.date >= thr.s
+   where not c.ok and (thr.t is null or c.weight_kg >= thr.t)
+  union
+  select c.id from cand c join rec on rec.species = c.species
+   where not c.ok and ((rec.r is null and c.weight_kg = rec.u) or c.weight_kg > rec.r);
 $$;
 revoke all on function public.lb_pending_ids() from public, anon, authenticated;
 
@@ -120,3 +134,50 @@ revoke all on function public.admin_lb_pending() from public, anon;
 revoke all on function public.admin_lb_approve(uuid, text) from public, anon;
 grant execute on function public.admin_lb_pending() to authenticated;
 grant execute on function public.admin_lb_approve(uuid, text) to authenticated;
+
+-- 審核中心紅點：計埋重量王者待審核（其他內容同 v139 一樣）
+
+create or replace function public.admin_badges()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  return jsonb_build_object(
+    'pending_reviews', ((select count(*) from public.lb_review_queue) + (select count(*) from public.lb_pending_ids())),
+    'new_feedback',    (select count(*) from public.feedback where status = 'new'));
+end $function$;
+
+create or replace function public.admin_overview()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare r jsonb; today date := (now() at time zone 'Asia/Hong_Kong')::date;
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  select jsonb_build_object(
+    'users_total',   (select count(*) from auth.users),
+    'users_7d',      (select count(*) from auth.users where created_at > now() - interval '7 days'),
+    'users_active_7d', (select count(*) from auth.users where last_sign_in_at > now() - interval '7 days'),
+    'catches_total', (select count(*) from public.catches where user_id is not null),
+    'catches_today', (select count(*) from public.catches where user_id is not null and (created_at at time zone 'Asia/Hong_Kong')::date = today),
+    'catches_7d',    (select count(*) from public.catches where user_id is not null and created_at > now() - interval '7 days'),
+    'with_photo',    (select count(*) from public.catches where user_id is not null and photo_url is not null and photo_url <> ''),
+    'eligible_total',(select count(*) from public.catches where leaderboard_eligible),
+    'trips_total',   (select count(*) from public.fishing_trips where user_id is not null),
+    'pending_reviews',((select count(*) from public.lb_review_queue) + (select count(*) from public.lb_pending_ids())),
+    'excluded_total',(select count(*) from public.catches where admin_excluded),
+    'reasons', coalesce((select jsonb_agg(jsonb_build_object('reason', reason, 'n', n) order by n desc)
+                from (select ineligible_reason as reason, count(*) n from public.catches
+                       where not leaderboard_eligible and user_id is not null and ineligible_reason is not null
+                         and created_at > now() - interval '30 days' group by 1) q), '[]'::jsonb),
+    'daily', coalesce((select jsonb_agg(jsonb_build_object('d', d, 'n', n, 'u', u) order by d)
+                from (select (created_at at time zone 'Asia/Hong_Kong')::date d, count(*) n, count(distinct user_id) u
+                        from public.catches where user_id is not null and created_at > now() - interval '14 days' group by 1) q), '[]'::jsonb)
+  ) into r;
+  return r;
+end $function$;

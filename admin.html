@@ -769,7 +769,8 @@ async function vReview(){
 async function vLbPending(){
   let rows;try{rows=await rpc('admin_lb_pending');}catch(e){return;}   // 未執行 v156 就唔顯示
   S.lbp=rows||[];
-  let h='<section class="card" style="margin-bottom:16px"><h2>待審核：重量王者頭 10 名／魚種紀錄</h2><p class="hint" style="color:var(--mu);margin:4px 0 10px">批准前其他用戶睇唔到（魚獲主人自己見到「待審核」）。改魚種或重量後要重新審核。</p>';
+  S.pending=(S.queue||[]).length+S.lbp.length;renderNav();
+  let h='<section class="card" style="margin-bottom:16px"><h2>待審核：重量王者頭 10 名／魚種紀錄</h2><p class="hint" style="color:var(--mu);margin:4px 0 10px">公開榜頭 10 名同魚種紀錄只會顯示已批准嘅魚獲；以下魚獲批准前其他用戶睇唔到（魚獲主人自己見到「待審核」）。改魚種或重量後要重新審核。</p>';
   if(!S.lbp.length)h+=empty('check','冇待審核魚獲');
   else h+='<div class="rv-photos">'+S.lbp.map((c,i)=>{const u=safeImg(c.photo_url);return '<div class="ph">'+(u?'<button class="im" type="button" aria-label="放大相片" onclick="zoom(\''+esc(u)+'\',\''+esc(c.species)+' '+esc(c.weight_kg)+'kg\')"><img loading="lazy" src="'+esc(u)+'" alt="'+esc(c.species)+'"></button>':'<div class="noimg">無相片</div>')
     +'<div class="m"><b>'+esc(c.display_name||'（未命名）')+'</b><span>'+esc(c.species)+' · '+esc(c.weight_kg)+' kg'+(c.max_kg?'（上限 '+esc(c.max_kg)+'）':'')+'</span><span class="d">'+fmt(c.created_at)+'</span>'
