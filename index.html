@@ -1256,7 +1256,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v160</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v161</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -5662,7 +5662,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v160</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v161</span>';
   }
   renderView(name);
 }
@@ -6403,7 +6403,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 /* ---------- v152：客戶端錯誤回報 + 公告橫幅（失敗都唔影響 App 運作） ---------- */
-const APP_BUILD_LABEL = 'v160';
+const APP_BUILD_LABEL = 'v161';
 const ERR_REPORTED = new Set();
 let errReportCount = 0;
 function reportClientError(err, source) {
@@ -6461,6 +6461,33 @@ async function loadAnnouncement() {
 setTimeout(loadAnnouncement, 1500);
 
 document.addEventListener('DOMContentLoaded', init);
+</script>
+<!-- v161：Android 測試者招募橫幅（只喺 Android 瀏覽器顯示；TWA App 內、iPhone/iPad、電腦唔顯示） -->
+<div id="twa-join" hidden style="position:fixed;left:8px;right:8px;bottom:calc(var(--safe-bottom) + 8px);z-index:500;background:#0b6e99;color:#fff;border-radius:10px;padding:10px 34px 10px 12px;font-size:13px;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,.3);">
+  🎣 幫手測試釣港 Android 版（要 12 位釣友）：<br>
+  ① 先 <a href="https://groups.google.com/g/fishport-testers" target="_blank" rel="noopener" style="color:#ffe066;">撳呢度加入群組</a><br>
+  ② 用同一個 Google 帳戶 <a href="https://play.google.com/apps/testing/app.hkfishing.twa" target="_blank" rel="noopener" style="color:#ffe066;">撳呢度成為測試者</a>，再喺 Play 安裝<br>
+  ③ 請保留 App 最少 14 日，唔好解除安裝或退出測試 🙏
+  <button id="twa-join-close" aria-label="關閉" style="position:absolute;top:4px;right:6px;background:none;border:0;color:#fff;font-size:18px;">✕</button>
+</div>
+<script>
+(function () {
+  try {
+    var inTwa = document.referrer.indexOf('android-app://app.hkfishing.twa') === 0
+      || window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    if (inTwa) sessionStorage.setItem('inTwa', '1');
+    var isAndroid = /Android/i.test(navigator.userAgent);
+    if (!isAndroid || sessionStorage.getItem('inTwa') || localStorage.getItem('twaJoinHide')) return;
+    var el = document.getElementById('twa-join');
+    el.hidden = false;
+    // 放喺 bottom-nav 上面（nav 隱藏時 offsetHeight = 0 → 貼底）；z-index 500：高過 nav(100)，低過 toast/modal/login
+    var nav = document.getElementById('bottom-nav');
+    var place = function () { el.style.bottom = nav && nav.offsetHeight ? (nav.offsetHeight + 8) + 'px' : 'calc(var(--safe-bottom) + 8px)'; };
+    place(); window.addEventListener('resize', place);
+    if (nav && window.ResizeObserver) new ResizeObserver(place).observe(nav);
+    document.getElementById('twa-join-close').onclick = function () { localStorage.setItem('twaJoinHide', '1'); el.hidden = true; };
+  } catch (e) {}
+})();
 </script>
 </body>
 </html>

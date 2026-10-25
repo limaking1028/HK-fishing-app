@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v160';  // v160: 管理員測試模式
+const CACHE = 'hk-fishing-v161';  // v161: Android 測試者招募橫幅
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
