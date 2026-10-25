@@ -776,11 +776,12 @@ async function vLbPending(){
   else h+='<div class="rv-photos">'+S.lbp.map((c,i)=>{const u=safeImg(c.photo_url);return '<div class="ph">'+(u?'<button class="im" type="button" aria-label="放大相片" onclick="zoom(\''+esc(u)+'\',\''+esc(c.species)+' '+esc(c.weight_kg)+'kg\')"><img loading="lazy" src="'+esc(u)+'" alt="'+esc(c.species)+'"></button>':'<div class="noimg">無相片</div>')
     +(c.proof_url&&safeImg(c.proof_url)?'<button class="im" type="button" aria-label="放大磅／尺相" onclick="zoom(\''+esc(c.proof_url)+'\',\'磅／尺相 '+esc(c.weight_kg)+'kg\')"><img loading="lazy" src="'+esc(c.proof_url)+'" alt="磅／尺相"></button>':'<div class="noimg">無磅相</div>')
     +'<div class="m"><b>'+esc(c.display_name||'（未命名）')+'</b><span>'+(c.over_limit?'<span class="pill bad">超重</span> ':'')+esc(c.species)+' · '+esc(c.weight_kg)+' kg'+(c.max_kg?'（上限 '+esc(c.max_kg)+'）':'')+'</span><span class="d">'+fmt(c.created_at)+'</span>'
-    +'<span><button class="btn sm ok" type="button" onclick="lbpDecide('+i+',true)">'+ic('check')+'批准</button> <button class="btn sm ghost-bad" type="button" onclick="lbpDecide('+i+',false)">'+ic('ban')+'排除</button></span></div></div>';}).join('')+'</div>';
+    +'<span><button class="btn sm ok" type="button"'+(c.proof_url&&safeImg(c.proof_url)?'':' disabled title="冇磅相（或者攞唔到相），唔可以批准"')+' onclick="lbpDecide('+i+',true)">'+ic('check')+'批准</button> <button class="btn sm ghost-bad" type="button" onclick="lbpDecide('+i+',false)">'+ic('ban')+'排除</button></span></div></div>';}).join('')+'</div>';
   h+='</section>';
   const m=$('main');const hd=m.querySelector('.card,section');if(hd)hd.insertAdjacentHTML('beforebegin',h);else m.insertAdjacentHTML('beforeend',h);
 }
 async function lbpDecide(i,ok){
+  if(ok&&!(S.lbp[i]&&S.lbp[i].proof_url))return;   // v159：冇磅相唔可以批准
   const c=S.lbp[i];if(!c)return;
   const r=await ask({title:ok?'批准呢條魚獲？':'排除呢條魚獲？',body:(c.display_name||'')+' 嘅 '+c.species+' '+c.weight_kg+' kg。'+(ok?'批准後所有人都睇到。':'標為「不計排行榜」，用戶自己仍然睇到。'),ok:ok?'批准':'排除',danger:!ok,note:true});
   if(!r)return;

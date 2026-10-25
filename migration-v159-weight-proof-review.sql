@@ -18,6 +18,7 @@
 -- 1) 欄位
 alter table public.catches add column if not exists proof_path text;          -- catch-proof bucket 內路徑：<user_id>/<檔名>
 alter table public.lb_catch_approval add column if not exists proof_path text; -- 批准時嘅磅相；舊批准 = null = 唔再計
+alter table public.lb_catch_approval add column if not exists photo_url text;  -- 批准時嘅主相；之後換主相要重新審核
 
 -- 2) 上榜判定 trigger：檢查 proof_path；超重唔再拒絕（其餘同 prod 現行版本一樣）
 CREATE OR REPLACE FUNCTION public.catches_set_eligibility()
@@ -97,6 +98,8 @@ begin
       reason := 'species_not_listed';
     elsif new.weight_kg is null then
       reason := 'weight_too_high';
+    elsif new.weight_kg <= 0 then
+      reason := 'weight_invalid';                                    -- v159：0 或負數重量唔計
     end if;
     -- v159：超過 species_limits.max_kg 唔再自動拒絕，只喺後台審核清單標記「超重」
   end if;
@@ -115,7 +118,7 @@ language sql stable security definer set search_path = public as $$
   select c.id, c.user_id, c.species, c.weight_kg, c.date, c.created_at,
          exists (select 1 from public.lb_catch_approval a
                   where a.catch_id = c.id and a.species = c.species and a.weight_kg = c.weight_kg
-                    and a.proof_path = c.proof_path) as ok
+                    and a.proof_path = c.proof_path and a.photo_url is not distinct from c.photo_url) as ok
     from public.catches c
    where c.leaderboard_eligible and c.user_id is not null and not public.is_banned(c.user_id)
      and c.proof_path is not null;
@@ -154,8 +157,11 @@ language sql stable security definer set search_path = public as $$
            count(*)::int                  as catch_count,
            count(distinct o.species)::int as species_count,
            count(distinct o.spot)::int    as spot_count,
-           max(o.weight_kg)               as biggest_kg
+           max(o.weight_kg) filter (where sl.max_kg is null or o.weight_kg <= sl.max_kg
+                                    or exists (select 1 from public.lb_catch_approval a
+                                                where a.catch_id = o.id and a.weight_kg = o.weight_kg)) as biggest_kg   -- v159：未批准嘅超重唔計
       from ok o
+      left join public.species_limits sl on sl.species = o.species
      group by o.user_id
   )
   select (row_number() over (
@@ -208,7 +214,11 @@ begin
       into v_rank, v_val, v_above, v_total
       from r m where m.user_id = me;
     if v_total is null then select count(*)::int into v_total from public.lb_stats_rows(p_period, p_board); end if;
-    select exists (select 1 from public.lb_review_queue q where q.user_id = me) into v_pending;
+    select exists (select 1 from public.lb_review_queue q
+                    where q.user_id = me
+                      and exists (select 1 from public.lb_countable c
+                                   where c.trip_id = q.trip_id and c.species = q.species
+                                     and c.date >= public.lb_period_start(p_period))) into v_pending;
   else
     raise exception 'bad board';
   end if;
@@ -245,10 +255,13 @@ begin
   select * into r from public.catches where id = p_catch;
   if r.id is null then raise exception 'not found'; end if;
   if r.proof_path is null then raise exception 'no proof photo'; end if;
-  insert into public.lb_catch_approval (catch_id, species, weight_kg, proof_path, approved_by)
-  values (r.id, r.species, r.weight_kg, r.proof_path, auth.uid())
+  if not exists (select 1 from storage.objects o where o.bucket_id = 'catch-proof' and o.name = r.proof_path) then
+    raise exception 'proof photo file missing';
+  end if;
+  insert into public.lb_catch_approval (catch_id, species, weight_kg, proof_path, photo_url, approved_by)
+  values (r.id, r.species, r.weight_kg, r.proof_path, r.photo_url, auth.uid())
   on conflict (catch_id) do update set species = excluded.species, weight_kg = excluded.weight_kg,
-                                       proof_path = excluded.proof_path,
+                                       proof_path = excluded.proof_path, photo_url = excluded.photo_url,
                                        approved_by = excluded.approved_by, approved_at = now();
   perform public.admin_log('approve_lb_catch', 'catch', p_catch::text,
     jsonb_build_object('reason', nullif(left(coalesce(p_reason,''), 200), ''), 'species', r.species, 'weight_kg', r.weight_kg,
@@ -262,7 +275,8 @@ grant execute on function public.admin_lb_approve(uuid, text) to authenticated;
 -- 10) 私人 bucket：磅／尺相（5MB，只收圖片）。本人只可以上載／讀自己資料夾；管理員可以讀全部
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('catch-proof', 'catch-proof', false, 5242880, array['image/jpeg','image/png','image/webp'])
-on conflict (id) do update set public = false;
+on conflict (id) do update set public = false, file_size_limit = excluded.file_size_limit,
+                               allowed_mime_types = excluded.allowed_mime_types;
 
 drop policy if exists "own upload catch proof" on storage.objects;
 create policy "own upload catch proof" on storage.objects for insert to authenticated
@@ -307,7 +321,10 @@ returns text language sql stable security definer set search_path = public as $$
       where r.user_id = p_user and c.user_id = p_user and not c.admin_excluded
         and position('/catch-photos/' || p_user::text || '/' in coalesce(c.photo_url, '')) > 0),
     (select c.photo_url from public.lb_countable lc join public.catches c on c.id = lc.id
+      left join public.species_limits sl on sl.species = c.species
       where c.user_id = p_user and position('/catch-photos/' || p_user::text || '/' in coalesce(c.photo_url, '')) > 0
+        and (sl.max_kg is null or c.weight_kg <= sl.max_kg
+             or exists (select 1 from public.lb_catch_approval a where a.catch_id = c.id and a.weight_kg = c.weight_kg))
       order by c.weight_kg desc nulls last, c.created_at desc limit 1));
 $$;
 revoke all on function public.lb_user_photo(uuid) from public, anon, authenticated;
@@ -361,11 +378,8 @@ drop trigger if exists trg_lb_likes_check on public.lb_likes;
 create trigger trg_lb_likes_check before insert on public.lb_likes
   for each row execute function public.lb_likes_check();
 
--- 讚數只由 count(*) 計（view owner = postgres，略過 RLS；只出 board / target / 數字；target = catch_id 或匿名 public_id，冇 user_id）
-create or replace view public.lb_like_counts as
-  select board, target, count(*)::int as likes from public.lb_likes group by board, target;
-revoke all on public.lb_like_counts from public, anon, authenticated;
-grant select on public.lb_like_counts to anon, authenticated;
+-- 讚數只經 lb_biggest / lb_stats 嘅 count(*) 出（冇公開 view；lb_likes 本人只睇到自己嘅行）
+drop view if exists public.lb_like_counts;
 
 -- 公開榜（回傳欄位有變，要先 drop）。永遠唔回傳 proof_path。
 drop function if exists public.lb_biggest(text);
