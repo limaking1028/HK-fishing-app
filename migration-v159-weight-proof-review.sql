@@ -10,6 +10,8 @@
 --   * 數量王者 / 品種王者：唔使逐條審，沿用 >30 條人手審核（lb_review_queue），只顯示頭 10 名。
 --   * lb_my_rank：三個榜都可以查自己嘅名次同差距（只回傳自己，按 auth.uid()）。
 -- 拒絕：沿用 admin_set_excluded。紅點（admin_badges / admin_overview）照計 lb_pending_ids，唔使改。
+--   * 追加（主人 17:03 批准）：榜上顯示主相（重量 = 該魚獲主相；數量／品種 = 用戶揀嘅代表相，
+--     冇揀就用最重一條有相魚獲，同重就最新）；讚（每人每項一次，可取消）。磅相永遠唔會喺任何公開 RPC／view 出現。
 -- 可重複執行。需要先執行 v156、v157。
 -- ============================================================
 
@@ -128,30 +130,7 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.lb_pending_ids() from public, anon, authenticated;
 
--- 5) 重量王者：只計已批准，每人最佳一條，最多 10 名（回傳欄位不變，pending 永遠 false；自己嘅審核狀態睇 lb_my_rank）
-create or replace function public.lb_biggest(p_period text default 'all')
-returns table (
-  pos int, catch_id uuid, display_name text, is_mine boolean,
-  species text, species_icon text, weight_kg numeric, catch_date date, catch_time time, pending boolean
-)
-language sql stable security definer set search_path = public as $$
-  with best as (
-    select distinct on (w.user_id) c.*
-      from public.lb_weight_cand() w
-      join public.catches c on c.id = w.id
-     where w.ok and w.date >= public.lb_period_start(p_period)
-     order by w.user_id, c.weight_kg desc, c.date asc, c.created_at asc
-  )
-  select (row_number() over (order by b.weight_kg desc, b.date asc, b.created_at asc))::int,
-         b.id, u.display_name, (b.user_id = auth.uid()),
-         b.species, b.species_icon, b.weight_kg, b.date, b.time, false
-    from best b
-    left join public.users u on u.id = b.user_id
-   order by 1
-   limit 10;
-$$;
-revoke all on function public.lb_biggest(text) from public, anon;
-grant execute on function public.lb_biggest(text) to authenticated;
+-- 5) 重量王者：見第 12 節（加主相同讚）
 
 -- 6) 數量 / 品種王者：排名邏輯原封不動搬入內部函數（多回傳 user_id，冇上限）；公開函數只顯示頭 10 名
 create or replace function public.lb_stats_rows(p_period text default 'all', p_sort text default 'quantity')
@@ -188,19 +167,7 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.lb_stats_rows(text, text) from public, anon, authenticated;
 
-create or replace function public.lb_stats(p_period text default 'all', p_sort text default 'quantity')
-returns table (pos int, display_name text, is_mine boolean,
-               catch_count int, species_count int, spot_count int, biggest_kg numeric)
-language sql stable security definer set search_path = public as $$
-  select s.pos, u.display_name, (s.user_id = auth.uid()),
-         s.catch_count, s.species_count, s.spot_count, s.biggest_kg
-    from public.lb_stats_rows(p_period, p_sort) s
-    left join public.users u on u.id = s.user_id
-   order by s.pos
-   limit 10;
-$$;
-revoke all on function public.lb_stats(text, text) from public, anon;
-grant execute on function public.lb_stats(text, text) to authenticated;
+-- 公開 lb_stats：見第 12 節（加代表相同讚）
 
 -- 7) 我的排名：只回傳 auth.uid() 自己嘅名次、數值、同上一名嘅差距（第 1 名 gap = null）
 --    重量：每人最佳一條已批准魚獲；同重量早釣先排（同 lb_biggest）。pending = 自己喺呢個時段有未批准嘅候選。
@@ -303,3 +270,137 @@ create policy "own upload catch proof" on storage.objects for insert to authenti
 drop policy if exists "own or admin read catch proof" on storage.objects;
 create policy "own or admin read catch proof" on storage.objects for select to authenticated
   using (bucket_id = 'catch-proof' and ((storage.foldername(name))[1] = (auth.uid())::text or public.is_admin()));
+
+-- 11) 代表相（數量／品種王者）：每人一行，只可以揀自己、未被排除、有自己 catch-photos 主相嘅魚獲
+create table if not exists public.lb_rep_photo (
+  user_id  uuid primary key default auth.uid() references auth.users(id) on delete cascade,
+  catch_id uuid not null references public.catches(id) on delete cascade,
+  updated_at timestamptz not null default now()
+);
+alter table public.lb_rep_photo enable row level security;
+revoke all on public.lb_rep_photo from anon, authenticated;
+grant select, insert, update, delete on public.lb_rep_photo to authenticated;
+drop policy if exists "rep photo own" on public.lb_rep_photo;
+create policy "rep photo own" on public.lb_rep_photo for all to authenticated
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+create or replace function public.lb_rep_photo_check()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (select 1 from public.catches c
+                  where c.id = new.catch_id and c.user_id = new.user_id and not c.admin_excluded
+                    and position('/catch-photos/' || new.user_id::text || '/' in coalesce(c.photo_url, '')) > 0) then
+    raise exception 'not your catch photo';
+  end if;
+  new.updated_at := now();
+  return new;
+end $$;
+drop trigger if exists trg_lb_rep_photo_check on public.lb_rep_photo;
+create trigger trg_lb_rep_photo_check before insert or update on public.lb_rep_photo
+  for each row execute function public.lb_rep_photo_check();
+
+-- 公開顯示用主相（只會係 catch-photos 公開 URL）：揀咗就用揀嗰張，否則最重一條（同重取最新）
+create or replace function public.lb_user_photo(p_user uuid)
+returns text language sql stable security definer set search_path = public as $$
+  select coalesce(
+    (select c.photo_url from public.lb_rep_photo r join public.catches c on c.id = r.catch_id
+      where r.user_id = p_user and c.user_id = p_user and not c.admin_excluded
+        and position('/catch-photos/' || p_user::text || '/' in coalesce(c.photo_url, '')) > 0),
+    (select c.photo_url from public.lb_countable lc join public.catches c on c.id = lc.id
+      where c.user_id = p_user and position('/catch-photos/' || p_user::text || '/' in coalesce(c.photo_url, '')) > 0
+      order by c.weight_kg desc nulls last, c.created_at desc limit 1));
+$$;
+revoke all on function public.lb_user_photo(uuid) from public, anon, authenticated;
+
+-- 12) 讚：重量王者 target = catch_id；數量／品種王者 target = 該用戶 user_id（每個榜分開，唔分時段）
+create table if not exists public.lb_likes (
+  user_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  board      text not null check (board in ('biggest', 'quantity', 'species')),
+  target     uuid not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, board, target)
+);
+alter table public.lb_likes enable row level security;
+revoke all on public.lb_likes from anon, authenticated;
+grant select, insert, delete on public.lb_likes to authenticated;      -- 冇 UPDATE
+drop policy if exists "likes read own" on public.lb_likes;
+create policy "likes read own" on public.lb_likes for select to authenticated using (user_id = auth.uid());
+drop policy if exists "likes insert own" on public.lb_likes;
+create policy "likes insert own" on public.lb_likes for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists "likes delete own" on public.lb_likes;
+create policy "likes delete own" on public.lb_likes for delete to authenticated using (user_id = auth.uid());
+
+create or replace function public.lb_likes_check()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  new.created_at := now();
+  if new.board = 'biggest' then
+    if not exists (select 1 from public.lb_weight_cand() w where w.id = new.target and w.ok) then
+      raise exception 'not on board';
+    end if;
+  elsif not exists (select 1 from public.lb_countable c where c.user_id = new.target) then
+    raise exception 'not on board';
+  end if;
+  return new;
+end $$;
+drop trigger if exists trg_lb_likes_check on public.lb_likes;
+create trigger trg_lb_likes_check before insert on public.lb_likes
+  for each row execute function public.lb_likes_check();
+
+-- 讚數只由 count(*) 計（view owner = postgres，略過 RLS；只出 board / target / 數字）
+create or replace view public.lb_like_counts as
+  select board, target, count(*)::int as likes from public.lb_likes group by board, target;
+revoke all on public.lb_like_counts from public, anon, authenticated;
+grant select on public.lb_like_counts to anon, authenticated;
+
+-- 公開榜（回傳欄位有變，要先 drop）。永遠唔回傳 proof_path。
+drop function if exists public.lb_biggest(text);
+create function public.lb_biggest(p_period text default 'all')
+returns table (
+  pos int, catch_id uuid, display_name text, is_mine boolean,
+  species text, species_icon text, weight_kg numeric, catch_date date, catch_time time, pending boolean,
+  photo_url text, like_count int, liked boolean
+)
+language sql stable security definer set search_path = public as $$
+  with best as (
+    select distinct on (w.user_id) c.*
+      from public.lb_weight_cand() w
+      join public.catches c on c.id = w.id
+     where w.ok and w.date >= public.lb_period_start(p_period)
+     order by w.user_id, c.weight_kg desc, c.date asc, c.created_at asc
+  )
+  select (row_number() over (order by b.weight_kg desc, b.date asc, b.created_at asc))::int,
+         b.id, u.display_name, (b.user_id = auth.uid()),
+         b.species, b.species_icon, b.weight_kg, b.date, b.time, false,
+         case when position('/catch-photos/' || b.user_id::text || '/' in coalesce(b.photo_url, '')) > 0 then b.photo_url end,
+         (select count(*)::int from public.lb_likes l where l.board = 'biggest' and l.target = b.id),
+         exists (select 1 from public.lb_likes l where l.board = 'biggest' and l.target = b.id and l.user_id = auth.uid())
+    from best b
+    left join public.users u on u.id = b.user_id
+   order by 1
+   limit 10;
+$$;
+revoke all on function public.lb_biggest(text) from public, anon;
+grant execute on function public.lb_biggest(text) to authenticated;
+
+drop function if exists public.lb_stats(text, text);
+create function public.lb_stats(p_period text default 'all', p_sort text default 'quantity')
+returns table (pos int, display_name text, is_mine boolean,
+               catch_count int, species_count int, spot_count int, biggest_kg numeric,
+               entry_id uuid, photo_url text, like_count int, liked boolean)
+language sql stable security definer set search_path = public as $$
+  select s.pos, u.display_name, (s.user_id = auth.uid()),
+         s.catch_count, s.species_count, s.spot_count, s.biggest_kg,
+         s.user_id, public.lb_user_photo(s.user_id),
+         (select count(*)::int from public.lb_likes l
+           where l.board = (case when p_sort = 'species' then 'species' else 'quantity' end) and l.target = s.user_id),
+         exists (select 1 from public.lb_likes l
+           where l.board = (case when p_sort = 'species' then 'species' else 'quantity' end) and l.target = s.user_id
+             and l.user_id = auth.uid())
+    from public.lb_stats_rows(p_period, p_sort) s
+    left join public.users u on u.id = s.user_id
+   order by s.pos
+   limit 10;
+$$;
+revoke all on function public.lb_stats(text, text) from public, anon;
+grant execute on function public.lb_stats(text, text) to authenticated;

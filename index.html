@@ -342,6 +342,10 @@ button { touch-action: manipulation; }
   #photo-zoom img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; touch-action: pinch-zoom; }
   .pz-close { position: absolute; top: calc(12px + env(safe-area-inset-top)); right: 14px; width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(255,255,255,.18); color: #fff; font-size: 20px; cursor: pointer; }
   img[data-zoom] { cursor: zoom-in; }
+  .lb-thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex-shrink: 0; margin-right: 8px; background: #eef2f6; }
+  .lb-thumb-none { display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .lb-like { display: block; margin: 4px 0 0 auto; border: 1px solid #e5e7eb; background: #fff; border-radius: 12px; font-size: 12px; padding: 1px 8px; cursor: pointer; }
+  .lb-like.on { border-color: #fca5a5; background: #fff1f2; }
   .fb-cats { display: flex; gap: 8px; margin-bottom: 10px; }
   .fb-cat { flex: 1; border: 1.5px solid var(--gray-3); background: #fff; color: var(--gray-5); font-weight: 700; font-size: 14px; padding: 10px 6px; border-radius: 12px; cursor: pointer; }
   .fb-cat.on { border-color: var(--teal); background: var(--teal-light); color: var(--teal-dark); }
@@ -1545,8 +1549,24 @@ async function dbLoadCatches() {
   });
 }
 
+// v159：上載前經 canvas 重新編碼，清走 EXIF（包括 GPS），按 EXIF 方向轉正；最長邊 2560px
+async function stripImageMeta(file) {
+  if (!file || !/^image\//.test(file.type || 'image/jpeg')) return file;
+  let bmp;
+  try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+  catch (e) { bmp = await new Promise((ok, bad) => { const im = new Image(); im.onload = () => ok(im); im.onerror = bad; im.src = URL.createObjectURL(file); }); }
+  const w0 = bmp.width || bmp.naturalWidth, h0 = bmp.height || bmp.naturalHeight, k = Math.min(1, 2560 / Math.max(w0, h0));
+  const cv = document.createElement('canvas'); cv.width = Math.round(w0 * k); cv.height = Math.round(h0 * k);
+  cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+  if (bmp.close) bmp.close();
+  const blob = await new Promise(ok => cv.toBlob(ok, 'image/jpeg', 0.9));
+  if (!blob) throw new Error('相片處理失敗');
+  return new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+}
+
 async function uploadCatchPhoto(file) {
   if (!file || !sb || !state.user) return null;
+  file = await stripImageMeta(file);   // v159：清 EXIF／GPS（photo_hash 仍然用原相計，防重複唔受影響）
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
   const safeExt = ['jpg','jpeg','png','webp'].includes(ext) ? (ext === 'jpeg' ? 'jpg' : ext) : 'jpg';
   const path = `${state.user.id}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${safeExt}`;
@@ -1563,9 +1583,9 @@ async function attachCatchProof(c, saved) {
   const file = c._proofFile; delete c._proofFile;
   if (!saved || !file || !sb || !state.user) return saved;
   try {
-    const ext = ({ 'image/png': 'png', 'image/webp': 'webp' })[file.type] || 'jpg';
-    const path = state.user.id + '/' + saved.id + '_' + Date.now() + '.' + ext;
-    const up = await sb.storage.from('catch-proof').upload(path, file, { upsert: false, contentType: file.type || 'image/jpeg' });
+    const clean = await stripImageMeta(file);   // 清 EXIF／GPS
+    const path = state.user.id + '/' + saved.id + '_' + Date.now() + '.jpg';
+    const up = await sb.storage.from('catch-proof').upload(path, clean, { upsert: false, contentType: 'image/jpeg' });
     if (up.error) throw up.error;
     const { error } = await sb.from('catches').update({ proof_path: path }).eq('id', saved.id).eq('user_id', state.user.id);
     if (error) throw error;
@@ -4602,7 +4622,50 @@ function myRankHtml(type, period) {
   let t;
   if (r.rank) t = '你嘅排名：第 ' + r.rank + ' 名' + (r.gap == null ? '（第一名！）' : '，距離上一名差 ' + fmtGap(r.gap)) + (r.pending ? ' · 另有魚獲審核中' : '');
   else t = r.pending ? '你嘅魚獲審核中' : '你暫時未上呢個榜';
-  return '<div class="lb-rules" id="lb-my-rank" style="margin:0 0 8px;font-weight:700;color:var(--orange);">🎯 ' + escapeHtml(t) + '</div>';
+  const pick = type === 'biggest' ? '' : ' <button type="button" class="login-link" style="font-size:12px;" onclick="openRepPicker()">🖼 揀代表相</button>';
+  return '<div class="lb-rules" id="lb-my-rank" style="margin:0 0 8px;font-weight:700;color:var(--orange);">🎯 ' + escapeHtml(t) + pick + '</div>';
+}
+// v159：榜上主相縮圖（只接受 catch-photos 公開 URL；點擊放大）+ 讚
+function lbThumbHtml(item) {
+  const u = item.photo, okUrl = typeof u === 'string' && u.indexOf(SB_URL + '/storage/v1/object/public/catch-photos/') === 0;
+  if (!okUrl) return '<div class="lb-thumb lb-thumb-none" aria-hidden="true">🎣</div>';
+  return '<img class="lb-thumb" data-zoom="' + escapeHtml(u) + '" src="' + escapeHtml(u) + '" alt="' + escapeHtml(item.user) + ' 嘅魚獲相" loading="lazy">';
+}
+function lbLikeHtml(item) {
+  if (item.likeKey == null || item.likes == null) return '';
+  return '<button type="button" class="lb-like' + (item.liked ? ' on' : '') + '" aria-pressed="' + item.liked + '" onclick="toggleLbLike(\'' + state.lbType + '\',\'' + escapeHtml(item.likeKey) + '\',' + item.liked + ')">' + (item.liked ? '❤️' : '🤍') + ' ' + (item.likes | 0) + '</button>';
+}
+async function toggleLbLike(board, target, liked) {
+  if (!sb || !state.user) { toast('請先登入先可以讚'); return; }
+  try {
+    const q = liked ? sb.from('lb_likes').delete().eq('user_id', state.user.id).eq('board', board).eq('target', target)
+                    : sb.from('lb_likes').insert({ user_id: state.user.id, board: board, target: target });
+    const { error } = await q;
+    if (error && error.code !== '23505') throw error;
+  } catch (e) { toast('讚唔到：' + (e.message || e)); }
+  await fetchLbRows(state.lbType, state.lbPeriod).catch(() => {});
+  if (state.view === 'leaderboard') renderLeaderboardView();
+}
+// 數量／品種王者代表相：只可以揀自己已上載（catch-photos）嘅魚獲相
+function openRepPicker() {
+  const mine = (state.catches || []).filter(c => c.isMine && !c.unsynced && typeof c.photoUrl === 'string' && c.photoUrl.indexOf(SB_URL + '/storage/v1/object/public/catch-photos/' + state.user.id + '/') === 0);
+  let ov = document.getElementById('rep-picker');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'rep-picker'; document.body.appendChild(ov); }
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  ov.innerHTML = '<div style="background:#fff;border-radius:12px;padding:14px;max-width:92vw;max-height:80vh;overflow:auto;">'
+    + '<div style="font-weight:700;margin-bottom:8px;">揀數量／品種王者代表相</div>'
+    + (mine.length ? '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">' + mine.map(c => '<img src="' + escapeHtml(c.photoUrl) + '" alt="' + escapeHtml(c.species || '') + '" loading="lazy" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:pointer;" onclick="setRepPhoto(\'' + escapeHtml(c.id) + '\')">').join('') + '</div>'
+                   : '<div style="color:#888;">你未有已上載嘅魚獲相</div>')
+    + '<button type="button" class="login-link" style="margin-top:10px;" onclick="document.getElementById(\'rep-picker\').remove()">關閉</button></div>';
+}
+async function setRepPhoto(catchId) {
+  const { error } = await sb.from('lb_rep_photo').upsert({ user_id: state.user.id, catch_id: catchId });
+  const ov = document.getElementById('rep-picker'); if (ov) ov.remove();
+  if (error) { toast('設定唔到：' + error.message); return; }
+  toast('已設定代表相');
+  delete state.lbCache['quantity|' + state.lbPeriod]; delete state.lbCache['species|' + state.lbPeriod];
+  await fetchLbRows(state.lbType, state.lbPeriod).catch(() => {});
+  if (state.view === 'leaderboard') renderLeaderboardView();
 }
 function prefetchLeaderboards(force) {
   if (!SB_ENABLED || !state.user || !sb || state.lbServerFailed) return Promise.resolve();
@@ -4614,9 +4677,10 @@ function prefetchLeaderboards(force) {
   return Promise.all(jobs).then(() => { if (state.view === 'my') renderMyView(); });
 }
 function lbItemsFromRows(type, rows) {
-  if (type === 'biggest') return rows.map(r => ({ user: r.display_name || '釣友', isMine: !!r.is_mine, species: r.species, date: r.catch_date, weight: parseFloat(r.weight_kg), id: r.catch_id, pending: !!r.pending }));
-  if (type === 'quantity') return rows.map(r => ({ user: r.display_name || '釣友', isMine: !!r.is_mine, count: r.catch_count, spotCount: r.spot_count, speciesCount: r.species_count }));
-  return rows.map(r => ({ user: r.display_name || '釣友', isMine: !!r.is_mine, speciesCount: r.species_count, spotCount: r.spot_count, biggestWeight: parseFloat(r.biggest_kg) }));
+  if (type === 'biggest') return rows.map(r => ({ user: r.display_name || '釣友', isMine: !!r.is_mine, species: r.species, date: r.catch_date, weight: parseFloat(r.weight_kg), id: r.catch_id, pending: !!r.pending, photo: r.photo_url, likeKey: r.catch_id, likes: r.like_count, liked: !!r.liked }));
+  const soc = r => ({ photo: r.photo_url, likeKey: r.entry_id, likes: r.like_count, liked: !!r.liked });   // v159：代表相 + 讚
+  if (type === 'quantity') return rows.map(r => Object.assign({ user: r.display_name || '釣友', isMine: !!r.is_mine, count: r.catch_count, spotCount: r.spot_count, speciesCount: r.species_count }, soc(r)));
+  return rows.map(r => Object.assign({ user: r.display_name || '釣友', isMine: !!r.is_mine, speciesCount: r.species_count, spotCount: r.spot_count, biggestWeight: parseFloat(r.biggest_kg) }, soc(r)));
 }
 // 離線 / 伺服器未能連接：只用本機「我自己」嘅有效魚獲
 function lbItemsLocal(type, period) {
@@ -4672,18 +4736,20 @@ function renderLeaderboardView() {
       if (rank === 1) {
         listHtml += '<div class="lb-item lb-item-champion'+(item.isMine?' mine':'')+'">'
           +'<div class="lb-rank '+rankClass+'">'+rank+'</div>'
+          +(useServer ? lbThumbHtml(item) : '')
           +'<div class="lb-user">'
             +'<div class="lb-username">'+escapeHtml(item.user)+meTag+'</div>'
             +'<div class="lb-champion-badge">👑 '+championTitle+' 👑</div>'
             +'<div class="lb-detail">'+detail+'</div>'
           +'</div>'
-          +'<div class="lb-value">'+value+'</div>'
+          +'<div class="lb-value">'+value+(useServer ? lbLikeHtml(item) : '')+'</div>'
           +'</div>';
       } else {
         listHtml += '<div class="lb-item'+(item.isMine?' mine':'')+'">'
           +'<div class="lb-rank '+rankClass+'">'+rank+'</div>'
+          +(useServer ? lbThumbHtml(item) : '')
           +'<div class="lb-user"><div class="lb-username">'+escapeHtml(item.user)+meTag+'<div class="lb-detail">'+detail+'</div></div></div>'
-          +'<div class="lb-value">'+value+'</div>'
+          +'<div class="lb-value">'+value+(useServer ? lbLikeHtml(item) : '')+'</div>'
           +'</div>';
       }
     });
