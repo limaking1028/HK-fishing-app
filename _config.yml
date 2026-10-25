@@ -1,0 +1,7 @@
+# GitHub Pages（legacy Jekyll build）：唔公開 SQL migration 檔
+# .well-known 係 dot 資料夾，Jekyll 預設會略過，要明確 include（TWA assetlinks / 日後用途）
+include:
+  - .well-known
+exclude:
+  - "*.sql"
+  - "*.md"

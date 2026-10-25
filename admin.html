@@ -763,6 +763,26 @@ async function vReview(){
     +'</tbody></table></div>':empty('shield','未有審核紀錄'))+'</section>';
   S.done=done;
   $('main').innerHTML=h;
+  vLbPending();
+}
+/* 重量王者頭 10 名／魚種紀錄：批准前其他用戶睇唔到 */
+async function vLbPending(){
+  let rows;try{rows=await rpc('admin_lb_pending');}catch(e){return;}   // 未執行 v156 就唔顯示
+  S.lbp=rows||[];
+  S.pending=(S.queue||[]).length+S.lbp.length;renderNav();
+  let h='<section class="card" style="margin-bottom:16px"><h2>待審核：重量王者頭 10 名／魚種紀錄</h2><p class="hint" style="color:var(--mu);margin:4px 0 10px">公開榜頭 10 名同魚種紀錄只會顯示已批准嘅魚獲；以下魚獲批准前其他用戶睇唔到（魚獲主人自己見到「待審核」）。改魚種或重量後要重新審核。</p>';
+  if(!S.lbp.length)h+=empty('check','冇待審核魚獲');
+  else h+='<div class="rv-photos">'+S.lbp.map((c,i)=>{const u=safeImg(c.photo_url);return '<div class="ph">'+(u?'<button class="im" type="button" aria-label="放大相片" onclick="zoom(\''+esc(u)+'\',\''+esc(c.species)+' '+esc(c.weight_kg)+'kg\')"><img loading="lazy" src="'+esc(u)+'" alt="'+esc(c.species)+'"></button>':'<div class="noimg">無相片</div>')
+    +'<div class="m"><b>'+esc(c.display_name||'（未命名）')+'</b><span>'+esc(c.species)+' · '+esc(c.weight_kg)+' kg'+(c.max_kg?'（上限 '+esc(c.max_kg)+'）':'')+'</span><span class="d">'+fmt(c.created_at)+'</span>'
+    +'<span><button class="btn sm ok" type="button" onclick="lbpDecide('+i+',true)">'+ic('check')+'批准</button> <button class="btn sm ghost-bad" type="button" onclick="lbpDecide('+i+',false)">'+ic('ban')+'排除</button></span></div></div>';}).join('')+'</div>';
+  h+='</section>';
+  const m=$('main');const hd=m.querySelector('.card,section');if(hd)hd.insertAdjacentHTML('beforebegin',h);else m.insertAdjacentHTML('beforeend',h);
+}
+async function lbpDecide(i,ok){
+  const c=S.lbp[i];if(!c)return;
+  const r=await ask({title:ok?'批准呢條魚獲？':'排除呢條魚獲？',body:(c.display_name||'')+' 嘅 '+c.species+' '+c.weight_kg+' kg。'+(ok?'批准後所有人都睇到。':'標為「不計排行榜」，用戶自己仍然睇到。'),ok:ok?'批准':'排除',danger:!ok,note:true});
+  if(!r)return;
+  try{if(ok)await rpc('admin_lb_approve',{p_catch:c.id,p_reason:r.note||null});else await rpcR('admin_set_excluded',{p_catch:c.id,p_excluded:true},r.note);toast('已更新');vReviewRefresh();}catch(e){toast(e.message);}
 }
 async function decide(i,status){
   const g=S.queue[i];
@@ -1115,7 +1135,7 @@ async function annSave(ev){
   catch(e){toast(e.message);}
 }
 /* ---------- v139：操作記錄 ---------- */
-const AUDIT_ACT={exclude_catch:['排除魚獲','bad'],restore_catch:['恢復魚獲','ok'],ban_user:['停用帳戶','bad'],unban_user:['恢復帳戶','ok'],review_approved:['批准審核','ok'],review_rejected:['拒絕審核','bad'],review_pending:['撤銷審核',''],feedback_done:['意見已處理','ok'],feedback_new:['意見重開',''],exclude_user_catches:['排除用戶全部魚獲','bad'],restore_user_catches:['恢復用戶全部魚獲','ok'],delete_user_records:['永久刪除用戶紀錄','bad'],announcement_on:['開啟公告','warn'],announcement_off:['關閉公告','']};
+const AUDIT_ACT={exclude_catch:['排除魚獲','bad'],approve_lb_catch:['批准上榜','ok'],restore_catch:['恢復魚獲','ok'],ban_user:['停用帳戶','bad'],unban_user:['恢復帳戶','ok'],review_approved:['批准審核','ok'],review_rejected:['拒絕審核','bad'],review_pending:['撤銷審核',''],feedback_done:['意見已處理','ok'],feedback_new:['意見重開',''],exclude_user_catches:['排除用戶全部魚獲','bad'],restore_user_catches:['恢復用戶全部魚獲','ok'],delete_user_records:['永久刪除用戶紀錄','bad'],announcement_on:['開啟公告','warn'],announcement_off:['關閉公告','']};
 async function vAudit(){
   let rows;
   try{rows=await rpc('admin_audit_list',{p_limit:200});}
