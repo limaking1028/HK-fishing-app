@@ -6463,7 +6463,7 @@ setTimeout(loadAnnouncement, 1500);
 document.addEventListener('DOMContentLoaded', init);
 </script>
 <!-- v161：Android 測試者招募橫幅（只喺 Android 瀏覽器顯示；TWA App 內、iPhone/iPad、電腦唔顯示） -->
-<div id="twa-join" hidden style="position:fixed;left:8px;right:8px;bottom:8px;z-index:9999;background:#0b6e99;color:#fff;border-radius:10px;padding:10px 34px 10px 12px;font-size:13px;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,.3);">
+<div id="twa-join" hidden style="position:fixed;left:8px;right:8px;bottom:calc(var(--safe-bottom) + 8px);z-index:500;background:#0b6e99;color:#fff;border-radius:10px;padding:10px 34px 10px 12px;font-size:13px;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,.3);">
   🎣 幫手測試釣港 Android 版（要 12 位釣友）：<br>
   ① 先 <a href="https://groups.google.com/g/fishport-testers" target="_blank" rel="noopener" style="color:#ffe066;">撳呢度加入群組</a><br>
   ② 用同一個 Google 帳戶 <a href="https://play.google.com/apps/testing/app.hkfishing.twa" target="_blank" rel="noopener" style="color:#ffe066;">撳呢度成為測試者</a>，再喺 Play 安裝<br>
@@ -6480,6 +6480,11 @@ document.addEventListener('DOMContentLoaded', init);
     if (!isAndroid || sessionStorage.getItem('inTwa') || localStorage.getItem('twaJoinHide')) return;
     var el = document.getElementById('twa-join');
     el.hidden = false;
+    // 放喺 bottom-nav 上面（nav 隱藏時 offsetHeight = 0 → 貼底）；z-index 500：高過 nav(100)，低過 toast/modal/login
+    var nav = document.getElementById('bottom-nav');
+    var place = function () { el.style.bottom = nav && nav.offsetHeight ? (nav.offsetHeight + 8) + 'px' : 'calc(var(--safe-bottom) + 8px)'; };
+    place(); window.addEventListener('resize', place);
+    if (nav && window.ResizeObserver) new ResizeObserver(place).observe(nav);
     document.getElementById('twa-join-close').onclick = function () { localStorage.setItem('twaJoinHide', '1'); el.hidden = true; };
   } catch (e) {}
 })();
