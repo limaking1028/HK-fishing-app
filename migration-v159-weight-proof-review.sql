@@ -312,7 +312,20 @@ returns text language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.lb_user_photo(uuid) from public, anon, authenticated;
 
--- 12) 讚：重量王者 target = catch_id；數量／品種王者 target = 該用戶 user_id（每個榜分開，唔分時段）
+-- 11b) 公開用匿名 id（數量／品種王者 entry_id 同讚 target）：隨機 uuid，同 user_id 無關、唔可以反推；用戶唔可以改
+alter table public.users add column if not exists public_id uuid not null default gen_random_uuid();
+create unique index if not exists users_public_id_key on public.users (public_id);
+create or replace function public.users_keep_public_id()
+returns trigger language plpgsql as $$
+begin
+  new.public_id := old.public_id;
+  return new;
+end $$;
+drop trigger if exists trg_users_keep_public_id on public.users;
+create trigger trg_users_keep_public_id before update on public.users
+  for each row execute function public.users_keep_public_id();
+
+-- 12) 讚：重量王者 target = catch_id；數量／品種王者 target = 該用戶 users.public_id（匿名 id；每個榜分開，唔分時段）
 create table if not exists public.lb_likes (
   user_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
   board      text not null check (board in ('biggest', 'quantity', 'species')),
@@ -338,7 +351,8 @@ begin
     if not exists (select 1 from public.lb_weight_cand() w where w.id = new.target and w.ok) then
       raise exception 'not on board';
     end if;
-  elsif not exists (select 1 from public.lb_countable c where c.user_id = new.target) then
+  elsif not exists (select 1 from public.lb_countable c join public.users u on u.id = c.user_id
+                     where u.public_id = new.target) then
     raise exception 'not on board';
   end if;
   return new;
@@ -347,7 +361,7 @@ drop trigger if exists trg_lb_likes_check on public.lb_likes;
 create trigger trg_lb_likes_check before insert on public.lb_likes
   for each row execute function public.lb_likes_check();
 
--- 讚數只由 count(*) 計（view owner = postgres，略過 RLS；只出 board / target / 數字）
+-- 讚數只由 count(*) 計（view owner = postgres，略過 RLS；只出 board / target / 數字；target = catch_id 或匿名 public_id，冇 user_id）
 create or replace view public.lb_like_counts as
   select board, target, count(*)::int as likes from public.lb_likes group by board, target;
 revoke all on public.lb_like_counts from public, anon, authenticated;
@@ -391,11 +405,11 @@ returns table (pos int, display_name text, is_mine boolean,
 language sql stable security definer set search_path = public as $$
   select s.pos, u.display_name, (s.user_id = auth.uid()),
          s.catch_count, s.species_count, s.spot_count, s.biggest_kg,
-         s.user_id, public.lb_user_photo(s.user_id),
+         u.public_id, public.lb_user_photo(s.user_id),
          (select count(*)::int from public.lb_likes l
-           where l.board = (case when p_sort = 'species' then 'species' else 'quantity' end) and l.target = s.user_id),
+           where l.board = (case when p_sort = 'species' then 'species' else 'quantity' end) and l.target = u.public_id),
          exists (select 1 from public.lb_likes l
-           where l.board = (case when p_sort = 'species' then 'species' else 'quantity' end) and l.target = s.user_id
+           where l.board = (case when p_sort = 'species' then 'species' else 'quantity' end) and l.target = u.public_id
              and l.user_id = auth.uid())
     from public.lb_stats_rows(p_period, p_sort) s
     left join public.users u on u.id = s.user_id
@@ -404,3 +418,33 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.lb_stats(text, text) from public, anon;
 grant execute on function public.lb_stats(text, text) to authenticated;
+
+-- 13) 刪除帳戶：沿用 prod 現行 delete_my_account（只刪 auth.uid() 自己），加清 v159 資料。
+--     Storage 檔案（catch-photos / catch-proof）由 App 先用 Storage API 刪（同現行 catch-photos 做法一樣），所以加本人刪除磅相 policy。
+drop policy if exists "own delete catch proof" on storage.objects;
+create policy "own delete catch proof" on storage.objects for delete to authenticated
+  using (bucket_id = 'catch-proof' and (storage.foldername(name))[1] = (auth.uid())::text);
+
+create or replace function public.delete_my_account()
+returns void language plpgsql security definer set search_path = public, auth as $$
+declare
+  uid uuid := auth.uid();
+  pid uuid;
+begin
+  if uid is null then
+    raise exception 'not authenticated';
+  end if;
+  select public_id into pid from public.users where id = uid;
+  delete from public.lb_likes where user_id = uid;                                       -- 自己俾過嘅讚
+  delete from public.lb_likes where board = 'biggest'
+     and target in (select id from public.catches where user_id = uid);                 -- 指向自己魚獲嘅讚（目標已刪）
+  delete from public.lb_likes where board in ('quantity', 'species') and target = pid;  -- 指向自己（匿名 id）嘅讚
+  delete from public.lb_rep_photo where user_id = uid;
+  delete from public.app_usage     where user_id = uid;
+  delete from public.catches       where user_id = uid;
+  delete from public.fishing_trips where user_id = uid;
+  delete from public.users         where id = uid;
+  delete from auth.users           where id = uid;
+end $$;
+revoke all on function public.delete_my_account() from public, anon;
+grant execute on function public.delete_my_account() to authenticated;

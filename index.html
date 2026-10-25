@@ -4367,6 +4367,8 @@ async function deleteAccount() {
       const uid = state.user.id;
       const { data: files } = await sb.storage.from('catch-photos').list(uid, { limit: 1000 });
       if (files && files.length) await sb.storage.from('catch-photos').remove(files.map(f => uid + '/' + f.name));
+      const { data: proofs } = await sb.storage.from('catch-proof').list(uid, { limit: 1000 });   // v159：磅／尺相（私人 bucket）
+      if (proofs && proofs.length) await sb.storage.from('catch-proof').remove(proofs.map(f => uid + '/' + f.name));
     } catch (e) { console.warn('[deleteAccount] 照片清除失敗', e); }
     const { error } = await sb.rpc('delete_my_account');
     if (error) throw error;
