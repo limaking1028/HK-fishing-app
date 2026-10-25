@@ -1,4 +1,4 @@
-# 用法：喺 Bubblewrap 項目資料夾（有 app\build.gradle 嗰個）執行：
+﻿# 用法：喺 Bubblewrap 項目資料夾（有 app\build.gradle 嗰個）執行：
 #   powershell -ExecutionPolicy Bypass -File <呢個 repo>\android-overrides\apply.ps1
 # 每次 `bubblewrap update` 之後都要再行一次（update 會重新生成 DelegationService.java）。
 $ErrorActionPreference = "Stop"
@@ -8,10 +8,12 @@ if (!(Test-Path "app\build.gradle")) { throw "請喺 Bubblewrap 項目資料夾�
 New-Item -ItemType Directory -Force $dst | Out-Null
 Copy-Item "$src\HkLocationHandler.java" $dst -Force
 Copy-Item "$src\DelegationService.java" $dst -Force
-$g = Get-Content "app\build.gradle" -Raw
+$gf = Join-Path (Get-Location) "app\build.gradle"
+$utf8 = New-Object System.Text.UTF8Encoding($false)
+$g = [IO.File]::ReadAllText($gf, $utf8)
 if ($g -notmatch "play-services-location") {
   $g = $g -replace "(dependencies\s*\{)", "`$1`n    implementation 'com.google.android.gms:play-services-location:21.0.1'"
-  Set-Content "app\build.gradle" $g -Encoding UTF8
+  [IO.File]::WriteAllText($gf, $g, $utf8)
 }
 # 喺 LauncherActivity 嘅 autoVerify VIEW intent-filter 後面加一個只配對根網址 "/" 嘅 filter（冇 autoVerify）。
 # 原因：Chrome 嘅 InstalledWebappGeolocationBridge 用 origin 根（https://limaking1028.github.io/）搵 TWA；
@@ -20,7 +22,6 @@ if ($g -notmatch "play-services-location") {
 # 參考：https://github.com/GoogleChromeLabs/bubblewrap/issues/1062
 # 用 [IO.File] + 無 BOM UTF-8 讀寫，避免 Get-Content/Set-Content 整壞中文 launcherName。
 $mf = Join-Path (Get-Location) "app\src\main\AndroidManifest.xml"
-$utf8 = New-Object System.Text.UTF8Encoding($false)
 $m = [IO.File]::ReadAllText($mf, $utf8)
 if ($m -match 'android:path="/"') {
   Write-Host "AndroidManifest.xml 已有根網址 filter，跳過"
