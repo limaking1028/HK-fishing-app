@@ -1252,7 +1252,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v155</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v156</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -4554,7 +4554,7 @@ function prefetchLeaderboards(force) {
   return Promise.all(jobs).then(() => { if (state.view === 'my') renderMyView(); });
 }
 function lbItemsFromRows(type, rows) {
-  if (type === 'biggest') return rows.map(r => ({ user: r.display_name || '釣友', isMine: !!r.is_mine, species: r.species, date: r.catch_date, weight: parseFloat(r.weight_kg), id: r.catch_id }));
+  if (type === 'biggest') return rows.map(r => ({ user: r.display_name || '釣友', isMine: !!r.is_mine, species: r.species, date: r.catch_date, weight: parseFloat(r.weight_kg), id: r.catch_id, pending: !!r.pending }));
   if (type === 'quantity') return rows.map(r => ({ user: r.display_name || '釣友', isMine: !!r.is_mine, count: r.catch_count, spotCount: r.spot_count, speciesCount: r.species_count }));
   return rows.map(r => ({ user: r.display_name || '釣友', isMine: !!r.is_mine, speciesCount: r.species_count, spotCount: r.spot_count, biggestWeight: parseFloat(r.biggest_kg) }));
 }
@@ -4600,7 +4600,7 @@ function renderLeaderboardView() {
       const rank = idx + 1; let rankClass = 'normal';
       if (rank===1) rankClass='gold'; else if (rank===2) rankClass='silver'; else if (rank===3) rankClass='bronze';
       let value='', detail='';
-      if (state.lbType==='biggest') { const lbWd=weightDisplay(item, state.lbUnit); value=lbWd.value+'<span class="unit">'+lbWd.unit+'</span>'; detail=escapeHtml(item.species)+' · '+daysAgo(item.date); }
+      if (state.lbType==='biggest') { const lbWd=weightDisplay(item, state.lbUnit); value=lbWd.value+'<span class="unit">'+lbWd.unit+'</span>'; detail=escapeHtml(item.species)+' · '+daysAgo(item.date)+(item.pending?' · <span title="管理員審核後其他人先睇到" style="color:#b45309;font-weight:700;">待審核</span>':''); }
       else if (state.lbType==='quantity') { value=item.count+'<span class="unit">條</span>'; detail=item.speciesCount+' 種魚 · '+item.spotCount+' 個釣點'; }
       else { var spWd = weightDisplay({weight:item.biggestWeight}, state.lbUnit); value=item.speciesCount+'<span class="unit">種</span>'; detail='最大 '+spWd.value+' '+spWd.unit+' · 釣過 '+item.spotCount+' 個釣點'; }
       // 第一名「全港霸主」：用原本 flex 結構，只加金色背景 + 徽章跨行 + detail 跨行
@@ -5506,7 +5506,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v155</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v156</span>';
   }
   renderView(name);
 }
@@ -6247,7 +6247,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 /* ---------- v152：客戶端錯誤回報 + 公告橫幅（失敗都唔影響 App 運作） ---------- */
-const APP_BUILD_LABEL = 'v155';
+const APP_BUILD_LABEL = 'v156';
 const ERR_REPORTED = new Set();
 let errReportCount = 0;
 function reportClientError(err, source) {

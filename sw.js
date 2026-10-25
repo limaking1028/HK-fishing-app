@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v155';  // v155: 加入 2027 年天文台潮汐數據
+const CACHE = 'hk-fishing-v156';  // v156: 重量王者頭 10 名／紀錄審核
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
