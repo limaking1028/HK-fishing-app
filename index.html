@@ -1256,7 +1256,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v159</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v160</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -1709,6 +1709,7 @@ async function dbAddCatch(c) {
     stats: c.stats || null,  // Route L+: 統計維度 JSONB
     opted_in_analytics: c.optedInAnalytics || false,  // Route M: 同意旗標稽核軌跡
   };
+  if (c.isTest) payload.is_test = true;   // v160：只係管理員測試模式先送（普通用戶唔送呢個欄位）
   let { data, error } = await sb.from('catches').upsert(payload, { onConflict: 'id' }).select().single();
   if (error && /weight_kg|weight_input|weight_unit|photo_age_sec|photo_hash/.test(error.message || '')) {
     // 資料庫未執行 migration-v108：退回舊欄位（斤），讀取時會自動換算
@@ -2178,11 +2179,12 @@ function renderRecordView() {
     + '<div class="form-group"><label class="form-label">備註</label><textarea class="form-textarea" id="catch-notes" placeholder="例如：黃昏流水好、風向、水溫等..."></textarea></div>'
     + '<div class="form-group"><label class="form-label">魚獲照片 <span style="font-size:11px;color:var(--gray-4);font-weight:400;">（即時影相先計排行榜）</span></label><div class="photo-upload" onclick="document.getElementById(\'catch-photo\').click()"><div class="upload-icon">📸</div><div class="upload-text">即時影相（可上榜）</div></div><input type="file" id="catch-photo" accept="image/*" capture="environment" style="display:none" onchange="previewPhoto(this)"><button type="button" class="login-link" onclick="document.getElementById(\'catch-photo-gallery\').click()">🖼️ 從相簿揀（拍攝超過 30 分鐘就唔計排行榜）</button><input type="file" id="catch-photo-gallery" accept="image/*" style="display:none" onchange="previewPhoto(this)"><div id="photo-preview-container"></div></div>'
     + '<div class="form-group"><label class="form-label">⚖️ 磅／尺相 <span style="font-size:11px;color:var(--gray-4);font-weight:400;">（上重量王者必須：魚放喺磅上或者尺旁邊，管理員審核後先上榜）</span></label><button type="button" class="login-link" onclick="document.getElementById(\'catch-proof\').click()">📏 揀磅／尺相</button><input type="file" id="catch-proof" accept="image/*" style="display:none" onchange="updateEligibilityHint()"><div id="proof-name" style="font-size:12px;color:var(--gray-4);"></div></div>'
+    + '<div id="test-mode-box"></div>'   // v160：管理員測試模式（普通用戶唔顯示）
     + '<div id="elig-box" class="elig-box"></div>'
     + '<button class="btn btn-primary" onclick="submitCatch()">送出魚獲記錄</button></div>';
   // Route L+: 表單打開時不直接觸發 (iOS 政策需用戶操作),但記錄狀態讓按鈕更醒目
   // 用戶點擊 [📍 啟用自動定位] 後,後續 GPS 自動運行無需再操作
-  setTimeout(() => { try { onDateChange(); } catch(e) { console.warn('astro init failed', e); } try { updateEligibilityHint(); } catch(e) {} }, 0);
+  setTimeout(() => { try { onDateChange(); } catch(e) { console.warn('astro init failed', e); } try { updateEligibilityHint(); } catch(e) {} try { renderTestModeToggle(); } catch(e) {} }, 0);
   // Route K: 渲染智能揀魚種 UI（Top 8 by 使用次數 + 摺疊展開）
   renderSpeciesSelector();
 }
@@ -2707,15 +2709,29 @@ function currentEligibilityInput() {
     weight: raw > 0 ? weightLib.toKg(raw, u) : NaN, _speciesPending: !sp
   };
 }
+// v160：測試模式只畀管理員（is_admin 由伺服器判斷；server trigger 會拒絕非管理員設 is_test）
+async function renderTestModeToggle() {
+  const box = document.getElementById('test-mode-box');
+  if (!box || !sb || !state.user) return;
+  if (state.adminFor !== state.user.id) {
+    state.adminFor = state.user.id; state.isAdmin = false; state.testMode = false;
+    try { const { data } = await sb.rpc('is_admin'); state.isAdmin = data === true; } catch (e) {}
+  }
+  if (!state.isAdmin) { box.innerHTML = ''; return; }
+  box.innerHTML = '<label class="elig-box" style="display:flex;gap:8px;align-items:center;cursor:pointer;"><input type="checkbox" id="test-mode"' + (state.testMode ? ' checked' : '') + ' onchange="state.testMode=this.checked;updateEligibilityHint()"> 🧪 測試模式（只限管理員：略過 GPS／香港範圍；只有管理員喺榜上睇到）</label>';
+}
+window.renderTestModeToggle = renderTestModeToggle;
 function updateEligibilityHint() {
   const box = document.getElementById('elig-box');
   if (!box || !window.lbLib) return;
   const c = currentEligibilityInput();
   const r = lbLib.check(c, localDateStr());
   const bad = new Set(r.reasons);
+  const testMode = !!(state.isAdmin && state.testMode);
+  if (testMode) { bad.delete('no_gps'); bad.delete('outside_hk'); r.eligible = bad.size === 0; }   // v160：測試模式略過 GPS
   const groups = [
     ['📸 即時影相', ['no_photo', 'photo_invalid', 'photo_not_fresh'], false],
-    ['📍 GPS 定位（香港範圍）', ['no_gps', 'outside_hk'], false],
+    [testMode ? '📍 GPS 定位（🧪 測試模式略過）' : '📍 GPS 定位（香港範圍）', ['no_gps', 'outside_hk'], false],
     ['📅 日期（7 日內）', ['date_future', 'date_old'], false],
     ['🐟 列表內魚種', ['species_not_listed'], c._speciesPending],
     ['⚖️ 已填重量', ['weight_too_high'], !(c.weight > 0) || c._speciesPending]
@@ -2819,6 +2835,7 @@ function submitCatch() {
   const bait = baitRaw === '其他' ? (state.customBait || '').trim() : baitRaw;
   if (!bait) { toast('請輸入釣餌'); return; }
   const catchItem = {
+    isTest: !!(state.isAdmin && state.testMode),   // v160：只有管理員；server 端再檢查
     id: SB_ENABLED && state.user ? 'temp-' + Date.now() : Date.now(),
     user: getUserName(), species: speciesName, speciesIcon: speciesIcon,
     weight: weight, weightInput: weightRaw, weightUnit: weightUnit,
@@ -5645,7 +5662,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v159</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v160</span>';
   }
   renderView(name);
 }
@@ -6386,7 +6403,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 /* ---------- v152：客戶端錯誤回報 + 公告橫幅（失敗都唔影響 App 運作） ---------- */
-const APP_BUILD_LABEL = 'v159';
+const APP_BUILD_LABEL = 'v160';
 const ERR_REPORTED = new Set();
 let errReportCount = 0;
 function reportClientError(err, source) {
