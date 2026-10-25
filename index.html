@@ -1252,7 +1252,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v153</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v154</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -4894,7 +4894,7 @@ function renderMapTideList(view) {
     const trendText = cur.trend === 'rising' ? '↗ 漲中' : cur.trend === 'falling' ? '↘ 退中' : '→ 平';
     const nextHigh = cur.nextHigh ? `${window.tidesLib.formatTime(cur.nextHigh.ms)} 高潮 ${cur.nextHigh.height}m` : '—';
     const nextLow  = cur.nextLow  ? `${window.tidesLib.formatTime(cur.nextLow.ms)} 低潮 ${cur.nextLow.height}m` : '—';
-    const adviceHtml = advice.map(a => `<div>${a.icon} ${escapeHtml(a.text)}</div>`).join('');
+    const adviceHtml = advice.map(a => `<div>${a.icon} ${escapeHtml(a.text)}</div>`).join('') + (advice.length ? '<div style="font-size:11px;opacity:.7;">以上建議根據潮汐及天氣推算，僅供參考。</div>' : '');
     const estBadge = st.estimated
       ? `<span class="tide-card-est" title="基於 ${st.source} 站數據估算（誤差 ±10cm）">📐 估算</span>`
       : '';
@@ -4984,6 +4984,8 @@ function renderMapWeatherDashboard(view) {
       + '</div><div style="padding:24px;text-align:center;color:var(--gray-5);">天氣模組未就緒</div>';
     return;
   }
+  // 取得所有站（從 tide 模組共用）
+  const stations = window.tidesLib.getAllStations();
   // 1. 先 render loading + sub-tabs
   view.innerHTML = '<div class="map-subtabs">'
     + '<button class="map-subtab" data-tab="map" onclick="switchMapTab(this.dataset.tab)">🗺️ 地圖</button>'
@@ -4992,13 +4994,11 @@ function renderMapWeatherDashboard(view) {
     + '</div>'
     + '<div class="weather-loading">'
       + '<div class="weather-spinner"></div>'
-      + '<div>正在取得 6 站實時天氣...</div>'
+      + '<div>正在取得 ' + stations.length + ' 個地點實時天氣...</div>'
       + '<div style="font-size:11px;color:var(--gray-5);margin-top:6px;">Open-Meteo API</div>'
     + '</div>';
 
-  // 2. 取得所有站（從 tide 模組共用）
-  const stations = window.tidesLib.getAllStations();
-  // 3. 平行 fetch 6 站天氣
+  // 3. 平行 fetch 所有站天氣
   window.weatherLib.fetchAllStationsWeather(stations).then(results => {
     renderWeatherCards(view, results);
   }).catch(err => {
@@ -5223,7 +5223,7 @@ function buildTideStationPopup(code) {
   const nextHighStr = cur.nextHigh ? `${window.tidesLib.formatTime(cur.nextHigh.ms)} 高潮 ${cur.nextHigh.height}m` : '—';
   const nextLowStr  = cur.nextLow  ? `${window.tidesLib.formatTime(cur.nextLow.ms)} 低潮 ${cur.nextLow.height}m` : '—';
   // 釣況建議
-  const adviceHtml = advice.map(a => `<div>${a.icon} ${escapeHtml(a.text)}</div>`).join('');
+  const adviceHtml = advice.map(a => `<div>${a.icon} ${escapeHtml(a.text)}</div>`).join('') + (advice.length ? '<div style="font-size:11px;opacity:.7;">以上建議根據潮汐及天氣推算，僅供參考。</div>' : '');
   return `<div class="tide-popup">
     <div class="tide-popup-header">
       <span class="tide-popup-name">📡 ${escapeHtml(meta.name_zh)}</span>
@@ -5505,7 +5505,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v153</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v154</span>';
   }
   renderView(name);
 }
@@ -6246,7 +6246,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 /* ---------- v152：客戶端錯誤回報 + 公告橫幅（失敗都唔影響 App 運作） ---------- */
-const APP_BUILD_LABEL = 'v153';
+const APP_BUILD_LABEL = 'v154';
 const ERR_REPORTED = new Set();
 let errReportCount = 0;
 function reportClientError(err, source) {
