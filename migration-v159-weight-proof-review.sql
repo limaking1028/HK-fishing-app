@@ -335,11 +335,15 @@ create unique index if not exists users_public_id_key on public.users (public_id
 create or replace function public.users_keep_public_id()
 returns trigger language plpgsql as $$
 begin
-  new.public_id := old.public_id;
+  if TG_OP = 'INSERT' then
+    new.public_id := gen_random_uuid();   -- 唔信客戶端提供嘅值
+  else
+    new.public_id := old.public_id;
+  end if;
   return new;
 end $$;
 drop trigger if exists trg_users_keep_public_id on public.users;
-create trigger trg_users_keep_public_id before update on public.users
+create trigger trg_users_keep_public_id before insert or update on public.users
   for each row execute function public.users_keep_public_id();
 
 -- 12) 讚：重量王者 target = catch_id；數量／品種王者 target = 該用戶 users.public_id（匿名 id；每個榜分開，唔分時段）
