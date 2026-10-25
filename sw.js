@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v158';  // v158: Android App 定位修正（TWA 根網址 intent-filter）
+const CACHE = 'hk-fishing-v159';  // v159: 重量王者磅／尺相 + 每條審核；排行榜頭 10 名；我的排名
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
