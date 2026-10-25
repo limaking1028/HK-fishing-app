@@ -769,11 +769,13 @@ async function vReview(){
 async function vLbPending(){
   let rows;try{rows=await rpc('admin_lb_pending');}catch(e){return;}   // 未執行 v156 就唔顯示
   S.lbp=rows||[];
+  await Promise.all(S.lbp.map(async c=>{if(!c.proof_path)return;try{const r=await sb.storage.from('catch-proof').createSignedUrl(c.proof_path,600);c.proof_url=r.data&&r.data.signedUrl;}catch(e){}}));   // v159：私人 bucket，用 10 分鐘 signed URL
   S.pending=(S.queue||[]).length+S.lbp.length;renderNav();
-  let h='<section class="card" style="margin-bottom:16px"><h2>待審核：重量王者頭 10 名／魚種紀錄</h2><p class="hint" style="color:var(--mu);margin:4px 0 10px">公開榜頭 10 名同魚種紀錄只會顯示已批准嘅魚獲；以下魚獲批准前其他用戶睇唔到（魚獲主人自己見到「待審核」）。改魚種或重量後要重新審核。</p>';
+  let h='<section class="card" style="margin-bottom:16px"><h2>待審核：重量王者</h2><p class="hint" style="color:var(--mu);margin:4px 0 10px">重量王者只顯示已批准嘅魚獲（每個時段頭 10 名）。每條都要睇磅／尺相；「超重」= 超過該魚種一般上限，只係提示。改魚種、重量或磅相後要重新審核。</p>';
   if(!S.lbp.length)h+=empty('check','冇待審核魚獲');
   else h+='<div class="rv-photos">'+S.lbp.map((c,i)=>{const u=safeImg(c.photo_url);return '<div class="ph">'+(u?'<button class="im" type="button" aria-label="放大相片" onclick="zoom(\''+esc(u)+'\',\''+esc(c.species)+' '+esc(c.weight_kg)+'kg\')"><img loading="lazy" src="'+esc(u)+'" alt="'+esc(c.species)+'"></button>':'<div class="noimg">無相片</div>')
-    +'<div class="m"><b>'+esc(c.display_name||'（未命名）')+'</b><span>'+esc(c.species)+' · '+esc(c.weight_kg)+' kg'+(c.max_kg?'（上限 '+esc(c.max_kg)+'）':'')+'</span><span class="d">'+fmt(c.created_at)+'</span>'
+    +(c.proof_url&&safeImg(c.proof_url)?'<button class="im" type="button" aria-label="放大磅／尺相" onclick="zoom(\''+esc(c.proof_url)+'\',\'磅／尺相 '+esc(c.weight_kg)+'kg\')"><img loading="lazy" src="'+esc(c.proof_url)+'" alt="磅／尺相"></button>':'<div class="noimg">無磅相</div>')
+    +'<div class="m"><b>'+esc(c.display_name||'（未命名）')+'</b><span>'+(c.over_limit?'<span class="pill bad">超重</span> ':'')+esc(c.species)+' · '+esc(c.weight_kg)+' kg'+(c.max_kg?'（上限 '+esc(c.max_kg)+'）':'')+'</span><span class="d">'+fmt(c.created_at)+'</span>'
     +'<span><button class="btn sm ok" type="button" onclick="lbpDecide('+i+',true)">'+ic('check')+'批准</button> <button class="btn sm ghost-bad" type="button" onclick="lbpDecide('+i+',false)">'+ic('ban')+'排除</button></span></div></div>';}).join('')+'</div>';
   h+='</section>';
   const m=$('main');const hd=m.querySelector('.card,section');if(hd)hd.insertAdjacentHTML('beforebegin',h);else m.insertAdjacentHTML('beforeend',h);
