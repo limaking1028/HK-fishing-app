@@ -1,64 +1,31 @@
-const CACHE = 'hk-fishing-v179';  // v179: 底部功能列唔再跟畫面郁
-const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
-  './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
-  './lib/catchStats.js',  // Route L+
-  './lib/auth.js',        // Email Magic Link
-  './lib/weight.js',      // v108 重量單位
-  './lib/leaderboard.js', // v109 排行榜上榜條件
-  './lib/myStats.js'      // v142 我的統計
-];
+const CACHE = 'hk-fishing-v180';  // v180: 只快取魚種相（WebP），其他請求一律唔掂
+// v180：v102 起 SW 停用（舊版網絡優先快取 index/lib 引起問題）。今次重開，但只處理 photos/*.webp：
+//   install 時 precache 魚種相；fetch 只對魚種相 cache-first；其他請求唔 respondWith，行返瀏覽器正常網絡。
+//   activate 時刪走所有舊 cache（包括 v101–v179 留低嘅）。
+const FISH_PHOTOS = ["./photos/䱛仔.webp", "./photos/三刀.webp", "./photos/左口.webp", "./photos/星點泥鯭.webp", "./photos/梳羅.webp", "./photos/沙巴龍躉.webp", "./photos/沙鑽.webp", "./photos/油蠟.webp", "./photos/泥鯭.webp", "./photos/海狼.webp", "./photos/火點.webp", "./photos/烏頭.webp", "./photos/牙點.webp", "./photos/牛屎鱲.webp", "./photos/牛廣GT.webp", "./photos/牛鰍.webp", "./photos/白鬚公.webp", "./photos/白鱲.webp", "./photos/盲鰽.webp", "./photos/石剎.webp", "./photos/石狗公.webp", "./photos/紅衫魚.webp", "./photos/花鱸.webp", "./photos/赤鱲.webp", "./photos/金鼓.webp", "./photos/釘公.webp", "./photos/雞泡.webp", "./photos/雞魚.webp", "./photos/青斑.webp", "./photos/馬友.webp", "./photos/黃立鯧.webp", "./photos/黃腳鱲.webp", "./photos/黑鱲.webp"];
 
 self.addEventListener('install', e => {
-  console.log('[SW v101] Installing...');
   e.waitUntil(
     caches.open(CACHE)
-      .then(c => c.addAll(CORE))
-      .catch(err => console.warn('[SW v101] cache addAll failed:', err))
-      .then(() => {
-        console.log('[SW v101] skipWaiting');
-        return self.skipWaiting();
-      })
+      .then(c => Promise.all(FISH_PHOTOS.map(u => c.add(u).catch(() => {}))))   // 一張失敗唔阻 install
+      .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', e => {
-  console.log('[SW v101] Activating, removing old caches...');
   e.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(
-        keys.filter(k => k !== CACHE).map(k => {
-          console.log('[SW v101] Deleting old cache:', k);
-          return caches.delete(k);
-        })
-      );
-    }).then(() => {
-      console.log('[SW v101] claim clients');
-      return self.clients.claim();
-    })
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
-// 網絡優先，離線用快取
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
-  // index.html (任何 query string) 永遠走網絡,確保最新版本
-  if (url.pathname.endsWith('/index.html') || url.pathname.endsWith('/')) {
-    e.respondWith(
-      fetch(e.request, { cache: 'no-store' })
-        .catch(() => caches.match('./index.html'))
-    );
-    return;
-  }
-  // 其他檔案:網絡優先,失敗用快取
-  e.respondWith(
-    fetch(e.request).then(res => {
-      // 只 cache 成功嘅 2xx response
-      if (res.ok) {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, copy));
-      }
-      return res;
-    }).catch(() => caches.match(e.request).then(r => r || caches.match('./')))
-  );
+  if (url.origin !== self.location.origin || !url.pathname.includes('/photos/') || !url.pathname.endsWith('.webp')) return;
+  e.respondWith(caches.match(e.request, { ignoreSearch: true }).then(r => r || fetch(e.request).then(res => {
+    if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }
+    return res;
+  })));
 });
