@@ -34,3 +34,17 @@
 ## 有問題點算
 - 預覽唔出：WhatsApp 會 cache 舊結果，大約要等幾日；或者換一條新連結再試。
 - 如果 Worker 壞咗，舊嘅 `?c=` 連結照樣用得，App 唔受影響。
+
+## 更新 Worker 程式碼（v166）
+
+v166 改咗 Worker：預覽標題重量變「605g（1.0 斤）」，預覽圖換成新嘅 og-image-v2.jpg。要喺 Cloudflare 更新一次：
+
+1. 喺 GitHub 打開 `worker/src/index.js`（main 分支），撳「Copy raw file」複製**成個檔案**。
+2. 登入 Cloudflare（fishport1028 帳戶）→ 左邊「Workers & Pages」→ 撳 **fishport-share**。
+3. 右上角撳「Edit code」。
+4. 喺左邊揀 `worker.js`（或 `index.js`），**全選（Ctrl+A）刪晒舊嘢**，再貼上啱啱複製嘅新程式碼。
+5. 撳右上角「Deploy」。
+6. **變數唔使郁**：SUPABASE_URL、APP_URL、SUPABASE_ANON_KEY 照舊保留，唔好改、唔好刪。
+7. 試：用 WhatsApp 分享一條**新**連結，預覽應該見到「🎣 魚種 605g（1.0 斤）」同新嘅圖（有 App 圖示）。
+
+⚠️ 要等 App v166 上線（GitHub Pages 有 og-image-v2.jpg）之後先 Deploy Worker，否則預覽圖會暫時睇唔到。

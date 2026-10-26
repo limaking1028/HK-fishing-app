@@ -21,14 +21,14 @@
   <meta property="og:title" content="釣港 🎣 香港釣魚記錄＋排行榜">
   <meta property="og:description" content="記低每條魚獲，同釣友鬥排行榜。撳入嚟睇！">
   <meta property="og:url" content="https://limaking1028.github.io/HK-fishing-app/">
-  <meta property="og:image" content="https://limaking1028.github.io/HK-fishing-app/og-image.jpg">
+  <meta property="og:image" content="https://limaking1028.github.io/HK-fishing-app/og-image-v2.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:type" content="image/jpeg">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="釣港 🎣 香港釣魚記錄＋排行榜">
   <meta name="twitter:description" content="記低每條魚獲，同釣友鬥排行榜。撳入嚟睇！">
-  <meta name="twitter:image" content="https://limaking1028.github.io/HK-fishing-app/og-image.jpg">
+  <meta name="twitter:image" content="https://limaking1028.github.io/HK-fishing-app/og-image-v2.jpg">
   <script>
   // v103: 早期錯誤捕獲 — 即使主 script 語法錯誤也能顯示訊息
   window.__bootErrors = [];
@@ -1272,7 +1272,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v165</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v166</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -4498,7 +4498,7 @@ async function shareCatch(id) {
   catch (e) { console.warn('[share link]', e); toast('未能建立分享連結（' + (e.message || '網絡錯誤') + '），改為只分享文字', 3500); sh = { url: appBaseUrl(), info: null }; }
   const rankText = shareRankText(sh.info && sh.info.ranks);
   let shareWd = weightDisplay(c);
-  let text = '🎣 我喺【釣港】記錄咗一條魚獲：\n'+(c.speciesIcon||'🐟')+' '+c.species+' '+shareWd.value+shareWd.unit+'\n📍 '+c.spot+' · '+formatDate(c.date);
+  let text = '🎣 我喺【釣港】記錄咗一條魚獲：\n'+(c.speciesIcon||'🐟')+' '+c.species+' '+shareWeightText(c.weight)+'\n📍 '+c.spot+' · '+formatDate(c.date);
   if (rankText) text += '\n🏆 '+rankText;
   text += '\n快嚟挑戰排行榜！';
   state.shareMsg = { text: text, url: sh.url };
@@ -4544,6 +4544,11 @@ function scoreCardPromo(c, rank, wtxt) {
 function bestRank(ranks) {
   return (ranks || []).filter(r => r && r.rank > 0).sort((a, b) => a.rank - b.rank)[0] || null;
 }
+// v166：分享文字重量 = 克／公斤＋（斤），同 Worker 預覽一致（Worker 冇用戶單位設定）
+function shareWeightText(kg) {
+  const n = Number(kg); if (!isFinite(n) || n <= 0) return '';
+  return (n < 1 ? Math.round(n * 1000) + 'g' : n.toFixed(2).replace(/\.?0+$/, '') + 'kg') + '（' + weightLib.format(n, 'jin').value + ' 斤）';
+}
 function drawScoreCard(c, info, url) {
   const W = 720, H = 900, cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
@@ -4580,13 +4585,13 @@ function drawScoreCard(c, info, url) {
     do { g.font = '600 ' + fq + 'px ' + F; } while (g.measureText(shortQ).width > x0 - 70 && --fq > 12);
     g.fillText(shortQ, 50, 856);
     g.textAlign = 'center';
-    return { canvas: cv, text: '🎣 ' + c.species + ' ' + wtxt + (rank ? '\n' + scoreCardPromo(c, rank, wtxt) : '') + '\n快嚟【釣港】挑戰排行榜！' };
+    return { canvas: cv, text: '🎣 ' + c.species + ' ' + shareWeightText(c.weight) + (rank ? '\n' + scoreCardPromo(c, rank, wtxt) : '') + '\n快嚟【釣港】挑戰排行榜！' };
   }
   g.fillStyle = '#e2e8f0'; g.font = '30px ' + F; g.fillText('嚟挑戰排行榜 👉', W / 2, 820);
   const short = url.replace(/^https?:\/\//, ''); let fs = 26;
   do { g.font = '600 ' + fs + 'px ' + F; } while (g.measureText(short).width > W - 40 && --fs > 14);
   g.fillText(short, W / 2, 862);
-  return { canvas: cv, text: '🎣 ' + c.species + ' ' + wtxt + (rank ? '\n' + scoreCardPromo(c, rank, wtxt) : '') + '\n快嚟【釣港】挑戰排行榜！' };
+  return { canvas: cv, text: '🎣 ' + c.species + ' ' + shareWeightText(c.weight) + (rank ? '\n' + scoreCardPromo(c, rank, wtxt) : '') + '\n快嚟【釣港】挑戰排行榜！' };
 }
 async function renderScoreCard(id) {
   const wrap = document.getElementById('score-card-wrap');
@@ -4612,7 +4617,7 @@ async function renderScoreCard(id) {
 }
 // v164：預設分享 = 文字＋連結（唔夾相），等 WhatsApp 出連結預覽；冇 Web Share 就 wa.me
 function shareTextLink(text, url) {
-  if (navigator.share) navigator.share({ title: '釣港', text: text, url: url }).catch(() => {});
+  if (navigator.share) navigator.share({ title: '釣港', text: text + '\n' + url }).catch(() => {});   // v166：連結自己一行（唔用 url 欄，免得黐埋句尾）
   else window.open('https://wa.me/?text=' + encodeURIComponent(text + '\n' + url), '_blank', 'noopener');
 }
 function copyLinkToast(url) {
@@ -5809,7 +5814,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v165</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v166</span>';
   }
   renderView(name);
 }
