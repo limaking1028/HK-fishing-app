@@ -48,3 +48,17 @@ v166 改咗 Worker：預覽標題重量變「605g（1.0 斤）」，預覽圖換
 7. 試：用 WhatsApp 分享一條**新**連結，預覽應該見到「🎣 魚種 605g（1.0 斤）」同新嘅圖（有 App 圖示）。
 
 ⚠️ 要等 App v166 上線（GitHub Pages 有 og-image-v2.jpg）之後先 Deploy Worker，否則預覽圖會暫時睇唔到。
+
+## 更新 Worker 程式碼（v173：分享連結打開次數）
+
+v173 令 Worker 每次有**真人**打開分享連結，就幫「分享連結打開」個總數 +1（WhatsApp／FB／Telegram 嘅預覽機械人唔計）。只送「事件名」同「來源」（例如 `wa`），**唔送 IP、位置、裝置資料**。連結後面加 `?src=wa`（或 fb／ig／yt／threads／tg／x）就分到來源。
+
+⚠️ **次序好重要**：先等主人批准並套用 v173 migration（有 `track_event`），再 merge v173，最後先更新 Worker。如果 Worker 早咗更新，只係計唔到數，分享連結照用得。
+
+1. 喺 GitHub 打開 `worker/src/index.js`（main 分支），撳「Copy raw file」複製**成個檔案**。
+2. 登入 Cloudflare（fishport1028 帳戶）→ 左邊「Workers & Pages」→ 撳 **fishport-share**。
+3. 右上角撳「Edit code」。
+4. 左邊揀 `worker.js`（或 `index.js`），**全選（Ctrl+A）刪晒舊嘢**，貼上新程式碼。
+5. 撳右上角「Deploy」。
+6. **變數唔使郁**：SUPABASE_URL、APP_URL、SUPABASE_ANON_KEY 照舊。唔使加新變數，亦**唔好**加 service_role key。
+7. 試：用手機瀏覽器開一條分享連結並喺後面加 `?src=wa`（例如 `https://fishport-share.fishport1028.workers.dev/c/xxxxxxxxxxxx?src=wa`），應該照常跳入 App；過一陣入管理後台 →「使用分析」→ 最底「新用戶每日總數」，今日「分享連結打開」應該 +1，來源寫「開·WhatsApp」。

@@ -1271,7 +1271,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v172</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v173</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -5822,7 +5822,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v172</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v173</span>';
   }
   renderView(name);
 }
@@ -6230,6 +6230,20 @@ function withTimeout(promise, ms, label) {
   });
 }
 
+// v173：新用戶計數 — 只送事件名同來源（?src），冇 IP、冇位置、冇用戶 id；伺服器只存每日總數
+function trackVisit() {
+  try {
+    const q = new URLSearchParams(location.search);
+    const raw = (q.get('src') || '').toLowerCase();
+    const src = /^[a-z]{1,10}$/.test(raw) ? raw : null;
+    const ev = [];
+    if (!localStorage.getItem('hkf-seen')) { localStorage.setItem('hkf-seen', '1'); ev.push('new_visitor'); }
+    const c = q.get('c') || '';
+    if (c && c.length <= 40 && !sessionStorage.getItem('hkf-se-' + c)) { sessionStorage.setItem('hkf-se-' + c, '1'); ev.push('share_entry'); }
+    ev.forEach(e => { sb.rpc('track_event', { p_event: e, p_src: src }).then(() => {}, () => {}); });
+  } catch (e) {}
+}
+
 async function init() {
   try {
     setInitStatus('v102 啟動中', '正在初始化核心元件');
@@ -6252,6 +6266,7 @@ async function init() {
         showInitError('雲端服務未能載入', 'Supabase 函式庫未就緒，請檢查網絡或按下方按鈕重新載入');
         return;
       }
+      trackVisit();   // v173：匿名總數（登入前就計）
       setInitStatus('正在檢查登入狀態', 'getCurrentUser...');
       // Email Magic Link:用 Supabase Auth session 取代 localStorage hack
       try {

@@ -1,9 +1,25 @@
-// 釣港 分享預覽 Worker（v166）
+// 釣港 分享預覽 Worker（v166；v173 加：分享連結打開次數總數，冇 IP／位置）
 // GET /c/<token> → 回傳有 og:title / og:description / og:image 嘅 HTML，再跳去 App（APP_URL?c=<token>）。
 // 只用 anon key 調用公開 RPC share_catch_get（佢只回傳 魚種／重量／釣點／地區／日期／排名）。
 // 永不使用 service-role key。冇用戶名、GPS、備註、相。
 
 const TOKEN_RE = /^[A-Za-z0-9_-]{12}$/;
+const SRC_RE = /^[a-z]{1,10}$/;   // v173：?src=fb/ig/yt/wa…（伺服器再用白名單過濾）
+// v173：預覽機械人（WhatsApp／FB／Telegram 等）讀預覽唔計，只計真人打開
+const BOT_RE = /bot|crawl|spider|facebookexternalhit|facebookcatalog|whatsapp|telegram|twitterbot|slackbot|discord|linkedin|skype|line\/|preview|headless/i;
+
+export function isBot(ua) { return !ua || BOT_RE.test(ua); }
+
+async function trackOpen(env, src) {
+  // 只送事件名同來源；冇 IP、冇 UA、冇 token
+  const base = String(env.SUPABASE_URL || '').replace(/\/+$/, '');
+  await fetch(base + '/rest/v1/rpc/track_event', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', apikey: env.SUPABASE_ANON_KEY, authorization: 'Bearer ' + env.SUPABASE_ANON_KEY },
+    body: JSON.stringify({ p_event: 'share_open', p_src: src }),
+  }).catch(() => {});
+}
+
 const PERIOD = { all: '全部時間', year: '今年', quarter: '今季', month: '今個月' };
 
 function esc(s) {
@@ -71,7 +87,7 @@ async function fetchShare(env, token) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const app = String(env.APP_URL || '').replace(/\/?$/, '/');
     const image = app + 'og-image-v2.jpg';
@@ -80,7 +96,12 @@ export default {
     const token = m && TOKEN_RE.test(m[1]) ? m[1] : null;
     let data = null;
     if (token) { try { data = await fetchShare(env, token); } catch (e) { data = null; } }
-    const target = token && data ? app + '?c=' + token : app;
+    const rawSrc = (url.searchParams.get('src') || '').toLowerCase();
+    const src = SRC_RE.test(rawSrc) ? rawSrc : null;
+    const target = token && data ? app + '?c=' + token + (src ? '&src=' + src : '') : app;
+    if (token && data && request.method === 'GET' && !isBot(request.headers.get('user-agent')) && ctx && ctx.waitUntil) {
+      ctx.waitUntil(trackOpen(env, src));
+    }
     const html = renderHtml({ ...buildMeta(data), image, pageUrl: token && data ? url.origin + '/c/' + token : app, target });
     return new Response(request.method === 'HEAD' ? null : html, {
       status: 200,

@@ -898,6 +898,24 @@ async function vUsage(){
     +'<section class="card" aria-labelledby="t2"><h2 id="t2">熱門釣點（近 30 日）</h2><p class="hint">按用戶輸入嘅釣點名稱統計</p>'+((t.spots||[]).length?hbars(t.spots,'n',' 條'):empty('fish','未有數據'))+'</section></div>';
   h+='<section class="card" style="margin-top:12px"><h2>每週魚獲趨勢（近 8 週）</h2><p class="hint">每週一開始計</p>'+(wk.length?'<div class="bars" role="img" aria-label="每週魚獲條數圖表">'+wk.map(w=>'<div class="c" title="'+esc(w.w)+'：'+w.n+' 條"><b>'+w.n+'</b><i style="height:'+Math.max(3,Math.round(w.n*100/wmax))+'%"></i></div>').join('')+'</div><div class="xl" aria-hidden="true">'+wk.map(w=>'<span>'+esc(String(w.w).slice(5))+'</span>').join('')+'</div>':empty('fish','未有數據'))+'</section>';
   $('main').innerHTML=h;
+  growthCard();   // v173
+}
+
+/* ---------- v173：新用戶每日總數（只係總數，冇 IP／位置／個人資料） ---------- */
+const SRC_LBL={direct:'冇標籤',fb:'FB',ig:'IG',yt:'YouTube',wa:'WhatsApp',threads:'Threads',tg:'Telegram',x:'X',other:'其他'};
+async function growthCard(){
+  const box=document.createElement('section');box.className='card';box.style.marginTop='12px';box.id='growth-card';
+  box.innerHTML='<h2>新用戶每日總數（近 14 日，香港時間）</h2><p class="hint">分享連結打開＝Worker 計（唔計預覽機械人）；由分享入 App／新訪客＝App 計；註冊同第一條魚＝由帳戶同魚獲記錄計。只存每日總數，冇 IP、冇位置、冇個人資料。</p><div class="gc-body">載入中…</div>';
+  $('main').appendChild(box);
+  let rows;
+  try{rows=await rpc('admin_daily_counts',{p_days:14});}
+  catch(e){box.querySelector('.gc-body').innerHTML=empty('alert','未啟用新用戶計數','要先套用 v173 migration');return;}
+  const tot=k=>rows.reduce((a,r)=>a+(+r[k]||0),0);
+  const srcs=r=>Object.entries(r.by_src||{}).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{const [ev,s]=k.split(':');return esc((ev==='share_open'?'開':ev==='share_entry'?'入':'新')+'·'+(SRC_LBL[s]||s))+' '+v;}).join('、')||'—';
+  box.querySelector('.gc-body').innerHTML='<div class="tw" style="box-shadow:none;margin-top:8px"><table class="t"><thead><tr><th>日期</th><th>分享連結打開</th><th>由分享入 App</th><th>新訪客</th><th>註冊</th><th>第一條魚</th><th>來源</th></tr></thead><tbody>'
+    +'<tr><td class="first"><b>14 日合計</b></td><td class="num" data-l="分享連結打開">'+tot('share_open')+'</td><td class="num" data-l="由分享入 App">'+tot('share_entry')+'</td><td class="num" data-l="新訪客">'+tot('new_visitor')+'</td><td class="num" data-l="註冊">'+tot('signups')+'</td><td class="num" data-l="第一條魚">'+tot('first_catches')+'</td></tr>'
+    +rows.map(r=>'<tr><td class="first">'+esc(r.day)+'</td><td class="num" data-l="分享連結打開">'+r.share_open+'</td><td class="num" data-l="由分享入 App">'+r.share_entry+'</td><td class="num" data-l="新訪客">'+r.new_visitor+'</td><td class="num" data-l="註冊">'+r.signups+'</td><td class="num" data-l="第一條魚">'+r.first_catches+'</td><td data-l="來源" style="font-size:12px">'+srcs(r)+'</td></tr>').join('')
+    +'</tbody></table></div><p class="hint" style="margin-top:6px">來源：開＝分享連結打開、入＝由分享入 App、新＝新訪客。註冊同第一條魚冇來源分類。</p>';
 }
 
 /* ---------- v143：付費準備 ---------- */
