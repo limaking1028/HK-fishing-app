@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v168';  // v168: 成績卡移除底部 QR／網址，用魚相或 🐠
+const CACHE = 'hk-fishing-v169';  // v169: 釣點選單改做 秘點／其他；秘點對外隱藏位置
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
