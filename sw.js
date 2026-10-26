@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v170';  // v170: 成功畫面移除重複嘅「即時分享」同「複製連結」
+const CACHE = 'hk-fishing-v171';  // v171: 我的魚獲分享彈窗改用成績卡＋三個掣
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+

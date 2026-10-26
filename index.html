@@ -1271,7 +1271,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v170</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v171</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -4529,29 +4529,11 @@ async function shareCatch(id) {
   try {
   const c = state.catches.find(x => x.id === id);
   if (!c) return;
-  let sh;
-  try { sh = await getCatchShare(c); }
-  catch (e) { console.warn('[share link]', e); toast('未能建立分享連結（' + (e.message || '網絡錯誤') + '），改為只分享文字', 3500); sh = { url: appBaseUrl(), info: null }; }
-  const rankText = shareRankText(sh.info && sh.info.ranks);
-  let shareWd = weightDisplay(c);
-  let text = '🎣 我喺【釣港】記錄咗一條魚獲：\n'+(c.speciesIcon||'🐟')+' '+c.species+' '+shareWeightText(c.weight)+'\n📍 '+publicSpot(c)+' · '+formatDate(c.date);
-  if (rankText) text += '\n🏆 '+rankText;
-  text += '\n快嚟挑戰排行榜！';
-  state.shareMsg = { text: text, url: sh.url };
-  const body = document.getElementById('share-modal-body');
-  body.innerHTML =
-    '<div style="text-align:center;margin-bottom:16px;">'
-    + '<div style="font-size:32px;margin-bottom:6px;">'+escapeHtml(c.speciesIcon||'🐟')+'</div>'
-    + '<div style="font-size:16px;font-weight:700;">'+escapeHtml(c.species)+' '+shareWd.value+shareWd.unit+'</div>'
-    + '<div style="font-size:13px;color:var(--gray-4);">'+escapeHtml(publicSpot(c))+' · '+formatDate(c.date)+'</div>'
-    + '</div>'
-    + (rankText ? '<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:10px;padding:10px 14px;margin-bottom:16px;text-align:center;font-size:13px;font-weight:700;color:#92400e;">🏆 '+escapeHtml(rankText)+'</div>' : '')
-    + '<div style="font-size:12px;color:var(--gray-4);text-align:center;margin-bottom:10px;">分享唔會包括備註、GPS 位置同相片。</div>'
-    + '<div class="modal-btns" style="flex-direction:column;">'
-    + '<button class="btn btn-primary" data-action="native-share">📤 用系統分享（WhatsApp/微信）</button>'
-    + '<button class="btn btn-outline" data-action="copy-share">📋 複製分享連結</button>'
-    + '</div>';
+  // v171：彈窗用同記錄頁一樣嘅成績卡＋三個掣（renderScoreCard 共用）
+  state.shareCardId = id;
+  document.getElementById('share-modal-body').innerHTML = '<div id="share-card-wrap" style="text-align:center;margin:4px 0 8px;color:var(--gray-4);font-size:13px;">⏳ 製作成績卡中…</div>';
   document.getElementById('share-modal').classList.add('show');
+  await renderScoreCard(id, 'share-card-wrap');
   } catch (e) {
     console.error('[shareCatch] error:', e);
     alert('分享功能出錯：' + e.message + '\n\n請截圖畀我');
@@ -4631,8 +4613,10 @@ function drawScoreCard(c, info, url, photo) {
   // v168：底部「嚟挑戰排行榜／網址／QR」已移除（點連結已經會跳去網站）
   return { canvas: cv, text: '🎣 ' + c.species + ' ' + shareWeightText(c.weight) + (rank ? '\n' + scoreCardPromo(c, rank, wtxt) : '') + '\n快嚟【釣港】挑戰排行榜！' };
 }
-async function renderScoreCard(id) {
-  const wrap = document.getElementById('score-card-wrap');
+async function renderScoreCard(id, wrapId) {
+  wrapId = wrapId || 'score-card-wrap';   // v171：記錄頁或者我的魚獲分享彈窗
+  const live = () => (wrapId === 'score-card-wrap' ? state.lastCatchId === id : state.shareCardId === id) && document.getElementById(wrapId);
+  const wrap = document.getElementById(wrapId);
   const c = id && state.catches.find(x => x.id === id);
   if (!wrap || !c) return;
   let sh = { url: appBaseUrl(), info: null };
@@ -4640,9 +4624,9 @@ async function renderScoreCard(id) {
     state.shareCache = state.shareCache || {};
     try { sh = state.shareCache[c.id] || (state.shareCache[c.id] = await getCatchShare(c)); } catch (e) { console.warn('[score card]', e); }
   }
-  if (state.lastCatchId !== id || !document.getElementById('score-card-wrap')) return;  // 畫面已變
+  if (!live()) return;  // 畫面已變
   const photo = await loadCardPhoto(c.photoUrl);
-  if (state.lastCatchId !== id || !document.getElementById('score-card-wrap')) return;
+  if (!live()) return;
   let card = drawScoreCard(c, sh.info, sh.url, photo), dataUrl;
   try { dataUrl = card.canvas.toDataURL('image/png'); }
   catch (e) { card = drawScoreCard(c, sh.info, sh.url, null); dataUrl = card.canvas.toDataURL('image/png'); }   // v168：canvas 被污染就退返 🐠
@@ -4652,7 +4636,7 @@ async function renderScoreCard(id) {
     + '<div style="width:100%;max-width:320px;margin:10px auto 0;display:flex;flex-direction:column;gap:8px;">'
     + '<button class="btn btn-primary" style="background:#25D366;border-color:#25D366;" data-action="card-link">💬 分享連結（WhatsApp）</button>'
     + '<div style="display:flex;gap:6px;">'
-    + '<button class="btn btn-outline" style="flex:1;padding:10px 4px;font-size:14px;white-space:nowrap;" data-action="card-wa">🖼 發圖片</button>'
+    + '<button class="btn btn-outline" style="flex:1;padding:10px 4px;font-size:14px;white-space:nowrap;" data-action="card-wa">🖼 分享圖片</button>'
     + '<button class="btn btn-outline" style="flex:1;padding:10px 4px;font-size:14px;white-space:nowrap;" data-action="card-save">💾 儲存</button></div></div>';
 }
 // v164：預設分享 = 文字＋連結（唔夾相），等 WhatsApp 出連結預覽；冇 Web Share 就 wa.me
@@ -4673,19 +4657,6 @@ function saveScoreCard() {
   const sc = state.scoreCard; if (!sc) return;
   const a = document.createElement('a'); a.href = sc.dataUrl; a.download = 'diaogang-score.png';
   document.body.appendChild(a); a.click(); a.remove();
-}
-function nativeShare() {
-  const m = state.shareMsg; if (!m) return;
-  shareTextLink(m.text, m.url);
-}
-function copyShareLink() {
-  const m = state.shareMsg; if (!m) return;
-  const url = m.url;
-  navigator.clipboard.writeText(url).then(() => showToast('連結已複製')).catch(() => {
-    const ta = document.createElement('textarea'); ta.value = url; document.body.appendChild(ta); ta.select();
-    try { document.execCommand('copy'); showToast('連結已複製'); } catch(e) { showToast('複製失敗，請手動複製'); }
-    document.body.removeChild(ta);
-  });
 }
 function closeShareModal() { document.getElementById('share-modal').classList.remove('show'); }
 
@@ -5848,7 +5819,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v170</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v171</span>';
   }
   renderView(name);
 }
@@ -6462,8 +6433,6 @@ function setupGlobalHandlers() {
   window.confirmClearAll = confirmClearAll;
   window.setAnalyticsConsentAndClose = setAnalyticsConsentAndClose;  // Route M
   window.toggleAnalyticsConsent = toggleAnalyticsConsent;            // Route M
-  window.nativeShare = nativeShare;
-  window.copyShareLink = copyShareLink;
   window.closeShareModal = closeShareModal;
   window.importCatch = importCatch;
   window.closeImportModal = closeImportModal;
@@ -6524,33 +6493,6 @@ document.addEventListener('click', function(e) {
     return;
   }
 
-  // 2. 撳 modal 入面嘅「系統分享」
-  const nsBtn = e.target.closest('[data-action="native-share"]');
-  if (nsBtn) {
-    e.preventDefault();
-    e.stopPropagation();
-    try {
-      nativeShare(nsBtn.dataset.data);
-    } catch (err) {
-      console.error('[nativeShare] error:', err);
-      showToast('分享出錯：' + err.message);
-    }
-    return;
-  }
-
-  // 3. 撳 modal 入面嘅「複製連結」
-  const cpBtn = e.target.closest('[data-action="copy-share"]');
-  if (cpBtn) {
-    e.preventDefault();
-    e.stopPropagation();
-    try {
-      copyShareLink(cpBtn.dataset.data);
-    } catch (err) {
-      console.error('[copyShareLink] error:', err);
-      showToast('複製出錯：' + err.message);
-    }
-    return;
-  }
 });
 
 // 強制 unregister 舊 service worker（解決緩存問題）
