@@ -229,7 +229,7 @@ button { touch-action: manipulation; }
   .modal-btns { display: flex; gap: 10px; }
   .modal-btns .btn { flex: 1; }
   .modal-close { position: absolute; top: 12px; right: 16px; font-size: 22px; color: var(--gray-4); cursor: pointer; }
-  #main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 70px; }
+  #main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: calc(84px + var(--safe-bottom)); }  /* v179: tab bar 高度 + safe-area，捲到底唔會遮掣 */
   /* ===== Route H: 進行中行程 banner ===== */
   .active-trip-banner {
     background: linear-gradient(135deg, var(--orange), #ff8c5a);
@@ -327,7 +327,7 @@ button { touch-action: manipulation; }
   .view.active { display: block; }
   .view.fade-in { animation: fadeIn 0.25s ease; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-  #bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--white); display: flex; border-top: 1px solid var(--gray-2); padding-bottom: var(--safe-bottom); z-index: 100; box-shadow: 0 -2px 12px rgba(0,0,0,0.06); }
+  #bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; margin: 0 auto; width: 100%; max-width: 480px; background: var(--white); display: flex; border-top: 1px solid var(--gray-2); padding-bottom: var(--safe-bottom); z-index: 100; box-shadow: 0 -2px 12px rgba(0,0,0,0.06); }
   .nav-item { flex: 1; background: none; border: none; padding: 8px 0 10px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; color: var(--gray-4); transition: color 0.2s; font-family: inherit; }
   .nav-item.active { color: var(--teal-dark); }
   .nav-icon { font-size: 22px; }
@@ -1281,7 +1281,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v177</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v179</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -5917,7 +5917,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v177</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v179</span>';
   }
   renderView(name);
 }
