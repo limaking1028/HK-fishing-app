@@ -752,7 +752,7 @@ async function vReview(){
   S.queue=q;S.pending=q.length;renderNav();
   let h=header('審核中心');
   h+='<p class="hint" style="color:var(--mu);margin:-6px 0 14px">同一行程、同一魚種超過 30 條需要人手審核。批准後先計入數量榜同品種榜；請留意相片有冇重複、盜用或同一條魚影多次。</p>';
-  if(!q.length)h+='<div class="card">'+empty('check','冇待審核項目','全部處理好咗')+'</div>';
+  if(!q.length)h+='<div class="card"><h2>待審核：同一行程同一魚種超過 30 條</h2>'+empty('check','冇待審核項目','全部處理好咗')+'</div>';   // v172：加標題，免得同上面兩張卡混淆
   q.forEach((g,i)=>{
     h+='<section class="card" style="margin-bottom:12px" aria-label="審核項目 '+(i+1)+'"><div class="top" style="margin-bottom:0"><div><b style="font-size:16px">'+esc(g.display_name||'（未命名）')+'</b> <span class="pill warn">'+esc(g.species)+' · '+g.catch_count+' 條</span><div class="d" style="color:var(--mu);font-size:13px">行程 '+fmt(g.started_at)+(g.spot?' · '+esc(g.spot):'')+'</div></div></div>'
      +'<div class="rv-photos">'+(g.catches||[]).map(c=>{const u=safeImg(c.photo_url);return '<div class="ph">'+(u?'<button class="im" type="button" aria-label="放大相片" onclick="zoom(\''+esc(u)+'\',\''+esc(g.species)+' '+esc(c.weight_kg)+'kg · '+fmt(c.created_at)+'\')"><img loading="lazy" src="'+esc(u)+'" alt="'+esc(g.species)+'"></button>':'<div class="noimg">無相片</div>')+'<div class="m"><span>'+fmt(c.created_at).slice(5)+'</span><span class="d">'+esc(c.weight_kg)+' kg</span></div></div>';}).join('')+'</div>'
@@ -763,7 +763,7 @@ async function vReview(){
     +'</tbody></table></div>':empty('shield','未有審核紀錄'))+'</section>';
   S.done=done;
   $('main').innerHTML=h;
-  vLbPending();
+  vLbPending().then(vSpPending);   // v172：品種王者新魚種審核
 }
 /* 重量王者頭 10 名／魚種紀錄：批准前其他用戶睇唔到 */
 async function vLbPending(){
@@ -771,7 +771,7 @@ async function vLbPending(){
   S.lbp=rows||[];
   await Promise.all(S.lbp.map(async c=>{if(!c.proof_path)return;try{const r=await sb.storage.from('catch-proof').createSignedUrl(c.proof_path,600);c.proof_url=r.data&&r.data.signedUrl;}catch(e){}}));   // v159：私人 bucket，用 10 分鐘 signed URL
   S.pending=(S.queue||[]).length+S.lbp.length;renderNav();
-  let h='<section class="card" style="margin-bottom:16px"><h2>待審核：重量王者</h2><p class="hint" style="color:var(--mu);margin:4px 0 10px">重量王者只顯示已批准嘅魚獲（每個時段頭 10 名）。每條都要睇磅／尺相；「超重」= 超過該魚種一般上限，只係提示。改魚種、重量或磅相後要重新審核。</p><p><button class="btn sm ghost-bad" type="button" onclick="purgeTest(null)">'+ic('ban')+'清走所有測試魚獲</button></p>';
+  let h='<section class="card" id="lbp-card" style="margin-bottom:16px"><h2>待審核：重量王者</h2><p class="hint" style="color:var(--mu);margin:4px 0 10px">重量王者只顯示已批准嘅魚獲（每個時段頭 10 名）。每條都要睇磅／尺相；「超重」= 超過該魚種一般上限，只係提示。改魚種、重量或磅相後要重新審核。</p><p><button class="btn sm ghost-bad" type="button" onclick="purgeTest(null)">'+ic('ban')+'清走所有測試魚獲</button></p>';
   if(!S.lbp.length)h+=empty('check','冇待審核魚獲');
   else h+='<div class="rv-photos">'+S.lbp.map((c,i)=>{const u=safeImg(c.photo_url);return '<div class="ph">'+(u?'<button class="im" type="button" aria-label="放大相片" onclick="zoom(\''+esc(u)+'\',\''+esc(c.species)+' '+esc(c.weight_kg)+'kg\')"><img loading="lazy" src="'+esc(u)+'" alt="'+esc(c.species)+'"></button>':'<div class="noimg">無相片</div>')
     +(c.proof_url&&safeImg(c.proof_url)?'<button class="im" type="button" aria-label="放大磅／尺相" onclick="zoom(\''+esc(c.proof_url)+'\',\'磅／尺相 '+esc(c.weight_kg)+'kg\')"><img loading="lazy" src="'+esc(c.proof_url)+'" alt="磅／尺相"></button>':'<div class="noimg">無磅相</div>')
@@ -779,6 +779,26 @@ async function vLbPending(){
     +'<span><button class="btn sm ok" type="button"'+(c.proof_url&&safeImg(c.proof_url)?'':' disabled title="冇磅相（或者攞唔到相），唔可以批准"')+' onclick="lbpDecide('+i+',true)">'+ic('check')+'批准</button> <button class="btn sm ghost-bad" type="button" onclick="lbpDecide('+i+',false)">'+ic('ban')+'排除</button>'+(c.is_test?' <button class="btn sm ghost-bad" type="button" onclick="purgeTest('+i+')">刪除測試</button>':'')+'</span></div></div>';}).join('')+'</div>';
   h+='</section>';
   const m=$('main');const hd=m.querySelector('.card,section');if(hd)hd.insertAdjacentHTML('beforebegin',h);else m.insertAdjacentHTML('beforeend',h);
+}
+/* v172：品種王者 — 每人每個新魚種審一次（只睇魚相，認得出魚種就得）。決定由 DB（SECURITY DEFINER + is_admin）執行 */
+async function vSpPending(){
+  let rows;try{rows=await rpc('admin_species_pending');}catch(e){return;}   // 未執行 v172 migration 就唔顯示
+  S.spp=rows||[];
+  S.pending=(S.queue||[]).length+(S.lbp||[]).length+S.spp.length;renderNav();
+  let h='<section class="card" id="spp-card" style="margin-bottom:16px"><h2>待審核：品種王者</h2><p class="hint" style="color:var(--mu);margin:4px 0 10px">每人每個新魚種第一次要審一次：睇魚相認得出係呢個魚種就批准（唔使磅／尺相）。批准後呢個魚種一直計；拒絕後用戶下一條同魚種會再排隊。</p>';
+  if(!S.spp.length)h+=empty('check','冇待審核新魚種');
+  else h+='<div class="rv-photos">'+S.spp.map((c,i)=>{const u=safeImg(c.photo_url);return '<div class="ph">'+(u?'<button class="im" type="button" aria-label="放大相片" onclick="zoom(\''+esc(u)+'\',\''+esc(c.species)+'\')"><img loading="lazy" src="'+esc(u)+'" alt="'+esc(c.species)+'"></button>':'<div class="noimg">無相片</div>')
+    +'<div class="m"><b>'+esc(c.display_name||'（未命名）')+'</b><span>'+(c.rejected_before?'<span class="pill warn">曾拒絕</span> ':'')+'🐟 '+esc(c.species)+'</span><span class="d">'+esc(c.date||'')+' · '+fmt(c.created_at)+'</span>'
+    +'<span><button class="btn sm ok" type="button"'+(u?'':' disabled title="冇相，唔可以批准"')+' onclick="sppDecide('+i+',true)">'+ic('check')+'批准</button> <button class="btn sm ghost-bad" type="button" onclick="sppDecide('+i+',false)">'+ic('ban')+'拒絕</button></span></div></div>';}).join('')+'</div>';
+  h+='</section>';
+  const m=$('main'),lc=document.getElementById('lbp-card'),hd=m.querySelector('.card,section');
+  if(lc)lc.insertAdjacentHTML('afterend',h);else if(hd)hd.insertAdjacentHTML('beforebegin',h);else m.insertAdjacentHTML('beforeend',h);
+}
+async function sppDecide(i,ok){
+  const c=S.spp[i];if(!c)return;if(ok&&!safeImg(c.photo_url))return;
+  const r=await ask({title:ok?'批准呢個新魚種？':'拒絕呢個新魚種？',body:(c.display_name||'')+' 嘅 '+c.species+'。'+(ok?'批准後呢個魚種喺品種王者一直計。':'呢個魚種暫時唔計；用戶下一條同魚種會再排隊審核。'),ok:ok?'批准':'拒絕',danger:!ok,note:true});
+  if(!r)return;
+  try{await rpc('admin_species_review_set',{p_user:c.user_id,p_species:c.species,p_catch:c.catch_id,p_status:ok?'approved':'rejected',p_note:r.note||null});toast('已更新');vReviewRefresh();}catch(e){toast(e.message);}
 }
 /* v160：清走測試魚獲（null = 全部）。資料庫記錄由 RPC 刪；相檔用 Storage API 刪（policy 只容許刪自己資料夾） */
 async function purgeTest(i){
