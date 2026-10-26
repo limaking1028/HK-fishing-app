@@ -65,6 +65,7 @@
   <script src="./lib/weather.js"></script>
   <!-- Route J: GPS 自動偵測最近站（Geolocation API + Haversine） -->
   <script src="./lib/geo.js"></script>
+  <script src="./lib/qrcode-generator-2.0.4.js"></script><!-- v163 成績卡 QR（MIT, Kazuhiko Arase） -->
   <!-- Route K+: 魚獲 stats 增強（時間桶/月相/太陽/潮汐/地理，純前端） -->
   <script src="./lib/catchStats.js"></script>
   <!-- v142: 我的統計（免費版） -->
@@ -4455,7 +4456,9 @@ const SHARE_PERIOD = { all: '全部時間', year: '今年', quarter: '今季', m
 function shareRankText(ranks) {
   return (ranks || []).map(r => '重量王者（' + (SHARE_PERIOD[r.period] || '') + '）#' + r.rank).join('、');
 }
-function appBaseUrl() { return location.origin + location.pathname; }
+// v163：分享連結一律用正式網址（唔用 location，避免 localhost／index.html／APK 殼網址出現喺卡同連結）
+const APP_PUBLIC_URL = 'https://limaking1028.github.io/HK-fishing-app/';
+function appBaseUrl() { return APP_PUBLIC_URL; }
 async function getCatchShare(c) {
   // 回傳 { url, info }；冇雲端記錄（訪客／未同步／收藏）就 url = 主頁、info = null
   const cloud = SB_ENABLED && sb && state.user && c.isMine && !c.imported && !String(c.id).startsWith('temp-');
@@ -4526,7 +4529,7 @@ function drawScoreCard(c, info, url) {
   const g = cv.getContext('2d');
   const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#0b5563'); bg.addColorStop(1, '#063540');
   g.fillStyle = bg; g.fillRect(0, 0, W, H);
-  g.fillStyle = '#fff'; g.beginPath(); g.roundRect ? g.roundRect(40, 120, W - 80, 640, 28) : g.rect(40, 120, W - 80, 640); g.fill();
+  g.fillStyle = '#fff'; g.beginPath(); g.roundRect ? g.roundRect(40, 120, W - 80, 610, 28) : g.rect(40, 120, W - 80, 610); g.fill();
   g.textAlign = 'center';
   const F = '"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
   g.fillStyle = '#fff'; g.font = '700 44px ' + F; g.fillText('🎣 釣港 成績卡', W / 2, 80);
@@ -4542,6 +4545,21 @@ function drawScoreCard(c, info, url) {
     g.fillStyle = '#92400e'; g.font = '700 36px ' + F; g.fillText(scoreCardPromo(c, rank, wtxt), W / 2, 658);
   } else {
     g.fillStyle = '#334155'; g.font = '600 34px ' + F; g.fillText(scoreCardPromo(c, null, wtxt), W / 2, 658);
+  }
+  const hasLink = /\?c=[A-Za-z0-9_-]{12}$/.test(url);
+  if (hasLink && typeof qrcode === 'function') {
+    const q = qrcode(0, 'M'); q.addData(url); q.make();
+    const n = q.getModuleCount(), S = 132, cell = Math.floor(S / (n + 8)), size = cell * (n + 8), x0 = W - 40 - size, y0 = H - 18 - size;
+    g.fillStyle = '#fff'; g.fillRect(x0, y0, size, size);
+    g.fillStyle = '#000';
+    for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (q.isDark(r, k)) g.fillRect(x0 + (k + 4) * cell, y0 + (r + 4) * cell, cell, cell);
+    g.textAlign = 'left';
+    g.fillStyle = '#e2e8f0'; g.font = '30px ' + F; g.fillText('嚟挑戰排行榜 👉', 50, 812);
+    const shortQ = url.replace(/^https?:\/\//, ''); let fq = 22;
+    do { g.font = '600 ' + fq + 'px ' + F; } while (g.measureText(shortQ).width > x0 - 70 && --fq > 12);
+    g.fillText(shortQ, 50, 856);
+    g.textAlign = 'center';
+    return { canvas: cv, text: '🎣 ' + c.species + ' ' + wtxt + (rank ? '\n' + scoreCardPromo(c, rank, wtxt) : '') + '\n快嚟【釣港】挑戰排行榜！' };
   }
   g.fillStyle = '#e2e8f0'; g.font = '30px ' + F; g.fillText('嚟挑戰排行榜 👉', W / 2, 820);
   const short = url.replace(/^https?:\/\//, ''); let fs = 26;
