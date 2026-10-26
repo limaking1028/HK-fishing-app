@@ -4571,22 +4571,24 @@ function loadCardPhoto(src) {
   });
 }
 function drawScoreCard(c, info, url, photo) {
-  const W = 720, H = 770, cv = document.createElement('canvas');
+  // v168：有相 = 幾乎全闊；橫相 4:3（600×450），直相 4:5（600×750，直相只裁走少少高度，魚頭魚尾保留）；下面內容整體向下移 d
+  const PW = 600, PH = photo ? (photo.naturalHeight > photo.naturalWidth ? 750 : 450) : 0, d = photo ? 140 + PH + 10 - 330 : 0;
+  const W = 720, H = 770 + d, cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const g = cv.getContext('2d');
   const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#0b5563'); bg.addColorStop(1, '#063540');
   g.fillStyle = bg; g.fillRect(0, 0, W, H);
-  g.fillStyle = '#fff'; g.beginPath(); g.roundRect ? g.roundRect(40, 120, W - 80, 610, 28) : g.rect(40, 120, W - 80, 610); g.fill();
+  g.fillStyle = '#fff'; g.beginPath(); g.roundRect ? g.roundRect(40, 120, W - 80, 610 + d, 28) : g.rect(40, 120, W - 80, 610 + d); g.fill();
   g.textAlign = 'center';
   const F = '"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
   g.fillStyle = '#fff'; g.font = '700 44px ' + F; g.fillText('🎣 釣港 成績卡', W / 2, 80);
   const wd = weightDisplay(c), wtxt = wd.value + wd.unit;
   if (photo) {   // v168：置中裁切填滿＋圓角
-    const bx = 190, by = 150, bw = 340, bh = 180, sc = Math.max(bw / photo.naturalWidth, bh / photo.naturalHeight);
+    const bx = 60, by = 140, bw = PW, bh = PH, sc = Math.max(bw / photo.naturalWidth, bh / photo.naturalHeight);
     const sw = bw / sc, sh = bh / sc;
     g.save(); g.beginPath(); g.roundRect ? g.roundRect(bx, by, bw, bh, 20) : g.rect(bx, by, bw, bh); g.clip();
     g.drawImage(photo, (photo.naturalWidth - sw) / 2, (photo.naturalHeight - sh) / 2, sw, sh, bx, by, bw, bh); g.restore();
-    g.fillStyle = '#0f172a';
+    g.fillStyle = '#0f172a'; g.translate(0, d);
   } else { g.fillStyle = '#0f172a'; g.font = '120px ' + F; g.fillText('🐠', W / 2, 290); }
   g.font = '700 64px ' + F; g.fillText(c.species, W / 2, 400);
   g.fillStyle = '#0b5563'; g.font = '800 88px ' + F; g.fillText(wtxt, W / 2, 500);
