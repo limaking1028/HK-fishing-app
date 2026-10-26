@@ -1,12 +1,11 @@
-const CACHE = 'hk-fishing-v167';  // v167: 冇 GPS 唔再自動揀「魚排」
+const CACHE = 'hk-fishing-v168';  // v168: 成績卡移除底部 QR／網址，用魚相或 🐠
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
   './lib/auth.js',        // Email Magic Link
   './lib/weight.js',      // v108 重量單位
   './lib/leaderboard.js', // v109 排行榜上榜條件
-  './lib/myStats.js',     // v142 我的統計
-  './lib/qrcode-generator-2.0.4.js'  // v163 成績卡 QR
+  './lib/myStats.js'      // v142 我的統計
 ];
 
 self.addEventListener('install', e => {
