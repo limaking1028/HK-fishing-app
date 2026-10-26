@@ -12,7 +12,7 @@ STUB = r"""
 (function(){
 const UID='u1', now=new Date();
 const iso=(d)=>{const x=new Date(now.getTime()-d*864e5);return x.toISOString().slice(0,10)};
-const sp=[['黃腳鱲','🐠',2.4,'西貢碼頭'],['石狗公','🐡',0.9,'長洲'],['黑鱲','🐟',1.6,'石澳'],['牛屎鱲','🐟',0.4,'流浮山'],['沙鯭','🐡',0.3,'屯門碼頭'],['黃腳鱲','🐠',3.1,'白沙洲'],['釘公','🐟',0.6,'蒲台島'],['泥鯭','🐡',0.7,'青龍頭']];
+const sp=[['黃腳鱲','🐠',2.4,'西貢碼頭'],['石狗公','🐡',0.9,'長洲'],['黑鱲','🐟',1.6,'石澳'],['沙鯭','🐡',0.3,'屯門碼頭'],['黃腳鱲','🐠',3.1,'白沙洲'],['釘公','🐟',0.6,'蒲台島'],['泥鯭','🐡',0.7,'青龍頭']];
 const catches=sp.map((s,i)=>({id:'c'+i,user_id:UID,species:s[0],species_icon:s[1],weight_kg:s[2],weight_input:s[2],weight_unit:'kg',length:20+i*4,spot:s[3],date:iso(i*2),time:'0'+(6+i)+':30:00',method:'手竿',bait:'蝦',verified:true,notes:i%3==0?'黃昏流水好':'',leaderboard_eligible:i%2==0,ineligible_reason:i%2?'photo_not_fresh':null,trip_id:i<3?'t1':null,created_at:new Date(now.getTime()-i*864e5).toISOString()}));
 const trips=[
  {id:'t1',user_id:UID,started_at:new Date(now.getTime()-3*36e5).toISOString(),ended_at:null,spot:'西貢碼頭',method:'手竿',bait:'蝦',latitude:22.38,longitude:114.27,catch_count:3,total_weight_kg:6.1,haul_photos:[]},

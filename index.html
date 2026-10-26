@@ -1281,7 +1281,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v181</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v182</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -1432,13 +1432,12 @@ const FISH_SPECIES = [
   { name: '雞泡', icon: '🐡', sci: 'Diodon holocanthus', habitat: '礁石·沙底', desc: '河豚科，受刺激會充氣脹大', rarity: 'common', photo: 'photos/雞泡'},
   { name: '沙鯭', icon: '🐡', sci: 'Sillago sihama', habitat: '沙底·淺灘', desc: '沙底群居，灘釣常見', rarity: 'common', photo: 'photos/沙鯭'},
   { name: '黑鱲', icon: '🐟', sci: 'Acanthopagrus schlegelii', habitat: '礁石區', desc: '力大善搏，礁石區磯釣常見', rarity: 'common', photo: 'photos/黑鱲'},
-  { name: '牛屎鱲', icon: '🐟', sci: 'Rhabdosargus sarba', habitat: '淺水·泥灘', desc: '小型魚，淺灘常見，入門魚種', rarity: 'common', photo: 'photos/牛屎鱲'},
   { name: '三鬚', icon: '🐟', sci: 'Johnius belengerii', habitat: '沙泥底·淺海', desc: '石首魚科，下頜有3根觸鬚', rarity: 'common', photo: 'photos/三鬚'},
   { name: '梳羅', icon: '🐠', sci: 'Hapalogenys analis', habitat: '礁石區·深水', desc: '身體有黑色橫紋，磯釣高級魚', rarity: 'uncommon', photo: 'photos/梳羅'},
   { name: '牛鰍', icon: '🐟', sci: 'Platycephalus indicus', habitat: '沙泥底·淺海', desc: '底棲伏擊型，扁平頭部', rarity: 'common', photo: 'photos/牛鰍'},
   { name: '油蠟', icon: '🐟', sci: 'Sphyraena pinguis', habitat: '中層·岩礁', desc: '梭魚科，泳速快，掠食性', rarity: 'common', photo: 'photos/油蠟'},
   { name: '紅衫魚', icon: '🐠', sci: 'Nemipterus virgatus', habitat: '淺海·沙泥底', desc: '底棲魚，淺海沙泥底常見，體色偏紅', rarity: 'common', photo: 'photos/紅衫魚'},
-  { name: '盲鰽', icon: '🐟', sci: 'Atrobucca nibe', habitat: '深海·沙底', desc: '石首魚科，深海船釣對象', rarity: 'common', photo: 'photos/盲鰽'},
+  { name: '盲鰽', icon: '🐟', sci: 'Lates calcarifer', habitat: '河口·近岸', desc: '尖吻鱸科，河口及近岸常見，路亞熱門對象', rarity: 'common', photo: 'photos/盲鰽'},
   { name: '金鼓', icon: '🐡', sci: 'Scatophagus argus', habitat: '河口·半鹹淡', desc: '半鹹淡水棲，背鰭有毒刺', rarity: 'uncommon', photo: 'photos/金鼓'},
   { name: '烏頭', icon: '🐟', sci: 'Mugil cephalus', habitat: '河口·蠔排', desc: '雜食性，流浮山蠔排主力魚', rarity: 'common', photo: 'photos/烏頭'},
   { name: '沙鑽', icon: '🐟', sci: 'Sillago japonica', habitat: '沙底·淺灘', desc: '吻尖體長，沙底群居', rarity: 'common', photo: 'photos/沙鑽'},
@@ -1794,30 +1793,30 @@ function genSampleCatches() {
   const data = [
     [0,2,3.2,48,9,5,'17:30',5,1,true,'黃昏流水好，黃腳鱲連竿'],
     [0,1,1.8,38,5,12,'06:15',5,1,true,'清晨西風，黑沙鱲大咬'],
-    [1,7,0.6,28,2,8,'14:00',10,4,true,'沙鑽連竿'],
-    [2,10,0.8,28,2,15,'19:00',4,3,true,'颱風後長洲西灣，丁公瘋咬'],
+    [1,15,0.6,28,2,8,'14:00',10,4,true,'沙鑽連竿'],
+    [2,9,0.8,28,2,15,'19:00',4,3,true,'颱風後長洲西灣，丁公瘋咬'],
     [3,1,1.2,35,5,18,'06:30',5,1,true,'石澳磯釣，黑沙鱲收穫'],
     [4,6,2.8,42,1,3,'20:00',4,6,true,'夜釣碼頭，大烏頭'],
-    [5,14,0.8,25,8,7,'18:00',10,5,true,'蠔排金鼓，第一次釣到'],
+    [5,13,0.8,25,8,7,'18:00',10,5,true,'蠔排金鼓，第一次釣到'],
     [6,0,2.5,45,1,10,'17:00',5,1,true,'西貢碼頭黃昏中泥鯭'],
     [7,4,1.5,36,2,20,'16:00',4,2,false,'長洲灘釣白鱲'],
-    [8,11,0.9,28,9,6,'07:00',5,1,false,'青龍頭火點小咬'],
-    [9,12,0.5,22,1,2,'21:00',4,4,false,'屯門碼頭夜釣沙鯭'],
+    [8,10,0.9,28,9,6,'07:00',5,1,false,'青龍頭火點小咬'],
+    [9,11,0.5,22,1,2,'21:00',4,4,false,'屯門碼頭夜釣沙鯭'],
     [1,2,4.1,52,2,25,'15:00',10,4,true,'白沙洲排釣大黃腳鱲'],
-    [2,7,0.5,26,2,30,'13:00',4,3,true,'長洲沙鑽小咬'],
+    [2,15,0.5,26,2,30,'13:00',4,3,true,'長洲沙鑽小咬'],
     [3,2,2.2,40,5,14,'06:00',5,1,true,'石澳黃腳鱲2.2斤'],
-    [4,8,3.5,50,1,9,'19:30',0,4,true,'將軍澳防波堤牛鰍'],
+    [4,7,3.5,50,1,9,'19:30',0,4,true,'將軍澳防波堤牛鰍'],
     [5,5,0.8,25,2,40,'16:00',5,1,true,'蒲台島磯釣石狗公'],
-    [6,3,0.3,18,6,1,'08:00',4,6,false,'大美督牛屎鱲小咬'],
-    [7,9,0.4,24,2,35,'15:00',4,2,false,'坪洲灘釣沙鑽'],
-    [8,13,1.6,38,1,22,'17:30',5,0,true,'西貢金鯧連中'],
+    [6,3,0.3,18,6,1,'08:00',4,6,false,'大美督黃腳鱲小咬'],
+    [7,8,0.4,24,2,35,'15:00',4,2,false,'坪洲灘釣沙鑽'],
+    [8,12,1.6,38,1,22,'17:30',5,0,true,'西貢金鯧連中'],
     [0,2,2.5,41,9,45,'06:30',5,1,true,'青龍頭黃腳鱲2.5斤 PB'],
-    [9,9,1.2,30,8,60,'19:00',10,5,true,'流浮山夜釣紅衫'],
+    [9,8,1.2,30,8,60,'19:00',10,5,true,'流浮山夜釣紅衫'],
     [4,6,1.5,35,1,50,'20:00',4,6,false,'屯門碼頭烏頭'],
     [3,1,3.0,47,9,33,'07:00',5,1,true,'青龍頭黑沙鱲3斤'],
     [10,2,3.8,49,1,3,'17:30',5,1,true,'西貢碼頭黃昏中黃腳鱲3.8斤'],
     [10,6,3.2,46,8,8,'20:00',0,5,true,'流浮山夜釣烏頭3.2斤'],
-    [10,3,0.4,20,6,12,'08:00',4,6,false,'大美督牛屎鱲細條'],
+    [10,3,0.4,20,6,12,'08:00',4,6,false,'大美督黃腳鱲細條'],
   ];
   data.forEach(d => {
     const date = new Date(now); date.setDate(date.getDate() - d[5]);
@@ -2374,7 +2373,7 @@ function renderSpeciesSelector() {
   html += '<div class="sp-grid">';
   if (top.length === 0 || top.every(t => t.count === 0 && !t.pinned)) {
     // v175：新用戶未有紀錄 → 顯示 8 種香港最常見魚
-    const COMMON = ['泥鯭', '黃腳鱲', '黑鱲', '石狗公', '釘公', '沙鯭', '牛屎鱲', '烏頭'];
+    const COMMON = ['泥鯭', '黃腳鱲', '黑鱲', '石狗公', '釘公', '沙鯭', '烏頭'];
     const common = getAllSpecies().filter(it => COMMON.includes(it.f.name)).sort((a, b) => COMMON.indexOf(a.f.name) - COMMON.indexOf(b.f.name));
     if (common.length) common.forEach(item => { html += renderCard(item); });
     else html += '<div class="sp-empty">尚未記錄魚獲 — 全部 ' + FISH_SPECIES.filter(f => !f.custom).length + ' 種魚可按下面「全部」展開揀選 🎣</div>';
@@ -5917,7 +5916,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v181</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v182</span>';
   }
   renderView(name);
 }
