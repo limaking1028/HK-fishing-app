@@ -1256,7 +1256,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v160</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v162</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -4449,24 +4449,34 @@ async function clearAllRecords() {
 }
 
 /* ===== 輕量分享（路徑一） ===== */
-function shareCatch(id) {
+// v162：分享唔再帶備註、名次、釣法魚餌入連結。雲端魚獲用短連結 ?c=<token>，名次由伺服器（share_catch_get）計。
+const SHARE_PERIOD = { all: '全部時間', year: '今年', quarter: '今季', month: '今個月' };
+function shareRankText(ranks) {
+  return (ranks || []).map(r => '重量王者（' + (SHARE_PERIOD[r.period] || '') + '）#' + r.rank).join('、');
+}
+function appBaseUrl() { return location.origin + location.pathname; }
+async function getCatchShare(c) {
+  // 回傳 { url, info }；冇雲端記錄（訪客／未同步／收藏）就 url = 主頁、info = null
+  const cloud = SB_ENABLED && sb && state.user && c.isMine && !c.imported && !String(c.id).startsWith('temp-');
+  if (!cloud) return { url: appBaseUrl(), info: null };
+  const { data: token, error } = await sb.rpc('share_catch_create', { p_catch: c.id });
+  if (error || !token) throw error || new Error('建立分享連結失敗');
+  const { data: info } = await sb.rpc('share_catch_get', { p_token: token });
+  return { url: appBaseUrl() + '?c=' + encodeURIComponent(token), info: info || null };
+}
+async function shareCatch(id) {
   try {
   const c = state.catches.find(x => x.id === id);
   if (!c) return;
-  const myRankings = getMyCatchRankings();
-  const catchRanks = (myRankings[c.id] || []);
-  const rankText = catchRanks.map(r => r.lb+' #'+r.rank).join('、');
-  const data = btoa(unescape(encodeURIComponent(JSON.stringify({
-    s: c.species, i: c.speciesIcon || '🐟', w: c.weight, v: 2, l: c.length || 0,
-    p: c.spot, d: c.date, t: c.time, m: c.method, b: c.bait, n: c.notes || '', u: c.user,
-    r: catchRanks
-  }))));
-  const base = location.origin + location.pathname;
-  const shareUrl = base + '?share=' + data;
+  let sh;
+  try { sh = await getCatchShare(c); }
+  catch (e) { console.warn('[share link]', e); toast('未能建立分享連結（' + (e.message || '網絡錯誤') + '），改為只分享文字', 3500); sh = { url: appBaseUrl(), info: null }; }
+  const rankText = shareRankText(sh.info && sh.info.ranks);
   let shareWd = weightDisplay(c);
-  let text = '🎣 '+c.user+' 喺【釣港】記錄咗一條魚獲：\n'+(c.speciesIcon||'🐟')+' '+c.species+' '+shareWd.value+shareWd.unit+'\n📍 '+c.spot+' · '+formatDate(c.date);
-  if (rankText) text += '\n🏆 排行榜名次：'+rankText;
+  let text = '🎣 我喺【釣港】記錄咗一條魚獲：\n'+(c.speciesIcon||'🐟')+' '+c.species+' '+shareWd.value+shareWd.unit+'\n📍 '+c.spot+' · '+formatDate(c.date);
+  if (rankText) text += '\n🏆 '+rankText;
   text += '\n快嚟挑戰排行榜！';
+  state.shareMsg = { text: text, url: sh.url };
   const body = document.getElementById('share-modal-body');
   body.innerHTML =
     '<div style="text-align:center;margin-bottom:16px;">'
@@ -4474,14 +4484,11 @@ function shareCatch(id) {
     + '<div style="font-size:16px;font-weight:700;">'+escapeHtml(c.species)+' '+shareWd.value+shareWd.unit+'</div>'
     + '<div style="font-size:13px;color:var(--gray-4);">'+escapeHtml(c.spot)+' · '+formatDate(c.date)+'</div>'
     + '</div>'
-    + (catchRanks.length ? '<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:10px;padding:10px 14px;margin-bottom:16px;text-align:center;">'
-      + '<div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:6px;">🏆 排行榜名次</div>'
-      + '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">'
-      + catchRanks.map(r => '<span style="background:#fff;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;color:#92400e;border:1px solid #fcd34d;">'+r.lb+' #'+r.rank+'</span>').join('')
-      + '</div></div>' : '')
+    + (rankText ? '<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:10px;padding:10px 14px;margin-bottom:16px;text-align:center;font-size:13px;font-weight:700;color:#92400e;">🏆 '+escapeHtml(rankText)+'</div>' : '')
+    + '<div style="font-size:12px;color:var(--gray-4);text-align:center;margin-bottom:10px;">分享唔會包括備註、GPS 位置同相片。</div>'
     + '<div class="modal-btns" style="flex-direction:column;">'
-    + '<button class="btn btn-primary" data-action="native-share" data-data="'+data+'">📤 用系統分享（WhatsApp/微信）</button>'
-    + '<button class="btn btn-outline" data-action="copy-share" data-data="'+data+'">📋 複製分享連結</button>'
+    + '<button class="btn btn-primary" data-action="native-share">📤 用系統分享（WhatsApp/微信）</button>'
+    + '<button class="btn btn-outline" data-action="copy-share">📋 複製分享連結</button>'
     + '</div>';
   document.getElementById('share-modal').classList.add('show');
   } catch (e) {
@@ -4502,22 +4509,17 @@ async function deleteCatch(id) {
   renderAll();
   toast('已刪除');
 }
-function nativeShare(data) {
-  const base = location.origin + location.pathname;
-  const url = base + '?share=' + data;
-  const d = parseShareData(data);
-  if (!d) return;
-  let text = '🎣 嚟【釣港】睇下'+d.u+'嘅魚獲！\n'+(d.i||'🐟')+' '+d.s+' '+fmtWeight(d.w)+'\n📍 '+d.p+' · '+formatDate(d.d);
-  if (d.r && d.r.length) text += '\n🏆 排行榜名次：'+d.r.map(r => r.lb+' #'+r.rank).join('、');
+function nativeShare() {
+  const m = state.shareMsg; if (!m) return;
   if (navigator.share) {
-    navigator.share({ title: '釣港', text: text, url: url }).catch(()=>{});
+    navigator.share({ title: '釣港', text: m.text, url: m.url }).catch(()=>{});
   } else {
-    navigator.clipboard.writeText(text + '\n' + url).then(() => showToast('已複製，可貼到 WhatsApp / 微信')).catch(()=>{});
+    navigator.clipboard.writeText(m.text + '\n' + m.url).then(() => showToast('已複製，可貼到 WhatsApp / 微信')).catch(()=>{});
   }
 }
-function copyShareLink(data) {
-  const base = location.origin + location.pathname;
-  const url = base + '?share=' + data;
+function copyShareLink() {
+  const m = state.shareMsg; if (!m) return;
+  const url = m.url;
   navigator.clipboard.writeText(url).then(() => showToast('連結已複製')).catch(() => {
     const ta = document.createElement('textarea'); ta.value = url; document.body.appendChild(ta); ta.select();
     try { document.execCommand('copy'); showToast('連結已複製'); } catch(e) { showToast('複製失敗，請手動複製'); }
@@ -4541,12 +4543,35 @@ function parseShareData(raw) {
     l: Math.max(0, Math.min(500, Number(j.l) || 0)),
     p: str(j.p, 60), d: /^\d{4}-\d{2}-\d{2}$/.test(str(j.d, 10)) ? str(j.d, 10) : localDateStr(),
     t: /^\d{2}:\d{2}/.test(str(j.t, 8)) ? str(j.t, 5) : '', m: str(j.m, 20), b: str(j.b, 20),
-    n: str(j.n, 200), u: str(j.u, 20) || '朋友',
-    r: Array.isArray(j.r) ? j.r.slice(0, 5).map(x => ({ lb: str(x && x.lb, 12), rank: Math.max(0, Math.min(999, parseInt(x && x.rank, 10) || 0)) })) : []
+    // v162：舊式連結嘅備註、名次、名稱一律唔信、唔顯示（可以俾人改）
+    n: '', u: '朋友', r: []
   };
+}
+// v162：短連結 ?c=<token> — 由伺服器讀真數據（只有魚種、重量、釣點、日期、伺服器計嘅名次）
+async function showServerSharedCatch(token) {
+  const body = document.getElementById('import-modal-body');
+  const e = escapeHtml;
+  let d = null;
+  try { if (sb) { const r = await sb.rpc('share_catch_get', { p_token: token }); d = r.data || null; } } catch (err) { console.warn('[share get]', err); }
+  const rankText = d ? shareRankText(d.ranks) : '';
+  const w = d ? Number(d.weight_kg) : NaN;
+  body.innerHTML = d
+    ? '<div style="text-align:center;padding:8px 0 16px;">'
+      + '<div style="font-size:13px;color:var(--gray-4);margin-bottom:12px;">🎣 釣友分享的魚獲</div>'
+      + '<div style="font-size:48px;">'+e(d.icon || '🐟')+'</div>'
+      + '<div style="font-size:20px;font-weight:700;margin:8px 0;">'+e(d.species)+(isFinite(w) ? ' '+e(fmtWeight(w)) : '')+'</div>'
+      + '<div style="font-size:14px;color:var(--gray-5);">'+e(d.area || d.spot || '')+(d.date ? ' · '+e(formatDate(d.date)) : '')+'</div>'
+      + '</div>'
+      + (rankText ? '<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:10px;padding:10px 14px;margin-bottom:16px;text-align:center;font-size:13px;font-weight:700;color:#92400e;">🏆 '+e(rankText)+'</div>' : '')
+      + '<button class="btn btn-primary" style="width:100%;" onclick="closeImportModal();clearShareParam();">打開 App</button>'
+    : '<div style="text-align:center;padding:16px 0;color:var(--gray-5);">搵唔到呢條分享（可能已刪除）。</div>'
+      + '<button class="btn btn-outline" style="width:100%;" onclick="closeImportModal();clearShareParam();">打開 App</button>';
+  document.getElementById('import-modal').classList.add('show');
 }
 function checkSharedCatch() {
   const params = new URLSearchParams(location.search);
+  const cTok = params.get('c') || '';
+  if (cTok) { if (/^[A-Za-z0-9_-]{12}$/.test(cTok)) showServerSharedCatch(cTok); else clearShareParam(); return; }
   // URLSearchParams 會將 base64 內嘅 '+' 變成空格，要還原
   const shareData = (params.get('share') || '').replace(/ /g, '+');
   if (!shareData) return;
@@ -4558,7 +4583,7 @@ function checkSharedCatch() {
     const e = escapeHtml;
     body.innerHTML =
       '<div style="text-align:center;padding:8px 0 16px;">'
-      + '<div style="font-size:13px;color:var(--gray-4);margin-bottom:12px;">🎣 朋友分享的魚獲</div>'
+      + '<div style="font-size:13px;color:var(--gray-4);margin-bottom:12px;">🎣 朋友分享的魚獲（舊式連結，內容未經核實）</div>'
       + '<div style="font-size:48px;">'+e(d.i)+'</div>'
       + '<div style="font-size:20px;font-weight:700;margin:8px 0;">'+e(d.s)+' '+fmtWeight(d.w)+'</div>'
       + '<div style="font-size:14px;color:var(--gray-5);">'+e(d.p)+' · '+formatDate(d.d)+' '+e(d.t)+'</div>'
@@ -4884,7 +4909,7 @@ function openSpotShare(preselect) {
   ov.innerHTML = '<div class="modal-sheet" style="position:relative;" role="dialog" aria-label="分享釣點">'
     + '<span class="modal-close" role="button" aria-label="關閉" onclick="closeSpotShare()">✕</span>'
     + '<div class="modal-title">📤 分享釣點</div>'
-    + '<div style="font-size:13px;color:var(--gray-4);margin-bottom:8px;text-align:center;">揀你想分享嘅釣點。對方會見到<b>釣點名稱同地圖位置</b>；冇揀嘅釣點唔會分享。</div>'
+    + '<div style="font-size:13px;color:var(--gray-4);margin-bottom:8px;text-align:center;">揀你想分享嘅釣點。對方只會見到<b>釣點名稱</b>（唔包括 GPS 位置）；冇揀嘅釣點唔會分享。</div>'
     + rows
     + '<button type="button" class="btn btn-primary" style="width:100%;margin-top:14px;" onclick="doSpotShare()">分享已揀釣點</button></div>';
   ov.classList.add('show');
@@ -4895,7 +4920,7 @@ async function doSpotShare() {
   const picked = [...ov.querySelectorAll('input[type=checkbox]:checked')].map(cb => _shareSpots[+cb.dataset.i]).filter(Boolean);
   if (!picked.length) { toast('請先揀至少一個釣點'); return; }
   const text = '🎣 ' + getUserName() + ' 喺【釣港】分享咗釣點：\n\n'
-    + picked.map(x => '📍 ' + x.name + '\nhttps://www.google.com/maps?q=' + x.lat.toFixed(5) + ',' + x.lng.toFixed(5)).join('\n\n')
+    + picked.map(x => '📍 ' + x.name).join('\n')   // v162：預設唔出 GPS 座標（保留座標＋警告要等主人決定）
     + '\n\n' + location.origin + location.pathname;
   try {
     if (navigator.share) { await navigator.share({ text }); closeSpotShare(); return; }
@@ -5662,7 +5687,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v160</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v162</span>';
   }
   renderView(name);
 }
@@ -6403,7 +6428,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 /* ---------- v152：客戶端錯誤回報 + 公告橫幅（失敗都唔影響 App 運作） ---------- */
-const APP_BUILD_LABEL = 'v160';
+const APP_BUILD_LABEL = 'v162';
 const ERR_REPORTED = new Set();
 let errReportCount = 0;
 function reportClientError(err, source) {
