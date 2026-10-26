@@ -1271,7 +1271,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v168</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v169</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -2184,10 +2184,14 @@ function renderRecordView() {
         + '<button type="button" id="gps-btn" class="' + btnClass + '" onclick="getCurrentLocation()" style="width:100%;margin-top:8px;">' + btnText + '</button>'
         + '<input type="hidden" id="catch-lat" value="'+(state.catchLat||'')+'"><input type="hidden" id="catch-lng" value="'+(state.catchLng||'')+'"><input type="hidden" id="catch-accuracy" value="'+(state.catchAccuracy||'')+'">'
         // v167：冇 GPS 唔再靜靜雞預設第一個（魚排）；顯示「未選釣點」俾用戶自己揀
-        + '<select id="catch-spot" ' + (state.catchLat ? 'style="display:none;"' : 'class="form-select" style="margin-top:8px;" onchange="pickSpotManual(this.value)"') + '>'
+        // v169：選單只留「未選釣點／秘點／其他」；GPS（或行程）自動識別嘅釣點會臨時加做一個選項，用戶可以改揀秘點
+        + '<select id="catch-spot" class="form-select" style="margin-top:8px;" onchange="pickSpotManual(this.value)">'
         + '<option value=""' + (state.selectedSpot ? '' : ' selected') + '>未選釣點</option>'
-        + FISHING_SPOTS.map(s => '<option value="'+s.name+'"'+(state.selectedSpot===s.name?' selected':'')+'>'+s.name+'</option>').join('')
+        + (state.selectedSpot && state.selectedSpot !== '秘點' && state.selectedSpot !== '其他' ? '<option value="'+state.selectedSpot+'" selected>'+state.selectedSpot+'</option>' : '')
+        + '<option value="秘點"' + (state.selectedSpot==='秘點'?' selected':'') + '>🤫 秘點（對外唔顯示位置）</option>'
+        + '<option value="其他"' + (state.selectedSpot==='其他'?' selected':'') + '>其他（自己輸入名）</option>'
         + '</select>'
+        + '<div style="font-size:11px;color:var(--gray-4);margin-top:4px;">揀「秘點」：分享同排行榜只顯示「📍 秘點」，GPS 只留喺後台做驗證</div>'
         + '<input type="hidden" id="custom-spot" value="'+(state.customSpot||'')+'">'
         + '</div>';
     })()
@@ -2587,6 +2591,7 @@ function getCurrentLocation() {
       autoDetectSpot(fuzzedLat, fuzzedLng).then(result => {
         const detectEl = status.querySelector('.gps-detect-status');
         if (!detectEl) return;
+        if (state.selectedSpot === '秘點') { detectEl.textContent = '🤫 已揀秘點（位置唔會公開）'; return; }  // v169：用戶已揀秘點，唔好覆蓋
         if (result.type === 'local') {
           detectEl.innerHTML = '🎯 自動匹配：<b>' + result.spot + '</b>（距離 ' + result.distance + 'm）';
           detectEl.className = 'gps-detect-status success';
@@ -2657,6 +2662,10 @@ function haversineDistance(lat1, lng1, lat2, lng2) {
 }
 // v167：手動揀釣點（冇 GPS 時用）；揀「其他」就問名
 function pickSpotManual(v) {
+  if (v === '秘點') {  // v169：秘點唔帶任何名／備註
+    state.customSpot = '';
+    const ci = document.getElementById('custom-spot'); if (ci) ci.value = '';
+  }
   if (v === '其他') {
     state.customSpot = (prompt('請輸入釣點名稱', state.customSpot || '') || '').trim();
     const ci = document.getElementById('custom-spot'); if (ci) ci.value = state.customSpot;
@@ -2668,6 +2677,11 @@ function selectSpot(spotName) {
   state.selectedSpot = spotName;
   const sel = document.getElementById('catch-spot');
   if (sel) {
+    // v169：選單冇舊釣點清單，自動識別到嘅釣點臨時加做選項
+    if (spotName && ![...sel.options].some(o => o.value === spotName)) {
+      const o = document.createElement('option'); o.value = o.textContent = spotName;
+      sel.insertBefore(o, sel.options[1] || null);
+    }
     sel.value = spotName;
     onSpotChange(spotName);
   }
@@ -2823,8 +2837,7 @@ function submitCatch() {
         state.selectedSpot = '其他';
         state.customSpot = tripSpot;
       }
-      const sel = document.getElementById('catch-spot');
-      if (sel) sel.value = state.selectedSpot;
+      selectSpot(state.selectedSpot);   // v169：會自動補返選項
     }
     if (state.activeTrip.method && !state.selectedMethod) {
       state.selectedMethod = state.activeTrip.method;
@@ -2841,7 +2854,9 @@ function submitCatch() {
   if (!spotRaw) { toast('未有 GPS 定位，請先喺「📍 釣點」揀返釣點'); return; }
   const spotDetail = (state.customSpot || '').trim();
   let spot;
-  if (spotRaw === '其他') {
+  if (spotRaw === '秘點') {
+    spot = '秘點';  // v169：唔帶備註；spot_area 會係空（getSpotInfo 搵唔到）
+  } else if (spotRaw === '其他') {
     if (!spotDetail) { toast('請輸入釣點名稱'); return; }
     spot = spotDetail;
   } else {
@@ -4593,7 +4608,7 @@ function drawScoreCard(c, info, url, photo) {
   g.font = '700 64px ' + F; g.fillText(c.species, W / 2, 400);
   g.fillStyle = '#0b5563'; g.font = '800 88px ' + F; g.fillText(wtxt, W / 2, 500);
   g.fillStyle = '#64748b'; g.font = '32px ' + F;
-  g.fillText('📍 ' + ((info && (info.area || info.spot)) || c.spot || '') + ' · ' + formatDate(c.date), W / 2, 565);
+  g.fillText('📍 ' + (c.spot === '秘點' ? '秘點' : ((info && (info.area || info.spot)) || c.spot || '')) + ' · ' + formatDate(c.date), W / 2, 565);
   const rank = bestRank(info && info.ranks);
   if (rank) {
     g.fillStyle = '#fde68a'; g.fillRect(90, 605, W - 180, 80);
@@ -5829,7 +5844,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v168</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v169</span>';
   }
   renderView(name);
 }
