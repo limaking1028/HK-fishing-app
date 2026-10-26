@@ -80,7 +80,6 @@
   <script src="./lib/weather.js"></script>
   <!-- Route J: GPS 自動偵測最近站（Geolocation API + Haversine） -->
   <script src="./lib/geo.js"></script>
-  <script src="./lib/qrcode-generator-2.0.4.js"></script><!-- v163 成績卡 QR（MIT, Kazuhiko Arase） -->
   <!-- Route K+: 魚獲 stats 增強（時間桶/月相/太陽/潮汐/地理，純前端） -->
   <script src="./lib/catchStats.js"></script>
   <!-- v142: 我的統計（免費版） -->
@@ -1272,7 +1271,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v167</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v168</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -4559,18 +4558,38 @@ function shareWeightText(kg) {
   const n = Number(kg); if (!isFinite(n) || n <= 0) return '';
   return (n < 1 ? Math.round(n * 1000) + 'g' : n.toFixed(2).replace(/\.?0+$/, '') + 'kg') + '（' + weightLib.format(n, 'jin').value + ' 斤）';
 }
-function drawScoreCard(c, info, url) {
-  const W = 720, H = 900, cv = document.createElement('canvas');
+// v168：成績卡魚相 — 有上傳相就用（crossOrigin，5 秒逾時），冇／失敗就用 🐠；相只喺本機畫，唔會送去任何地方
+function loadCardPhoto(src) {
+  return new Promise(res => {
+    if (typeof src !== 'string' || !/^https:\/\//.test(src)) return res(null);
+    const im = new Image(); let done = false;
+    const fin = v => { if (!done) { done = true; res(v); } };
+    im.crossOrigin = 'anonymous';
+    im.onload = () => fin(im.naturalWidth ? im : null); im.onerror = () => fin(null);
+    setTimeout(() => fin(null), 5000);
+    im.src = src;
+  });
+}
+function drawScoreCard(c, info, url, photo) {
+  // v168：有相 = 幾乎全闊；橫相 4:3（600×450），直相 4:5（600×750，直相只裁走少少高度，魚頭魚尾保留）；下面內容整體向下移 d
+  const PW = 600, PH = photo ? (photo.naturalHeight > photo.naturalWidth ? 750 : 450) : 0, d = photo ? 140 + PH + 10 - 330 : 0;
+  const W = 720, H = 770 + d, cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const g = cv.getContext('2d');
   const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#0b5563'); bg.addColorStop(1, '#063540');
   g.fillStyle = bg; g.fillRect(0, 0, W, H);
-  g.fillStyle = '#fff'; g.beginPath(); g.roundRect ? g.roundRect(40, 120, W - 80, 610, 28) : g.rect(40, 120, W - 80, 610); g.fill();
+  g.fillStyle = '#fff'; g.beginPath(); g.roundRect ? g.roundRect(40, 120, W - 80, 610 + d, 28) : g.rect(40, 120, W - 80, 610 + d); g.fill();
   g.textAlign = 'center';
   const F = '"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
   g.fillStyle = '#fff'; g.font = '700 44px ' + F; g.fillText('🎣 釣港 成績卡', W / 2, 80);
   const wd = weightDisplay(c), wtxt = wd.value + wd.unit;
-  g.fillStyle = '#0f172a'; g.font = '120px ' + F; g.fillText(c.speciesIcon || '🐟', W / 2, 290);
+  if (photo) {   // v168：置中裁切填滿＋圓角
+    const bx = 60, by = 140, bw = PW, bh = PH, sc = Math.max(bw / photo.naturalWidth, bh / photo.naturalHeight);
+    const sw = bw / sc, sh = bh / sc;
+    g.save(); g.beginPath(); g.roundRect ? g.roundRect(bx, by, bw, bh, 20) : g.rect(bx, by, bw, bh); g.clip();
+    g.drawImage(photo, (photo.naturalWidth - sw) / 2, (photo.naturalHeight - sh) / 2, sw, sh, bx, by, bw, bh); g.restore();
+    g.fillStyle = '#0f172a'; g.translate(0, d);
+  } else { g.fillStyle = '#0f172a'; g.font = '120px ' + F; g.fillText('🐠', W / 2, 290); }
   g.font = '700 64px ' + F; g.fillText(c.species, W / 2, 400);
   g.fillStyle = '#0b5563'; g.font = '800 88px ' + F; g.fillText(wtxt, W / 2, 500);
   g.fillStyle = '#64748b'; g.font = '32px ' + F;
@@ -4582,25 +4601,7 @@ function drawScoreCard(c, info, url) {
   } else {
     g.fillStyle = '#334155'; g.font = '600 34px ' + F; g.fillText(scoreCardPromo(c, null, wtxt), W / 2, 658);
   }
-  const hasLink = /(\?c=|\/c\/)[A-Za-z0-9_-]{12}$/.test(url);
-  if (hasLink && typeof qrcode === 'function') {
-    const q = qrcode(0, 'M'); q.addData(url); q.make();
-    const n = q.getModuleCount(), S = 132, cell = Math.floor(S / (n + 8)), size = cell * (n + 8), x0 = W - 40 - size, y0 = H - 18 - size;
-    g.fillStyle = '#fff'; g.fillRect(x0, y0, size, size);
-    g.fillStyle = '#000';
-    for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (q.isDark(r, k)) g.fillRect(x0 + (k + 4) * cell, y0 + (r + 4) * cell, cell, cell);
-    g.textAlign = 'left';
-    g.fillStyle = '#e2e8f0'; g.font = '30px ' + F; g.fillText('嚟挑戰排行榜 👉', 50, 812);
-    const shortQ = url.replace(/^https?:\/\//, ''); let fq = 22;
-    do { g.font = '600 ' + fq + 'px ' + F; } while (g.measureText(shortQ).width > x0 - 70 && --fq > 12);
-    g.fillText(shortQ, 50, 856);
-    g.textAlign = 'center';
-    return { canvas: cv, text: '🎣 ' + c.species + ' ' + shareWeightText(c.weight) + (rank ? '\n' + scoreCardPromo(c, rank, wtxt) : '') + '\n快嚟【釣港】挑戰排行榜！' };
-  }
-  g.fillStyle = '#e2e8f0'; g.font = '30px ' + F; g.fillText('嚟挑戰排行榜 👉', W / 2, 820);
-  const short = url.replace(/^https?:\/\//, ''); let fs = 26;
-  do { g.font = '600 ' + fs + 'px ' + F; } while (g.measureText(short).width > W - 40 && --fs > 14);
-  g.fillText(short, W / 2, 862);
+  // v168：底部「嚟挑戰排行榜／網址／QR」已移除（點連結已經會跳去網站）
   return { canvas: cv, text: '🎣 ' + c.species + ' ' + shareWeightText(c.weight) + (rank ? '\n' + scoreCardPromo(c, rank, wtxt) : '') + '\n快嚟【釣港】挑戰排行榜！' };
 }
 async function renderScoreCard(id) {
@@ -4613,8 +4614,12 @@ async function renderScoreCard(id) {
     try { sh = state.shareCache[c.id] || (state.shareCache[c.id] = await getCatchShare(c)); } catch (e) { console.warn('[score card]', e); }
   }
   if (state.lastCatchId !== id || !document.getElementById('score-card-wrap')) return;  // 畫面已變
-  const card = drawScoreCard(c, sh.info, sh.url);
-  state.scoreCard = { text: card.text, url: sh.url, file: null, dataUrl: card.canvas.toDataURL('image/png') };
+  const photo = await loadCardPhoto(c.photoUrl);
+  if (state.lastCatchId !== id || !document.getElementById('score-card-wrap')) return;
+  let card = drawScoreCard(c, sh.info, sh.url, photo), dataUrl;
+  try { dataUrl = card.canvas.toDataURL('image/png'); }
+  catch (e) { card = drawScoreCard(c, sh.info, sh.url, null); dataUrl = card.canvas.toDataURL('image/png'); }   // v168：canvas 被污染就退返 🐠
+  state.scoreCard = { text: card.text, url: sh.url, file: null, dataUrl: dataUrl };
   card.canvas.toBlob(b => { if (b && state.scoreCard) state.scoreCard.file = new File([b], 'diaogang-score.png', { type: 'image/png' }); }, 'image/png');
   wrap.innerHTML = '<img id="score-card-img" alt="成績卡" src="' + state.scoreCard.dataUrl + '" style="width:100%;max-width:320px;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.18);">'
     + '<div style="display:flex;gap:8px;max-width:320px;margin:10px auto 0;">'
@@ -5824,7 +5829,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v167</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v168</span>';
   }
   renderView(name);
 }
