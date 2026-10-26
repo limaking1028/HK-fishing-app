@@ -39,7 +39,7 @@ function bestRank(ranks) {
 export function buildMeta(d) {
   // d = share_catch_get 結果（或 null）
   if (!d || typeof d !== 'object' || !d.species) {
-    return { title: '釣港 🎣 香港釣魚記錄＋排行榜', desc: '記低每條魚獲，同釣友鬥排行榜。撳入嚟睇！' };
+    return { title: '釣港 🎣 香港釣魚記錄＋排行榜', desc: '記低每條魚獲、同釣友鬥排行榜。唔使安裝，手機瀏覽器直接用。' };   // v175
   }
   const w = fmtKg(d.weight_kg);
   const r = bestRank(d.ranks);
@@ -69,7 +69,7 @@ export function renderHtml({ title, desc, image, pageUrl, target }) {
     + '<meta name="robots" content="noindex">'
     + '</head><body style="font-family:sans-serif;text-align:center;padding:40px 16px;">'
     + '<h1 style="font-size:20px;">' + t + '</h1><p>' + d + '</p>'
-    + '<p><a href="' + to + '">打開釣港 App</a></p>'
+    + '<p><a href="' + to + '">打開釣港 App</a></p><p style="color:#64748b;font-size:14px;">唔使安裝，手機瀏覽器直接用</p>'   // v175
     + '<script>location.replace(' + JSON.stringify(target).replace(/</g, '\\u003c') + ');</script>'
     + '</body></html>';
 }

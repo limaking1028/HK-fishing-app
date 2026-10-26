@@ -62,3 +62,7 @@ v173 令 Worker 每次有**真人**打開分享連結，就幫「分享連結打
 5. 撳右上角「Deploy」。
 6. **變數唔使郁**：SUPABASE_URL、APP_URL、SUPABASE_ANON_KEY 照舊。唔使加新變數，亦**唔好**加 service_role key。
 7. 試：用手機瀏覽器開一條分享連結並喺後面加 `?src=wa`（例如 `https://fishport-share.fishport1028.workers.dev/c/xxxxxxxxxxxx?src=wa`），應該照常跳入 App；過一陣入管理後台 →「使用分析」→ 最底「新用戶每日總數」，今日「分享連結打開」應該 +1，來源寫「開·WhatsApp」。
+
+## 更新 Worker 程式碼（v175：預覽字眼）
+
+v175 改咗 Worker 預設預覽描述做「記低每條魚獲、同釣友鬥排行榜。唔使安裝，手機瀏覽器直接用。」，預覽頁多一行同樣字眼。步驟同上面 v173 一樣（複製 main 分支 `worker/src/index.js` 全個檔 → Cloudflare → fishport-share → Edit code → 全選刪晒 → 貼上 → Deploy；變數唔使郁）。**要等 v175 merge 咗先貼。** 未貼之前舊 Worker 照用得。

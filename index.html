@@ -15,11 +15,11 @@
   <meta name="apple-mobile-web-app-title" content="釣港">
   <title>釣港</title>
   <!-- v164 B1：通用連結預覽（WhatsApp／FB／Telegram） -->
-  <meta name="description" content="香港釣魚記錄 App：記低每條魚獲，同釣友鬥排行榜。">
+  <meta name="description" content="香港釣魚記錄：記低每條魚獲、同釣友鬥排行榜。唔使安裝，手機瀏覽器直接用。">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="釣港">
   <meta property="og:title" content="釣港 🎣 香港釣魚記錄＋排行榜">
-  <meta property="og:description" content="記低每條魚獲，同釣友鬥排行榜。撳入嚟睇！">
+  <meta property="og:description" content="記低每條魚獲、同釣友鬥排行榜。唔使安裝，手機瀏覽器直接用。">
   <meta property="og:url" content="https://limaking1028.github.io/HK-fishing-app/">
   <meta property="og:image" content="https://limaking1028.github.io/HK-fishing-app/og-image-v2.jpg">
   <meta property="og:image:width" content="1200">
@@ -1173,6 +1173,11 @@ button { touch-action: manipulation; }
   /* v174：創始釣友 */
   .founder-badge { display: inline-block; font-size: 11px; font-weight: 700; color: #92400e; background: linear-gradient(135deg,#fef3c7,#fde68a); border: 1px solid #fcd34d; border-radius: 999px; padding: 1px 7px; margin-left: 4px; white-space: nowrap; vertical-align: 1px; }
   .founder-badge[hidden] { display: none; }
+  /* v175 */
+  @keyframes flashNeed { 0%,100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); } 30%,70% { box-shadow: 0 0 0 4px rgba(249,115,22,.65); } }
+  .flash-need { animation: flashNeed 1.2s ease 2; border-color: #f97316 !important; }
+  .first-catch-cta { display: block; width: calc(100% - 32px); margin: 0 16px 14px; padding: 16px; font-size: 17px; font-weight: 800; }
+  .lb-tip { font-size: 12.5px; color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 8px 10px; margin: 0 0 12px; line-height: 1.5; }
   .founder-banner { background: linear-gradient(135deg,#fef3c7,#fde68a); border: 1px solid #fcd34d; color: #92400e; border-radius: 12px; padding: 10px 12px; font-size: 13px; font-weight: 700; line-height: 1.5; text-align: center; margin: 0 0 12px; }
   .founder-banner b { font-size: 15px; }
 
@@ -1276,7 +1281,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v174</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v175</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -2067,7 +2072,7 @@ function successEligLine() {
 function renderRecordView() {
   const view = document.getElementById('view-record');
   if (state.formSuccess) {
-    view.innerHTML = '<div class="success-screen"><div class="success-circle">✓</div><div class="success-title">魚獲已記錄！</div><div class="success-sub">'+successEligLine()+'</div></div><div id="score-card-wrap" style="text-align:center;margin:8px 0 12px;"></div><button class="btn btn-primary mt-2" onclick="resetForm()">記錄下一條</button><button class="btn btn-outline mt-2" onclick="goToView(\'my\')">查看我的魚獲</button><button class="btn btn-outline mt-2" onclick="goToView(\'leaderboard\')">查看排行榜</button>';
+    view.innerHTML = '<div class="success-screen"><div class="success-circle">✓</div><div class="success-title">魚獲已記錄！</div><div class="success-sub">'+successEligLine()+'</div></div><div id="score-card-wrap" style="text-align:center;margin:8px 0 12px;"></div><button class="btn btn-primary mt-2" onclick="resetForm()">記錄下一條</button><button class="btn btn-outline mt-2" onclick="goToView(\'my\')">查看我的魚獲</button><button class="btn btn-outline mt-2" onclick="goToView(\'leaderboard\')">查看排行榜</button>'+(state.activeTrip ? '' : '<button class="btn btn-outline mt-2" onclick="goToView(\'trips\')">⏱️ 開始行程（下一條可以上數量／品種榜）</button>');   // v175
     renderScoreCard(state.lastCatchId);
     return;
   }
@@ -2113,6 +2118,7 @@ function renderRecordView() {
   // Route H: 進行中行程的提示由頂部 banner 統一顯示，表單內不再重複
   const tripBadge = '';
   view.innerHTML = '<div class="card"><div class="section-title">🎣 記錄新魚獲</div>'
+    + (state.activeTrip ? '' : '<div class="lb-tip">🏆 想上排行榜？即時影相 ＋ 開咗行程（數量／品種王者要行程）</div>')   // v175
     + tripBadge
     + '<div class="form-group"><label class="form-label">魚種 <span class="req">*</span></label><div id="species-selector"></div>'
     + '</div></div>'
@@ -2365,7 +2371,11 @@ function renderSpeciesSelector() {
   let html = '<div class="sp-section-title">🔥 常用 (自動 by 使用次數)</div>';
   html += '<div class="sp-grid">';
   if (top.length === 0 || top.every(t => t.count === 0 && !t.pinned)) {
-    html += '<div class="sp-empty">尚未記錄魚獲 — 全部 ' + FISH_SPECIES.filter(f => !f.custom).length + ' 種魚可按下面「全部」展開揀選 🎣</div>';
+    // v175：新用戶未有紀錄 → 顯示 8 種香港最常見魚
+    const COMMON = ['泥鯭', '黃腳鱲', '黑鱲', '石狗公', '釘公', '沙鯭', '牛屎鱲', '烏頭'];
+    const common = getAllSpecies().filter(it => COMMON.includes(it.f.name)).sort((a, b) => COMMON.indexOf(a.f.name) - COMMON.indexOf(b.f.name));
+    if (common.length) common.forEach(item => { html += renderCard(item); });
+    else html += '<div class="sp-empty">尚未記錄魚獲 — 全部 ' + FISH_SPECIES.filter(f => !f.custom).length + ' 種魚可按下面「全部」展開揀選 🎣</div>';
   } else {
     top.forEach(item => { html += renderCard(item); });
   }
@@ -2857,7 +2867,12 @@ function submitCatch() {
     }
   }
   const spotRaw = document.getElementById('catch-spot').value;
-  if (!spotRaw) { toast('未有 GPS 定位，請先喺「📍 釣點」揀返釣點'); return; }
+  if (!spotRaw) {   // v175：自動捲去釣點並閃一下
+    const box = document.getElementById('gps-auto-box');
+    if (box) { box.scrollIntoView({ behavior: 'smooth', block: 'center' }); box.classList.remove('flash-need'); void box.offsetWidth; box.classList.add('flash-need'); }
+    toast('未有釣點：撳「📍 啟用自動定位」，或者喺下面揀「🤫 秘點」');
+    return;
+  }
   const spotDetail = (state.customSpot || '').trim();
   let spot;
   if (spotRaw === '秘點') {
@@ -4178,6 +4193,7 @@ function renderMyView() {
     + '<div class="collapsible-content">' + listHtml + '</div>'
     + '</div>';
   view.innerHTML = subTabsHtml + '<div style="padding:0 16px"><div class="my-founder-slot"></div><div class="founder-banner-slot"></div></div>'
+    + (totalCatches === 0 ? '<button class="btn btn-primary first-catch-cta" onclick="goToView(\'record\')">🎣 記錄第一條魚</button>' : '')   // v175
     + '<div class="stats-row">'
     + '<div class="stat-card"><div class="stat-value">'+totalCatches+'</div><div class="stat-label">總魚獲</div></div>'
     + '<div class="stat-card"><div class="stat-value">'+weightDisplay({weight: totalWeightKg}).value+'<span style="font-size:13px">'+weightDisplay({weight: totalWeightKg}).unit+'</span></div><div class="stat-label">總重量</div></div>'
@@ -4433,6 +4449,8 @@ function refreshAnalyticsToggleUI() {
 }
 function maybeShowConsentModal() {
   // 只在「從未做過選擇」時彈出;已選過的不再打擾
+  if (SB_ENABLED && !state.user) return;   // v175：登入後先問
+  if (document.getElementById('import-modal').classList.contains('show') || pendingShareToken() || new URLSearchParams(location.search).get('c')) return;   // 睇緊／就嚟睇分享魚獲：閂咗先問
   const v = localStorage.getItem(ANALYTICS_CONSENT_KEY);
   if (v !== 'yes' && v !== 'no') {
     document.getElementById('consent-modal').classList.add('show');
@@ -4716,8 +4734,19 @@ function parseShareData(raw) {
     n: '', u: '朋友', r: []
   };
 }
+// v175：記住分享 token（登入／註冊／確認信返嚟都仲見到朋友條魚），24 小時有效
+const SHARE_TOKEN_KEY = 'hkf-share-c';
+function rememberShareToken() {
+  try { const t = new URLSearchParams(location.search).get('c') || ''; if (/^[A-Za-z0-9_-]{12}$/.test(t)) localStorage.setItem(SHARE_TOKEN_KEY, JSON.stringify({ t, at: Date.now() })); } catch (e) {}
+}
+function pendingShareToken() {
+  try { const v = JSON.parse(localStorage.getItem(SHARE_TOKEN_KEY) || 'null'); if (v && /^[A-Za-z0-9_-]{12}$/.test(v.t) && Date.now() - v.at < 864e5) return v.t; localStorage.removeItem(SHARE_TOKEN_KEY); } catch (e) {}
+  return '';
+}
+function forgetShareToken() { try { localStorage.removeItem(SHARE_TOKEN_KEY); } catch (e) {} }
 // v162：短連結 ?c=<token> — 由伺服器讀真數據（只有魚種、重量、釣點、日期、伺服器計嘅名次）
-async function showServerSharedCatch(token) {
+// v175：未登入都顯示（share_catch_get 本身係 anon、已遮秘點／街名），下面掣去登入／註冊
+async function showServerSharedCatch(token, loggedOut) {
   const body = document.getElementById('import-modal-body');
   const e = escapeHtml;
   let d = null;
@@ -4733,14 +4762,20 @@ async function showServerSharedCatch(token) {
       + '</div>'
       + (rankText ? '<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:10px;padding:10px 14px;margin-bottom:16px;text-align:center;font-size:13px;font-weight:700;color:#92400e;">🏆 '+e(rankText)+'</div>' : '')
       + '<div class="founder-banner-slot">' + founderBannerHtml() + '</div>'   // v174
-      + '<button class="btn btn-primary" style="width:100%;" onclick="closeImportModal();clearShareParam();">打開 App</button>'
+      + (loggedOut
+        ? '<button class="btn btn-primary" style="width:100%;" onclick="closeImportModal();">🎣 登入／註冊，記低你自己條魚</button>'
+          + '<div style="text-align:center;font-size:12px;color:var(--gray-4);margin-top:8px;">唔使安裝，手機瀏覽器直接用</div>'
+        : '<button class="btn btn-primary" style="width:100%;" onclick="clearShareParam();closeImportModal();">打開 App</button>')
     : '<div style="text-align:center;padding:16px 0;color:var(--gray-5);">搵唔到呢條分享（可能已刪除）。</div>'
-      + '<button class="btn btn-outline" style="width:100%;" onclick="closeImportModal();clearShareParam();">打開 App</button>';
-  document.getElementById('import-modal').classList.add('show');
+      + '<button class="btn btn-outline" style="width:100%;" onclick="clearShareParam();closeImportModal();">' + (loggedOut ? '登入／註冊' : '打開 App') + '</button>';
+  if (!loggedOut) forgetShareToken();
+  const m = document.getElementById('import-modal');
+  m.style.zIndex = loggedOut ? '10000' : '';   // 蓋過登入畫面
+  m.classList.add('show');
 }
 function checkSharedCatch() {
   const params = new URLSearchParams(location.search);
-  const cTok = params.get('c') || '';
+  const cTok = params.get('c') || pendingShareToken();   // v175：登入後 ?c= 甩咗都搵得返
   if (cTok) { if (/^[A-Za-z0-9_-]{12}$/.test(cTok)) showServerSharedCatch(cTok); else clearShareParam(); return; }
   // URLSearchParams 會將 base64 內嘅 '+' 變成空格，要還原
   const shareData = (params.get('share') || '').replace(/ /g, '+');
@@ -4772,10 +4807,10 @@ function checkSharedCatch() {
       + (d.n ? '<div style="padding:10px 14px;font-size:14px;color:var(--gray-5);background:var(--gray-1);border-radius:8px;margin-bottom:16px;">'+e(d.n)+'</div>' : '')
       + (has
         ? '<div style="text-align:center;color:var(--green);font-weight:600;padding:12px;">✓ 已收藏到你嘅記錄</div>'
-        + '<button class="btn btn-outline" style="width:100%;" onclick="closeImportModal();clearShareParam();">打開 App</button>'
+        + '<button class="btn btn-outline" style="width:100%;" onclick="clearShareParam();closeImportModal();">打開 App</button>'
         : '<div class="modal-btns">'
         + '<button class="btn btn-primary" onclick="importCatch(\''+shareData+'\')">📥 收藏到我手機</button>'
-        + '<button class="btn btn-outline" onclick="closeImportModal();clearShareParam();">稍後再講</button>'
+        + '<button class="btn btn-outline" onclick="clearShareParam();closeImportModal();">稍後再講</button>'
         + '</div>'
       );
     document.getElementById('import-modal').classList.add('show');
@@ -4813,7 +4848,7 @@ function clearShareParam() {
   const url = location.origin + location.pathname;
   history.replaceState({}, document.title, url);
 }
-function closeImportModal() { document.getElementById('import-modal').classList.remove('show'); }
+function closeImportModal() { document.getElementById('import-modal').classList.remove('show'); if (state.user) maybeShowConsentModal(); }
 
 /* ===== Leaderboard View ===== */
 const LB_TTL = 60000;
@@ -5861,7 +5896,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v174</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v175</span>';
   }
   renderView(name);
 }
@@ -5918,7 +5953,7 @@ function renderLoginScreen() {
       <div class="login-card">
         <div class="login-logo"><img src="icon-192.png?v=125" alt="釣港" width="72" height="72"></div>
         <div class="login-title">釣港</div>
-        <div class="login-subtitle">雲端同步 · 多裝置共享</div>
+        <div class="login-subtitle">記低每條魚獲、同釣友鬥排行榜<br><span style="font-size:12px;opacity:.85">唔使安裝，手機瀏覽器直接用</span></div>
         <div class="founder-banner-slot" style="margin-top:12px">${founderBannerHtml()}</div>
 
         <!-- 密碼登入 / 註冊(預設) -->
@@ -6307,6 +6342,7 @@ async function init() {
         return;
       }
       trackVisit();   // v173：匿名總數（登入前就計）
+      rememberShareToken();   // v175
       loadFounderRemaining();   // v174：開幕橫幅（登入前都睇到）
       setInitStatus('正在檢查登入狀態', 'getCurrentUser...');
       // Email Magic Link:用 Supabase Auth session 取代 localStorage hack
@@ -6343,6 +6379,7 @@ async function init() {
       if (!state.user) {
         renderLoginScreen();
         setupGlobalHandlers();
+        const pt = pendingShareToken(); if (pt) showServerSharedCatch(pt, true);   // v175：未登入都見到朋友條魚
         return;
       }
       await completeSignIn(state.user);
@@ -6353,6 +6390,7 @@ async function init() {
     setupGlobalHandlers();
     document.getElementById('header-username').textContent = getUserName();
     loadMyFounder();   // v174
+    maybeShowConsentModal();   // v175：登入後先問
     checkSharedCatch();
     switchView('my');
     showApp();
@@ -6458,6 +6496,7 @@ async function completeSignInInner(userProfile) {
   loadMyFounder();   // v174
   setupGlobalHandlers();
   checkSharedCatch();
+  maybeShowConsentModal();   // v175：登入後先問
   safeSwitchView('my');
 }
 
