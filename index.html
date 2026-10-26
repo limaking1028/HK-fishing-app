@@ -1271,7 +1271,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v169</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v170</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -2062,7 +2062,7 @@ function successEligLine() {
 function renderRecordView() {
   const view = document.getElementById('view-record');
   if (state.formSuccess) {
-    view.innerHTML = '<div class="success-screen"><div class="success-circle">✓</div><div class="success-title">魚獲已記錄！</div><div class="success-sub">'+successEligLine()+'</div></div><div id="score-card-wrap" style="text-align:center;margin:8px 0 12px;"></div><button class="btn btn-share" data-action="share-last">📤 即時分享這條魚獲</button><button class="btn btn-primary mt-2" onclick="resetForm()">記錄下一條</button><button class="btn btn-outline mt-2" onclick="goToView(\'my\')">查看我的魚獲</button><button class="btn btn-outline mt-2" onclick="goToView(\'leaderboard\')">查看排行榜</button>';
+    view.innerHTML = '<div class="success-screen"><div class="success-circle">✓</div><div class="success-title">魚獲已記錄！</div><div class="success-sub">'+successEligLine()+'</div></div><div id="score-card-wrap" style="text-align:center;margin:8px 0 12px;"></div><button class="btn btn-primary mt-2" onclick="resetForm()">記錄下一條</button><button class="btn btn-outline mt-2" onclick="goToView(\'my\')">查看我的魚獲</button><button class="btn btn-outline mt-2" onclick="goToView(\'leaderboard\')">查看排行榜</button>';
     renderScoreCard(state.lastCatchId);
     return;
   }
@@ -4649,24 +4649,16 @@ async function renderScoreCard(id) {
   state.scoreCard = { text: card.text, url: sh.url, file: null, dataUrl: dataUrl };
   card.canvas.toBlob(b => { if (b && state.scoreCard) state.scoreCard.file = new File([b], 'diaogang-score.png', { type: 'image/png' }); }, 'image/png');
   wrap.innerHTML = '<img id="score-card-img" alt="成績卡" src="' + state.scoreCard.dataUrl + '" style="width:100%;max-width:320px;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.18);">'
-    + '<div style="display:flex;gap:8px;max-width:320px;margin:10px auto 0;">'
     + '<div style="width:100%;max-width:320px;margin:10px auto 0;display:flex;flex-direction:column;gap:8px;">'
     + '<button class="btn btn-primary" style="background:#25D366;border-color:#25D366;" data-action="card-link">💬 分享連結（WhatsApp）</button>'
     + '<div style="display:flex;gap:6px;">'
     + '<button class="btn btn-outline" style="flex:1;padding:10px 4px;font-size:14px;white-space:nowrap;" data-action="card-wa">🖼 發圖片</button>'
-    + '<button class="btn btn-outline" style="flex:1;padding:10px 4px;font-size:14px;white-space:nowrap;" data-action="card-copy">🔗 複製連結</button>'
     + '<button class="btn btn-outline" style="flex:1;padding:10px 4px;font-size:14px;white-space:nowrap;" data-action="card-save">💾 儲存</button></div></div>';
 }
 // v164：預設分享 = 文字＋連結（唔夾相），等 WhatsApp 出連結預覽；冇 Web Share 就 wa.me
 function shareTextLink(text, url) {
   if (navigator.share) navigator.share({ title: '釣港', text: text + '\n' + url }).catch(() => {});   // v166：連結自己一行（唔用 url 欄，免得黐埋句尾）
   else window.open('https://wa.me/?text=' + encodeURIComponent(text + '\n' + url), '_blank', 'noopener');
-}
-function copyLinkToast(url) {
-  const done = () => showToast('連結已複製，可以貼落 WhatsApp');
-  const legacy = () => { const ta = document.createElement('textarea'); ta.value = url; document.body.appendChild(ta); ta.select();
-    try { document.execCommand('copy'); done(); } catch (e) { showToast('複製失敗，請手動複製'); } ta.remove(); };
-  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done).catch(legacy); else legacy();
 }
 function shareScoreCardWhatsApp() {
   const sc = state.scoreCard; if (!sc) return;
@@ -5856,7 +5848,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v169</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v170</span>';
   }
   renderView(name);
 }
@@ -6507,42 +6499,8 @@ function setupGlobalHandlers() {
 document.addEventListener('click', function(e) {
   // v163：成績卡掣
   if (e.target.closest('[data-action="card-link"]')) { e.preventDefault(); if (state.scoreCard) shareTextLink(state.scoreCard.text, state.scoreCard.url); return; }
-  if (e.target.closest('[data-action="card-copy"]')) { e.preventDefault(); if (state.scoreCard) copyLinkToast(state.scoreCard.url); return; }
   if (e.target.closest('[data-action="card-wa"]')) { e.preventDefault(); shareScoreCardWhatsApp(); return; }
   if (e.target.closest('[data-action="card-save"]')) { e.preventDefault(); saveScoreCard(); return; }
-  // 0. 成功畫面嘅「即時分享這條魚獲」
-  const shareLastBtn = e.target.closest('[data-action="share-last"]');
-  if (shareLastBtn) {
-    e.preventDefault();
-    e.stopPropagation();
-    try {
-      // 1. 首先試用 state.lastCatchId 對應嘅 catch
-      let id = state.lastCatchId;
-      let found = id ? state.catches.find(x => x.id === id) : null;
-
-      // 2. Fallback: 因為 race condition (dbAddCatch callback 仲未跑完)，
-      //    lastCatchId 仲係 temp-id 而 state.catches[0].id 已經被改做 saved.id
-      //    用最新加入嘅 catch (state.catches[0]，因為 submitCatch 用 unshift)
-      if (!found && state.catches.length > 0) {
-        const latest = state.catches[0];
-        if (latest && (latest.isMine || latest.user === getUserName())) {
-          found = latest;
-          state.lastCatchId = latest.id;  // 同步返 state
-        }
-      }
-
-      if (!found) {
-        showToast('⚠️ 暫時無法分享，請先記錄一條魚獲');
-        return;
-      }
-      shareCatch(found.id);
-    } catch (err) {
-      console.error('[share-last] error:', err);
-      showToast('分享出錯：' + err.message);
-    }
-    return;
-  }
-
   // 0b. 刪除單條魚獲
   const delBtn = e.target.closest('[data-del-id]');
   if (delBtn) {
