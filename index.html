@@ -1256,7 +1256,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v162</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v163</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -2047,7 +2047,8 @@ function successEligLine() {
 function renderRecordView() {
   const view = document.getElementById('view-record');
   if (state.formSuccess) {
-    view.innerHTML = '<div class="success-screen"><div class="success-circle">✓</div><div class="success-title">魚獲已記錄！</div><div class="success-sub">'+successEligLine()+'</div></div><button class="btn btn-share" data-action="share-last">📤 即時分享這條魚獲</button><button class="btn btn-primary mt-2" onclick="resetForm()">記錄下一條</button><button class="btn btn-outline mt-2" onclick="goToView(\'my\')">查看我的魚獲</button><button class="btn btn-outline mt-2" onclick="goToView(\'leaderboard\')">查看排行榜</button>';
+    view.innerHTML = '<div class="success-screen"><div class="success-circle">✓</div><div class="success-title">魚獲已記錄！</div><div class="success-sub">'+successEligLine()+'</div></div><div id="score-card-wrap" style="text-align:center;margin:8px 0 12px;"></div><button class="btn btn-share" data-action="share-last">📤 即時分享這條魚獲</button><button class="btn btn-primary mt-2" onclick="resetForm()">記錄下一條</button><button class="btn btn-outline mt-2" onclick="goToView(\'my\')">查看我的魚獲</button><button class="btn btn-outline mt-2" onclick="goToView(\'leaderboard\')">查看排行榜</button>';
+    renderScoreCard(state.lastCatchId);
     return;
   }
   // Route H+: 行程中自動從 activeTrip 預填(用戶直接按「記錄」tab 都會自動帶入,不用每次按「加魚」)
@@ -4509,6 +4510,77 @@ async function deleteCatch(id) {
   renderAll();
   toast('已刪除');
 }
+/* ===== v163：成績卡（canvas）＋ WhatsApp 一撳分享 ===== */
+// 只用真數據：魚種、重量、釣點名、伺服器名次（冇上榜就唔出名次行）、短連結。冇 GPS、備註、用戶名、相。
+// 連結以文字印喺卡上（冇用 QR library，免加依賴）。
+function scoreCardPromo(c, rank, wtxt) {
+  if (rank) return '🏆 重量王者（' + (SHARE_PERIOD[rank.period] || '') + '）第 ' + rank.rank + ' 名！';
+  return '🎣 又一條入袋：' + c.species + ' ' + wtxt;
+}
+function bestRank(ranks) {
+  return (ranks || []).filter(r => r && r.rank > 0).sort((a, b) => a.rank - b.rank)[0] || null;
+}
+function drawScoreCard(c, info, url) {
+  const W = 720, H = 900, cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const g = cv.getContext('2d');
+  const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#0b5563'); bg.addColorStop(1, '#063540');
+  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#fff'; g.beginPath(); g.roundRect ? g.roundRect(40, 120, W - 80, 640, 28) : g.rect(40, 120, W - 80, 640); g.fill();
+  g.textAlign = 'center';
+  const F = '"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
+  g.fillStyle = '#fff'; g.font = '700 44px ' + F; g.fillText('🎣 釣港 成績卡', W / 2, 80);
+  const wd = weightDisplay(c), wtxt = wd.value + wd.unit;
+  g.fillStyle = '#0f172a'; g.font = '120px ' + F; g.fillText(c.speciesIcon || '🐟', W / 2, 290);
+  g.font = '700 64px ' + F; g.fillText(c.species, W / 2, 400);
+  g.fillStyle = '#0b5563'; g.font = '800 88px ' + F; g.fillText(wtxt, W / 2, 500);
+  g.fillStyle = '#64748b'; g.font = '32px ' + F;
+  g.fillText('📍 ' + ((info && (info.area || info.spot)) || c.spot || '') + ' · ' + formatDate(c.date), W / 2, 565);
+  const rank = bestRank(info && info.ranks);
+  if (rank) {
+    g.fillStyle = '#fde68a'; g.fillRect(90, 605, W - 180, 80);
+    g.fillStyle = '#92400e'; g.font = '700 36px ' + F; g.fillText(scoreCardPromo(c, rank, wtxt), W / 2, 658);
+  } else {
+    g.fillStyle = '#334155'; g.font = '600 34px ' + F; g.fillText(scoreCardPromo(c, null, wtxt), W / 2, 658);
+  }
+  g.fillStyle = '#e2e8f0'; g.font = '30px ' + F; g.fillText('嚟挑戰排行榜 👉', W / 2, 820);
+  const short = url.replace(/^https?:\/\//, ''); let fs = 26;
+  do { g.font = '600 ' + fs + 'px ' + F; } while (g.measureText(short).width > W - 40 && --fs > 14);
+  g.fillText(short, W / 2, 862);
+  return { canvas: cv, text: '🎣 ' + c.species + ' ' + wtxt + (rank ? '\n' + scoreCardPromo(c, rank, wtxt) : '') + '\n快嚟【釣港】挑戰排行榜！' };
+}
+async function renderScoreCard(id) {
+  const wrap = document.getElementById('score-card-wrap');
+  const c = id && state.catches.find(x => x.id === id);
+  if (!wrap || !c) return;
+  let sh = { url: appBaseUrl(), info: null };
+  if (!String(c.id).startsWith('temp-')) {
+    state.shareCache = state.shareCache || {};
+    try { sh = state.shareCache[c.id] || (state.shareCache[c.id] = await getCatchShare(c)); } catch (e) { console.warn('[score card]', e); }
+  }
+  if (state.lastCatchId !== id || !document.getElementById('score-card-wrap')) return;  // 畫面已變
+  const card = drawScoreCard(c, sh.info, sh.url);
+  state.scoreCard = { text: card.text, url: sh.url, file: null, dataUrl: card.canvas.toDataURL('image/png') };
+  card.canvas.toBlob(b => { if (b && state.scoreCard) state.scoreCard.file = new File([b], 'diaogang-score.png', { type: 'image/png' }); }, 'image/png');
+  wrap.innerHTML = '<img id="score-card-img" alt="成績卡" src="' + state.scoreCard.dataUrl + '" style="width:100%;max-width:320px;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.18);">'
+    + '<div style="display:flex;gap:8px;max-width:320px;margin:10px auto 0;">'
+    + '<button class="btn btn-primary" style="flex:1;background:#25D366;border-color:#25D366;" data-action="card-wa">💬 WhatsApp</button>'
+    + '<button class="btn btn-outline" style="flex:1;" data-action="card-save">💾 儲存圖片</button></div>';
+}
+function shareScoreCardWhatsApp() {
+  const sc = state.scoreCard; if (!sc) return;
+  const msg = sc.text + '\n' + sc.url;
+  if (sc.file && navigator.canShare && navigator.share && navigator.canShare({ files: [sc.file] })) {
+    navigator.share({ files: [sc.file], text: msg }).catch(() => {});
+  } else {
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+  }
+}
+function saveScoreCard() {
+  const sc = state.scoreCard; if (!sc) return;
+  const a = document.createElement('a'); a.href = sc.dataUrl; a.download = 'diaogang-score.png';
+  document.body.appendChild(a); a.click(); a.remove();
+}
 function nativeShare() {
   const m = state.shareMsg; if (!m) return;
   if (navigator.share) {
@@ -5687,7 +5759,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v162</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v163</span>';
   }
   renderView(name);
 }
@@ -6336,6 +6408,9 @@ function setupGlobalHandlers() {
 /* ===== Event Delegation（避免 inline onclick 嘅 escape 陷阱）===== */
 // 分享掣統一處理（catch-card + modal 入面兩個掣 + 成功畫面）
 document.addEventListener('click', function(e) {
+  // v163：成績卡掣
+  if (e.target.closest('[data-action="card-wa"]')) { e.preventDefault(); shareScoreCardWhatsApp(); return; }
+  if (e.target.closest('[data-action="card-save"]')) { e.preventDefault(); saveScoreCard(); return; }
   // 0. 成功畫面嘅「即時分享這條魚獲」
   const shareLastBtn = e.target.closest('[data-action="share-last"]');
   if (shareLastBtn) {
@@ -6428,7 +6503,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 /* ---------- v152：客戶端錯誤回報 + 公告橫幅（失敗都唔影響 App 運作） ---------- */
-const APP_BUILD_LABEL = 'v162';
+const APP_BUILD_LABEL = 'v163';
 const ERR_REPORTED = new Set();
 let errReportCount = 0;
 function reportClientError(err, source) {
