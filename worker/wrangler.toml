@@ -1,0 +1,12 @@
+# 釣港 分享預覽 Worker（v164）— 唔好 commit account_id
+name = "fishport-share"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[vars]
+SUPABASE_URL = "https://lucizjohiycxdynrkjus.supabase.co"
+APP_URL = "https://limaking1028.github.io/HK-fishing-app/"
+# Supabase anon（公開）key：同 index.html 入面 SB_KEY 係同一條，本身已經喺網站公開，所以放喺 vars。
+# 只可以係 anon key — 永遠唔好放 service_role key。
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1Y2l6am9oaXljeGR5bnJranVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0NTA2MjgsImV4cCI6MjEwNjAyNjYyOH0.O_fpj_TK9d1zDHHc5SciYaQkB_-meuFfpbrIQbsJboU"
