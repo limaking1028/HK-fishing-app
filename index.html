@@ -4513,6 +4513,18 @@ async function getCatchShare(c) {
   const { data: info } = await sb.rpc('share_catch_get', { p_token: token });
   return { url: shareUrlFor(token), info: info || null };
 }
+// v169：分享／成績卡用嘅公開釣點名（同 share_catch_get 一致）：官方釣點名／其他／秘點照出；GPS 街名或自己打嘅名 → 十八區名，否則「香港」
+const PUBLIC_DISTRICTS = ['中西區','灣仔','東區','南區','油尖旺','深水埗','九龍城','黃大仙','觀塘','荃灣','屯門','元朗','北區','大埔','西貢','沙田','葵青','離島'];
+function publicSpot(c) {
+  const spot = String((c && c.spot) || '');
+  const main = spot.split('（')[0].trim();
+  if (main === '秘點') return '秘點';
+  const area = c && c.spotArea;
+  if (area && PUBLIC_DISTRICTS.includes(area)) return area;
+  if (main && FISHING_SPOTS.some(s => s.name === main)) return main;
+  return '香港';
+}
+window.publicSpot = publicSpot;
 async function shareCatch(id) {
   try {
   const c = state.catches.find(x => x.id === id);
@@ -4522,7 +4534,7 @@ async function shareCatch(id) {
   catch (e) { console.warn('[share link]', e); toast('未能建立分享連結（' + (e.message || '網絡錯誤') + '），改為只分享文字', 3500); sh = { url: appBaseUrl(), info: null }; }
   const rankText = shareRankText(sh.info && sh.info.ranks);
   let shareWd = weightDisplay(c);
-  let text = '🎣 我喺【釣港】記錄咗一條魚獲：\n'+(c.speciesIcon||'🐟')+' '+c.species+' '+shareWeightText(c.weight)+'\n📍 '+c.spot+' · '+formatDate(c.date);
+  let text = '🎣 我喺【釣港】記錄咗一條魚獲：\n'+(c.speciesIcon||'🐟')+' '+c.species+' '+shareWeightText(c.weight)+'\n📍 '+publicSpot(c)+' · '+formatDate(c.date);
   if (rankText) text += '\n🏆 '+rankText;
   text += '\n快嚟挑戰排行榜！';
   state.shareMsg = { text: text, url: sh.url };
@@ -4531,7 +4543,7 @@ async function shareCatch(id) {
     '<div style="text-align:center;margin-bottom:16px;">'
     + '<div style="font-size:32px;margin-bottom:6px;">'+escapeHtml(c.speciesIcon||'🐟')+'</div>'
     + '<div style="font-size:16px;font-weight:700;">'+escapeHtml(c.species)+' '+shareWd.value+shareWd.unit+'</div>'
-    + '<div style="font-size:13px;color:var(--gray-4);">'+escapeHtml(c.spot)+' · '+formatDate(c.date)+'</div>'
+    + '<div style="font-size:13px;color:var(--gray-4);">'+escapeHtml(publicSpot(c))+' · '+formatDate(c.date)+'</div>'
     + '</div>'
     + (rankText ? '<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:10px;padding:10px 14px;margin-bottom:16px;text-align:center;font-size:13px;font-weight:700;color:#92400e;">🏆 '+escapeHtml(rankText)+'</div>' : '')
     + '<div style="font-size:12px;color:var(--gray-4);text-align:center;margin-bottom:10px;">分享唔會包括備註、GPS 位置同相片。</div>'
@@ -4608,7 +4620,7 @@ function drawScoreCard(c, info, url, photo) {
   g.font = '700 64px ' + F; g.fillText(c.species, W / 2, 400);
   g.fillStyle = '#0b5563'; g.font = '800 88px ' + F; g.fillText(wtxt, W / 2, 500);
   g.fillStyle = '#64748b'; g.font = '32px ' + F;
-  g.fillText('📍 ' + (c.spot === '秘點' ? '秘點' : ((info && (info.area || info.spot)) || c.spot || '')) + ' · ' + formatDate(c.date), W / 2, 565);
+  g.fillText('📍 ' + publicSpot(c) + ' · ' + formatDate(c.date), W / 2, 565);
   const rank = bestRank(info && info.ranks);
   if (rank) {
     g.fillStyle = '#fde68a'; g.fillRect(90, 605, W - 180, 80);
