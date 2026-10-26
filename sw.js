@@ -1,11 +1,12 @@
-const CACHE = 'hk-fishing-v162';  // v162: 分享私隱（短連結 ?c=、唔分享備註／座標）
+const CACHE = 'hk-fishing-v163';  // v163: 成績卡＋WhatsApp 分享＋QR
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
   './lib/auth.js',        // Email Magic Link
   './lib/weight.js',      // v108 重量單位
   './lib/leaderboard.js', // v109 排行榜上榜條件
-  './lib/myStats.js'      // v142 我的統計
+  './lib/myStats.js',     // v142 我的統計
+  './lib/qrcode-generator-2.0.4.js'  // v163 成績卡 QR
 ];
 
 self.addEventListener('install', e => {
