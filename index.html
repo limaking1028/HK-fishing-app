@@ -1272,7 +1272,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v166</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v167</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -2184,7 +2184,9 @@ function renderRecordView() {
         + '</div>'
         + '<button type="button" id="gps-btn" class="' + btnClass + '" onclick="getCurrentLocation()" style="width:100%;margin-top:8px;">' + btnText + '</button>'
         + '<input type="hidden" id="catch-lat" value="'+(state.catchLat||'')+'"><input type="hidden" id="catch-lng" value="'+(state.catchLng||'')+'"><input type="hidden" id="catch-accuracy" value="'+(state.catchAccuracy||'')+'">'
-        + '<select id="catch-spot" style="display:none;">'
+        // v167：冇 GPS 唔再靜靜雞預設第一個（魚排）；顯示「未選釣點」俾用戶自己揀
+        + '<select id="catch-spot" ' + (state.catchLat ? 'style="display:none;"' : 'class="form-select" style="margin-top:8px;" onchange="pickSpotManual(this.value)"') + '>'
+        + '<option value=""' + (state.selectedSpot ? '' : ' selected') + '>未選釣點</option>'
         + FISHING_SPOTS.map(s => '<option value="'+s.name+'"'+(state.selectedSpot===s.name?' selected':'')+'>'+s.name+'</option>').join('')
         + '</select>'
         + '<input type="hidden" id="custom-spot" value="'+(state.customSpot||'')+'">'
@@ -2640,8 +2642,7 @@ function getCurrentLocation() {
       status.className = 'gps-status error';
       if (titleEl) titleEl.textContent = '❌ ' + msg;
       if (box) { box.classList.remove('loading'); box.classList.add('error'); }
-      state.selectedSpot = '其他';
-      toast(msg);
+      toast(msg);   // v167：唔再自動設「其他」，等用戶喺「未選釣點」自己揀
     },
     { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
   );
@@ -2655,6 +2656,15 @@ function haversineDistance(lat1, lng1, lat2, lng2) {
   const a = Math.sin(dLat/2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
+// v167：手動揀釣點（冇 GPS 時用）；揀「其他」就問名
+function pickSpotManual(v) {
+  if (v === '其他') {
+    state.customSpot = (prompt('請輸入釣點名稱', state.customSpot || '') || '').trim();
+    const ci = document.getElementById('custom-spot'); if (ci) ci.value = state.customSpot;
+  }
+  onSpotChange(v);
+}
+window.pickSpotManual = pickSpotManual;
 function selectSpot(spotName) {
   state.selectedSpot = spotName;
   const sel = document.getElementById('catch-spot');
@@ -2829,7 +2839,7 @@ function submitCatch() {
     }
   }
   const spotRaw = document.getElementById('catch-spot').value;
-  if (!spotRaw) { toast('請選擇釣點'); return; }
+  if (!spotRaw) { toast('未有 GPS 定位，請先喺「📍 釣點」揀返釣點'); return; }
   const spotDetail = (state.customSpot || '').trim();
   let spot;
   if (spotRaw === '其他') {
@@ -5814,7 +5824,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v166</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v167</span>';
   }
   renderView(name);
 }
