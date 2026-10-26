@@ -1170,6 +1170,11 @@ button { touch-action: manipulation; }
   .header-title { font-size: 17px; font-weight: 800; letter-spacing: .3px; }
   .header-settings { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.18); padding: 6px 12px; border-radius: 999px; min-height: 36px; opacity: 1; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
   .header-settings:active { background: rgba(255,255,255,.24); }
+  /* v174：創始釣友 */
+  .founder-badge { display: inline-block; font-size: 11px; font-weight: 700; color: #92400e; background: linear-gradient(135deg,#fef3c7,#fde68a); border: 1px solid #fcd34d; border-radius: 999px; padding: 1px 7px; margin-left: 4px; white-space: nowrap; vertical-align: 1px; }
+  .founder-badge[hidden] { display: none; }
+  .founder-banner { background: linear-gradient(135deg,#fef3c7,#fde68a); border: 1px solid #fcd34d; color: #92400e; border-radius: 12px; padding: 10px 12px; font-size: 13px; font-weight: 700; line-height: 1.5; text-align: center; margin: 0 0 12px; }
+  .founder-banner b { font-size: 15px; }
 
   /* --- 底部導航（SVG 圖示）--- */
   #bottom-nav { background: rgba(255,255,255,.94); backdrop-filter: saturate(1.4) blur(14px); -webkit-backdrop-filter: saturate(1.4) blur(14px); border-top: 1px solid var(--gray-2); box-shadow: 0 -4px 20px rgba(16,42,56,.07); }
@@ -1271,8 +1276,8 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v173</span></div>
-    <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v174</span></div>
+    <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
     <!-- Route H: 進行中行程 banner（無行程時隱藏） — 永遠黏在 main 頂部，跨所有 view 顯示 -->
@@ -4048,6 +4053,34 @@ function getMyCatchRankings() {
   }
   return rankings;
 }
+// v174：創始釣友 — 號碼由 DB 派（頭 100 個記錄魚獲嘅帳戶），呢度只係顯示
+function founderBannerHtml() {
+  const n = state.founderRemaining;
+  if (!Number.isInteger(n) || n <= 0) return '';
+  return '<div class="founder-banner" role="note">🏅 釣港開幕：頭 100 個記錄魚獲嘅釣友永久成為創始釣友，仲剩 <b>' + n + '</b> 個名額</div>';
+}
+function paintFounderBanners() {
+  document.querySelectorAll('.founder-banner-slot').forEach(el => { el.innerHTML = founderBannerHtml(); });
+}
+async function loadFounderRemaining() {
+  try { if (!sb) return; const r = await sb.rpc('founder_remaining'); if (!r.error && Number.isInteger(r.data)) { state.founderRemaining = r.data; paintFounderBanners(); } } catch (e) {}
+}
+function founderTag(no) { return Number.isInteger(no) && no > 0 ? '<span class="founder-badge" title="創始釣友">🏅 創始釣友 #' + no + '</span>' : ''; }
+function paintMyFounder() {
+  const el = document.getElementById('founder-badge'); const no = state.founderNo;
+  if (el) { el.textContent = Number.isInteger(no) ? '🏅#' + no : ''; el.hidden = !Number.isInteger(no); el.title = Number.isInteger(no) ? '創始釣友 #' + no : ''; }
+  document.querySelectorAll('.my-founder-slot').forEach(x => { x.innerHTML = Number.isInteger(no) ? '<div style="text-align:center;margin:0 0 10px;">' + founderTag(no) + '</div>' : ''; });
+}
+async function loadMyFounder() {
+  try { if (!sb || !state.user) return; const r = await sb.rpc('my_founder_no'); if (!r.error) { state.founderNo = Number.isInteger(r.data) ? r.data : null; paintMyFounder(); } } catch (e) {}
+  loadFounderRemaining();
+}
+async function loadLbFounders(rows) {
+  const ids = rows.map(r => r.catch_id || r.entry_id).filter(Boolean).slice(0, 200);
+  if (!ids.length) return;
+  try { const r = await sb.rpc('lb_founder_nos', { p_ids: ids }); if (!r.error && r.data) { state.lbFounders = Object.assign(state.lbFounders || {}, r.data); if (state.view === 'leaderboard') renderLeaderboardView(); } } catch (e) {}
+}
+
 function renderMyView() {
   const view = document.getElementById('view-my');
   // Route F: 子 tab 切換（魚獲記錄 / 魚種圖鑑）
@@ -4064,6 +4097,7 @@ function renderMyView() {
     view.innerHTML = subTabsHtml + getMyStatsHTML();
     return;
   }
+  setTimeout(() => { paintFounderBanners(); paintMyFounder(); if (!Number.isInteger(state.founderNo) && state.user && Date.now() - (state.founderAt || 0) > 20000) { state.founderAt = Date.now(); loadMyFounder(); } }, 0);   // v174：記完第一條魚返嚟會攞到號
   let myCatches = state.catches.filter(c => c.isMine);
   const totalCatches = myCatches.length;
   const biggest = myCatches.reduce((max, c) => c.weight > (max?.weight||0) ? c : max, null);
@@ -4143,7 +4177,7 @@ function renderMyView() {
     + '<div class="collapsible-header" onclick="toggleSection(\''+recKey+'\')"><span class="collapsible-title">📋 全部記錄（'+filtered.length+' 條）</span><span class="collapsible-arrow">▶</span></div>'
     + '<div class="collapsible-content">' + listHtml + '</div>'
     + '</div>';
-  view.innerHTML = subTabsHtml
+  view.innerHTML = subTabsHtml + '<div style="padding:0 16px"><div class="my-founder-slot"></div><div class="founder-banner-slot"></div></div>'
     + '<div class="stats-row">'
     + '<div class="stat-card"><div class="stat-value">'+totalCatches+'</div><div class="stat-label">總魚獲</div></div>'
     + '<div class="stat-card"><div class="stat-value">'+weightDisplay({weight: totalWeightKg}).value+'<span style="font-size:13px">'+weightDisplay({weight: totalWeightKg}).unit+'</span></div><div class="stat-label">總重量</div></div>'
@@ -4591,7 +4625,9 @@ function drawScoreCard(c, info, url, photo) {
   g.fillStyle = '#fff'; g.beginPath(); g.roundRect ? g.roundRect(40, 120, W - 80, 610 + d, 28) : g.rect(40, 120, W - 80, 610 + d); g.fill();
   g.textAlign = 'center';
   const F = '"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
-  g.fillStyle = '#fff'; g.font = '700 44px ' + F; g.fillText('🎣 釣港 成績卡', W / 2, 80);
+  const fno = c.isMine && Number.isInteger(state.founderNo) ? state.founderNo : null;   // v174
+  g.fillStyle = '#fff'; g.font = '700 44px ' + F; g.fillText('🎣 釣港 成績卡', W / 2, fno ? 66 : 80);
+  if (fno) { g.fillStyle = '#fde68a'; g.font = '700 26px ' + F; g.fillText('🏅 創始釣友 #' + fno, W / 2, 106); }
   const wd = weightDisplay(c), wtxt = wd.value + wd.unit;
   if (photo) {   // v168：置中裁切填滿＋圓角
     const bx = 60, by = 140, bw = PW, bh = PH, sc = Math.max(bw / photo.naturalWidth, bh / photo.naturalHeight);
@@ -4696,6 +4732,7 @@ async function showServerSharedCatch(token) {
       + '<div style="font-size:14px;color:var(--gray-5);">'+e(d.area || d.spot || '')+(d.date ? ' · '+e(formatDate(d.date)) : '')+'</div>'
       + '</div>'
       + (rankText ? '<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:10px;padding:10px 14px;margin-bottom:16px;text-align:center;font-size:13px;font-weight:700;color:#92400e;">🏆 '+e(rankText)+'</div>' : '')
+      + '<div class="founder-banner-slot">' + founderBannerHtml() + '</div>'   // v174
       + '<button class="btn btn-primary" style="width:100%;" onclick="closeImportModal();clearShareParam();">打開 App</button>'
     : '<div style="text-align:center;padding:16px 0;color:var(--gray-5);">搵唔到呢條分享（可能已刪除）。</div>'
       + '<button class="btn btn-outline" style="width:100%;" onclick="closeImportModal();clearShareParam();">打開 App</button>';
@@ -4787,6 +4824,7 @@ async function fetchLbRows(type, period) {
   if (res.error) throw res.error;
   const rows = res.data || [];
   state.lbCache[type + '|' + period] = { at: Date.now(), rows };
+  loadLbFounders(rows);   // v174
   return rows;
 }
 // v159：我自己嘅排名同差距（只有自己睇到）
@@ -4921,12 +4959,13 @@ function renderLeaderboardView() {
       else if (state.lbType === 'quantity') championTitle = '全港魚獲霸主';
       else if (state.lbType === 'species') championTitle = '全港魚種霸主';
       const meTag = item.isMine?' <span style="font-size:11px;color:var(--orange)">（我）</span>':'';
+      const fTag = founderTag((state.lbFounders || {})[item.id || item.likeKey]);   // v174
       if (rank === 1) {
         listHtml += '<div class="lb-item lb-item-champion'+(item.isMine?' mine':'')+'">'
           +'<div class="lb-rank '+rankClass+'">'+rank+'</div>'
           +(useServer ? lbThumbHtml(item) : '')
           +'<div class="lb-user">'
-            +'<div class="lb-username">'+escapeHtml(item.user)+meTag+'</div>'
+            +'<div class="lb-username">'+escapeHtml(item.user)+fTag+meTag+'</div>'
             +'<div class="lb-champion-badge">👑 '+championTitle+' 👑</div>'
             +'<div class="lb-detail">'+detail+'</div>'
           +'</div>'
@@ -4936,7 +4975,7 @@ function renderLeaderboardView() {
         listHtml += '<div class="lb-item'+(item.isMine?' mine':'')+'">'
           +'<div class="lb-rank '+rankClass+'">'+rank+'</div>'
           +(useServer ? lbThumbHtml(item) : '')
-          +'<div class="lb-user"><div class="lb-username">'+escapeHtml(item.user)+meTag+'<div class="lb-detail">'+detail+'</div></div></div>'
+          +'<div class="lb-user"><div class="lb-username">'+escapeHtml(item.user)+fTag+meTag+'<div class="lb-detail">'+detail+'</div></div></div>'
           +'<div class="lb-value">'+value+(useServer ? lbLikeHtml(item) : '')+'</div>'
           +'</div>';
       }
@@ -5822,7 +5861,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v173</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v174</span>';
   }
   renderView(name);
 }
@@ -5880,6 +5919,7 @@ function renderLoginScreen() {
         <div class="login-logo"><img src="icon-192.png?v=125" alt="釣港" width="72" height="72"></div>
         <div class="login-title">釣港</div>
         <div class="login-subtitle">雲端同步 · 多裝置共享</div>
+        <div class="founder-banner-slot" style="margin-top:12px">${founderBannerHtml()}</div>
 
         <!-- 密碼登入 / 註冊(預設) -->
         <div id="auth-step-pw" class="auth-step active">
@@ -6267,6 +6307,7 @@ async function init() {
         return;
       }
       trackVisit();   // v173：匿名總數（登入前就計）
+      loadFounderRemaining();   // v174：開幕橫幅（登入前都睇到）
       setInitStatus('正在檢查登入狀態', 'getCurrentUser...');
       // Email Magic Link:用 Supabase Auth session 取代 localStorage hack
       try {
@@ -6311,6 +6352,7 @@ async function init() {
     }
     setupGlobalHandlers();
     document.getElementById('header-username').textContent = getUserName();
+    loadMyFounder();   // v174
     checkSharedCatch();
     switchView('my');
     showApp();
@@ -6413,6 +6455,7 @@ async function completeSignInInner(userProfile) {
   document.getElementById('bottom-nav').style.display = '';
   document.getElementById('main').style.display = '';
   document.getElementById('header-username').textContent = getUserName();
+  loadMyFounder();   // v174
   setupGlobalHandlers();
   checkSharedCatch();
   safeSwitchView('my');
