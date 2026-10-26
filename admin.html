@@ -752,7 +752,7 @@ async function vReview(){
   S.queue=q;S.pending=q.length;renderNav();
   let h=header('審核中心');
   h+='<p class="hint" style="color:var(--mu);margin:-6px 0 14px">同一行程、同一魚種超過 30 條需要人手審核。批准後先計入數量榜同品種榜；請留意相片有冇重複、盜用或同一條魚影多次。</p>';
-  if(!q.length)h+='<div class="card">'+empty('check','冇待審核項目','全部處理好咗')+'</div>';
+  if(!q.length)h+='<div class="card"><h2>待審核：同一行程同一魚種超過 30 條</h2>'+empty('check','冇待審核項目','全部處理好咗')+'</div>';   // v172：加標題，免得同上面兩張卡混淆
   q.forEach((g,i)=>{
     h+='<section class="card" style="margin-bottom:12px" aria-label="審核項目 '+(i+1)+'"><div class="top" style="margin-bottom:0"><div><b style="font-size:16px">'+esc(g.display_name||'（未命名）')+'</b> <span class="pill warn">'+esc(g.species)+' · '+g.catch_count+' 條</span><div class="d" style="color:var(--mu);font-size:13px">行程 '+fmt(g.started_at)+(g.spot?' · '+esc(g.spot):'')+'</div></div></div>'
      +'<div class="rv-photos">'+(g.catches||[]).map(c=>{const u=safeImg(c.photo_url);return '<div class="ph">'+(u?'<button class="im" type="button" aria-label="放大相片" onclick="zoom(\''+esc(u)+'\',\''+esc(g.species)+' '+esc(c.weight_kg)+'kg · '+fmt(c.created_at)+'\')"><img loading="lazy" src="'+esc(u)+'" alt="'+esc(g.species)+'"></button>':'<div class="noimg">無相片</div>')+'<div class="m"><span>'+fmt(c.created_at).slice(5)+'</span><span class="d">'+esc(c.weight_kg)+' kg</span></div></div>';}).join('')+'</div>'
