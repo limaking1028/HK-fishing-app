@@ -1272,7 +1272,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v164</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v165</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -4475,7 +4475,7 @@ function shareRankText(ranks) {
 const APP_PUBLIC_URL = 'https://limaking1028.github.io/HK-fishing-app/';
 function appBaseUrl() { return APP_PUBLIC_URL; }
 // v164：分享連結基底。空 = 用 APP_PUBLIC_URL?c=<token>；設做 Cloudflare Worker 網址（例如 https://fishport-share.xxx.workers.dev）就變 <worker>/c/<token>
-const SHARE_BASE_URL = '';
+const SHARE_BASE_URL = 'https://fishport-share.fishport1028.workers.dev';
 function shareUrlFor(token) {
   const t = encodeURIComponent(token);
   return SHARE_BASE_URL ? SHARE_BASE_URL.replace(/\/+$/, '') + '/c/' + t : APP_PUBLIC_URL + '?c=' + t;
@@ -5809,7 +5809,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v164</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v165</span>';
   }
   renderView(name);
 }
