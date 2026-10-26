@@ -4676,38 +4676,45 @@ async function renderScoreCard(id, wrapId) {
   const wrap = document.getElementById(wrapId);
   const c = id && state.catches.find(x => x.id === id);
   if (!wrap || !c) return;
-  // v177：一開始就畫好卡位（固定比例）同 3 個掣；相準備好先原位換圖，唔重建
+  // v177：即刻出完整成績卡預覽（魚名／重量／地點／日期）＋3 個掣（掣喺卡上面，一入頁就見到）；相好咗只換相部分，唔重建、唔變高
   const expectPhoto = !!(c._photoFile || /^https:\/\//.test(c.photoUrl || ''));
-  if (!wrap.querySelector('.sc-box')) { state.scoreCard = null; wrap.innerHTML = scoreCardShell(expectPhoto); }
-  const box = wrap.querySelector('.sc-box');
-  if (expectPhoto) box.style.aspectRatio = '720 / 1040';
-  if (expectPhoto && !/^https:\/\//.test(c.photoUrl || '')) return;   // 相仲上載緊：保持「相片準備中…」
+  if (!wrap.querySelector('.sc-box')) { state.scoreCard = null; state.cardLink = null; wrap.innerHTML = scoreCardShell(); }
+  const wd = weightDisplay(c);
+  wrap.querySelector('.sc-sp').textContent = c.species;
+  wrap.querySelector('.sc-w').textContent = wd.value + wd.unit;
+  wrap.querySelector('.sc-pl').textContent = '📍 ' + publicSpot(c) + ' · ' + formatDate(c.date);
+  const ph = wrap.querySelector('.sc-ph');
+  if (!ph.querySelector('img')) ph.innerHTML = expectPhoto ? '<span style="font-size:14px;color:#64748b;">📷 相片準備中…</span>' : '<span style="font-size:56px;">🐟</span>';
+  if (String(c.id).startsWith('temp-')) return;   // 未存好：等正式 id 先攞分享連結
   let sh = { url: appBaseUrl(), info: null };
-  if (!String(c.id).startsWith('temp-')) {
-    state.shareCache = state.shareCache || {};
-    try { sh = state.shareCache[c.id] || (state.shareCache[c.id] = await getCatchShare(c)); } catch (e) { console.warn('[score card]', e); }
-  }
+  state.shareCache = state.shareCache || {};
+  try { sh = state.shareCache[c.id] || (state.shareCache[c.id] = await getCatchShare(c)); } catch (e) { console.warn('[score card]', e); }
   if (!live()) return;  // 畫面已變
+  state.cardLink = { text: drawScoreCard(c, sh.info, sh.url, null).text, url: sh.url };   // WhatsApp 掣唔使等相
   const photo = await loadCardPhoto(c.photoUrl);
   if (!live()) return;
   let card = drawScoreCard(c, sh.info, sh.url, photo), dataUrl;
   try { dataUrl = card.canvas.toDataURL('image/png'); }
   catch (e) { card = drawScoreCard(c, sh.info, sh.url, null); dataUrl = card.canvas.toDataURL('image/png'); }   // v168：canvas 被污染就退返 🐠
-  state.scoreCard = { text: card.text, url: sh.url, file: null, dataUrl: dataUrl };
+  state.scoreCard = { text: card.text, url: sh.url, file: null, dataUrl: dataUrl };   // 分享圖片／儲存用嘅圖（內容不變）
   card.canvas.toBlob(b => { if (b && state.scoreCard) state.scoreCard.file = new File([b], 'diaogang-score.png', { type: 'image/png' }); }, 'image/png');
-  box.innerHTML = '<img id="score-card-img" alt="成績卡" src="' + state.scoreCard.dataUrl + '" style="width:100%;height:100%;object-fit:contain;border-radius:14px;">';   // v177：原位換圖
-  const tip = wrap.querySelector('.sc-tip'); if (tip) tip.textContent = '✅ 成績卡準備好，撳下面分享';   // v177：保留高度，唔跳
+  if (photo) { photo.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;'; photo.alt = '魚相'; ph.innerHTML = ''; ph.appendChild(photo); }   // 只換相部分（頁面預覽用 cover）
+  else if (expectPhoto) ph.innerHTML = '<span style="font-size:56px;">🐟</span>';
 }
-function scoreCardShell(expectPhoto) {   // v177：卡位＋掣，由頭到尾唔消失
-  return '<div class="sc-box" style="width:100%;max-width:320px;margin:0 auto;aspect-ratio:' + (expectPhoto ? '720 / 1040' : '720 / 770') + ';border-radius:14px;background:#0b5563;box-shadow:0 4px 16px rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;color:#e2e8f0;font-size:15px;">成績卡準備中…</div>'
-    + '<div class="sc-tip" style="font-size:13px;color:#64748b;margin-top:6px;">' + (expectPhoto ? '相片準備中…準備好就可以分享' : '準備中…') + '</div>'
-    + '<div style="width:100%;max-width:320px;margin:10px auto 0;display:flex;flex-direction:column;gap:8px;">'
+function scoreCardShell() {   // v177：掣喺上面，卡固定高度
+  return '<div style="width:100%;max-width:320px;margin:0 auto 10px;display:flex;flex-direction:column;gap:8px;">'
     + '<button class="btn btn-primary" style="background:#25D366;border-color:#25D366;" data-action="card-link">💬 分享連結（WhatsApp）</button>'
     + '<div style="display:flex;gap:6px;">'
     + '<button class="btn btn-outline" style="flex:1;padding:10px 4px;font-size:14px;white-space:nowrap;" data-action="card-wa">🖼 分享圖片</button>'
-    + '<button class="btn btn-outline" style="flex:1;padding:10px 4px;font-size:14px;white-space:nowrap;" data-action="card-save">💾 儲存</button></div></div>';
+    + '<button class="btn btn-outline" style="flex:1;padding:10px 4px;font-size:14px;white-space:nowrap;" data-action="card-save">💾 儲存</button></div></div>'
+    + '<div class="sc-box" style="width:100%;max-width:320px;margin:0 auto;border-radius:14px;background:#0b5563;box-shadow:0 4px 16px rgba(0,0,0,.18);padding:10px 12px 12px;box-sizing:border-box;">'
+    + '<div style="color:#fff;font-weight:700;font-size:15px;margin-bottom:8px;">🎣 釣港 成績卡</div>'
+    + '<div style="background:#fff;border-radius:10px;overflow:hidden;color:#0f172a;">'
+    + '<div class="sc-ph" style="height:150px;background:#e2e8f0;display:flex;align-items:center;justify-content:center;overflow:hidden;"></div>'
+    + '<div style="padding:8px 8px 10px;"><div class="sc-sp" style="font-weight:700;font-size:20px;"></div><div class="sc-w" style="font-weight:800;font-size:24px;color:#0b5563;"></div><div class="sc-pl" style="font-size:13px;color:#64748b;"></div></div></div></div>';
 }
-function scoreCardReady() { if (state.scoreCard) return true; showToast('相片準備中，請等等…'); return false; }   // v177
+function scoreCardReady() { if (state.scoreCard) return true; showToast('相片準備中，請等等…'); return false; }   // v177：分享圖片／儲存先要等相
+function cardLinkReady() { if (state.cardLink) return true; showToast('分享連結準備中，請等等…'); return false; }   // v177
 // v164：預設分享 = 文字＋連結（唔夾相），等 WhatsApp 出連結預覽；冇 Web Share 就 wa.me
 function shareTextLink(text, url) {
   if (navigator.share) navigator.share({ title: '釣港', text: text + '\n' + url }).catch(() => {});   // v166：連結自己一行（唔用 url 欄，免得黐埋句尾）
@@ -6581,7 +6588,7 @@ function setupGlobalHandlers() {
 // 分享掣統一處理（catch-card + modal 入面兩個掣 + 成功畫面）
 document.addEventListener('click', function(e) {
   // v163：成績卡掣
-  if (e.target.closest('[data-action="card-link"]')) { e.preventDefault(); if (scoreCardReady()) shareTextLink(state.scoreCard.text, state.scoreCard.url); return; }
+  if (e.target.closest('[data-action="card-link"]')) { e.preventDefault(); if (cardLinkReady()) shareTextLink(state.cardLink.text, state.cardLink.url); return; }
   if (e.target.closest('[data-action="card-wa"]')) { e.preventDefault(); shareScoreCardWhatsApp(); return; }
   if (e.target.closest('[data-action="card-save"]')) { e.preventDefault(); saveScoreCard(); return; }
   // 0b. 刪除單條魚獲
