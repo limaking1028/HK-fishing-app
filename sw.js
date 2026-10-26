@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v177';  // v177: 成績卡唔跳
+const CACHE = 'hk-fishing-v179';  // v179: 底部功能列唔再跟畫面郁
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
