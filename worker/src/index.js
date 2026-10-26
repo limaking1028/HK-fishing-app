@@ -1,4 +1,4 @@
-// 釣港 分享預覽 Worker（v164）
+// 釣港 分享預覽 Worker（v166）
 // GET /c/<token> → 回傳有 og:title / og:description / og:image 嘅 HTML，再跳去 App（APP_URL?c=<token>）。
 // 只用 anon key 調用公開 RPC share_catch_get（佢只回傳 魚種／重量／釣點／地區／日期／排名）。
 // 永不使用 service-role key。冇用戶名、GPS、備註、相。
@@ -12,7 +12,7 @@ function esc(s) {
 function fmtKg(kg) {
   const n = Number(kg);
   if (!isFinite(n) || n <= 0) return '';
-  return n < 1 ? Math.round(n * 1000) + 'g' : n.toFixed(2).replace(/\.?0+$/, '') + 'kg';
+  return (n < 1 ? Math.round(n * 1000) + 'g' : n.toFixed(2).replace(/\.?0+$/, '') + 'kg') + '（' + (n * 1000 / 604.79).toFixed(1) + ' 斤）';   // v166：同 App 分享文字一致（1 斤 = 604.79 克）
 }
 function bestRank(ranks) {
   return (Array.isArray(ranks) ? ranks : [])
@@ -74,7 +74,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const app = String(env.APP_URL || '').replace(/\/?$/, '/');
-    const image = app + 'og-image.jpg';
+    const image = app + 'og-image-v2.jpg';
     if (request.method !== 'GET' && request.method !== 'HEAD') return new Response('Method not allowed', { status: 405 });
     const m = url.pathname.match(/^\/c\/([^/]+)\/?$/);
     const token = m && TOKEN_RE.test(m[1]) ? m[1] : null;
