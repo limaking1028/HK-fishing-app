@@ -1281,7 +1281,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v179</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v180</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -1430,10 +1430,10 @@ const FISH_SPECIES = [
   { name: '釘公', icon: '🐟', sci: 'Terapon jarbua', habitat: '淺水礁區·河口', desc: '條紋雞魚，背鰭尾鰭有黑斑條紋', rarity: 'common', photo: 'photos/釘公'},
   { name: '黃腳鱲', icon: '🐠', sci: 'Acanthopagrus latus', habitat: '灣口·淺水', desc: '雜食性，香港磯釣主力目標魚', rarity: 'common', photo: 'photos/黃腳鱲'},
   { name: '雞泡', icon: '🐡', sci: 'Diodon holocanthus', habitat: '礁石·沙底', desc: '河豚科，受刺激會充氣脹大', rarity: 'common', photo: 'photos/雞泡'},
-  { name: '沙鯭', icon: '🐡', sci: 'Sillago sihama', habitat: '沙底·淺灘', desc: '沙底群居，灘釣常見', rarity: 'common', photo: 'photos/沙鯭'},
+  { name: '沙鯭', icon: '🐡', sci: 'Sillago sihama', habitat: '沙底·淺灘', desc: '沙底群居，灘釣常見', rarity: 'common', photo: null},
   { name: '黑鱲', icon: '🐟', sci: 'Acanthopagrus schlegelii', habitat: '礁石區', desc: '力大善搏，礁石區磯釣常見', rarity: 'common', photo: 'photos/黑鱲'},
   { name: '牛屎鱲', icon: '🐟', sci: 'Rhabdosargus sarba', habitat: '淺水·泥灘', desc: '小型魚，淺灘常見，入門魚種', rarity: 'common', photo: 'photos/牛屎鱲'},
-  { name: '三鬚', icon: '🐟', sci: 'Johnius belengerii', habitat: '沙泥底·淺海', desc: '石首魚科，下頜有3根觸鬚', rarity: 'common', photo: 'photos/三鬚'},
+  { name: '三鬚', icon: '🐟', sci: 'Johnius belengerii', habitat: '沙泥底·淺海', desc: '石首魚科，下頜有3根觸鬚', rarity: 'common', photo: null},
   { name: '梳羅', icon: '🐠', sci: 'Hapalogenys analis', habitat: '礁石區·深水', desc: '身體有黑色橫紋，磯釣高級魚', rarity: 'uncommon', photo: 'photos/梳羅'},
   { name: '牛鰍', icon: '🐟', sci: 'Platycephalus indicus', habitat: '沙泥底·淺海', desc: '底棲伏擊型，扁平頭部', rarity: 'common', photo: 'photos/牛鰍'},
   { name: '油蠟', icon: '🐟', sci: 'Sphyraena pinguis', habitat: '中層·岩礁', desc: '梭魚科，泳速快，掠食性', rarity: 'common', photo: 'photos/油蠟'},
@@ -1447,31 +1447,31 @@ const FISH_SPECIES = [
   { name: '火點', icon: '🐠', sci: 'Lutjanus fulvus', habitat: '珊瑚礁·夜行', desc: '夜間活躍，珊瑚礁邊緣伏擊', rarity: 'uncommon', photo: 'photos/火點'},
   { name: '牙點', icon: '🐟', sci: 'Pelates quadrilineatus', habitat: '淺水·河口', desc: '條紋雞魚科，淺水河口常見', rarity: 'common', photo: 'photos/牙點'},
   { name: '左口', icon: '🐟', sci: 'Paralichthys olivaceus', habitat: '沙底·淺海', desc: '比目魚科，扁平伏底', rarity: 'uncommon', photo: 'photos/左口'},
-  { name: '石蚌', icon: '🐡', sci: 'Haliotis', habitat: '礁石·岩岸', desc: '鮑魚類，磯釣偶爾上鈎', rarity: 'uncommon', photo: 'photos/石蚌'},
-  { name: '坑鰜', icon: '🐟', sci: 'Pseudorhombus', habitat: '沙底·淺海', desc: '比目魚科，扁平伏底', rarity: 'common', photo: 'photos/坑鰜'},
-  { name: '連尖', icon: '🐟', sci: 'Scomberomorus spp', habitat: '中層·外海', desc: '馬鮫科，泳速極快，掠食性', rarity: 'rare', photo: 'photos/連尖'},
-  { name: '哨牙妹', icon: '🐡', sci: 'Champsodon capensis', habitat: '沙底·深海', desc: '牙齒尖銳，雜食性深海魚', rarity: 'uncommon', photo: 'photos/哨牙妹'},
-  { name: '紅鮋', icon: '🐠', sci: 'Scorpaena', habitat: '礁石·深海', desc: '鮋科，紅色斑紋，背鰭有毒刺', rarity: 'uncommon', photo: 'photos/紅鮋'},
+  { name: '石蚌', icon: '🐡', sci: 'Haliotis', habitat: '礁石·岩岸', desc: '鮑魚類，磯釣偶爾上鈎', rarity: 'uncommon', photo: null},
+  { name: '坑鰜', icon: '🐟', sci: 'Pseudorhombus', habitat: '沙底·淺海', desc: '比目魚科，扁平伏底', rarity: 'common', photo: null},
+  { name: '連尖', icon: '🐟', sci: 'Scomberomorus spp', habitat: '中層·外海', desc: '馬鮫科，泳速極快，掠食性', rarity: 'rare', photo: null},
+  { name: '哨牙妹', icon: '🐡', sci: 'Champsodon capensis', habitat: '沙底·深海', desc: '牙齒尖銳，雜食性深海魚', rarity: 'uncommon', photo: null},
+  { name: '紅鮋', icon: '🐠', sci: 'Scorpaena', habitat: '礁石·深海', desc: '鮋科，紅色斑紋，背鰭有毒刺', rarity: 'uncommon', photo: null},
   { name: '三刀', icon: '🐟', sci: 'Trichiurus lepturus', habitat: '中層·深海', desc: '帶魚科，扁平銀身如刀', rarity: 'common', photo: 'photos/三刀'},
-  { name: '細鱗', icon: '🐟', sci: 'Nematalosa nasus', habitat: '淺水·河口', desc: '鰳魚科，銀身細鱗', rarity: 'common', photo: 'photos/細鱗'},
+  { name: '細鱗', icon: '🐟', sci: 'Nematalosa nasus', habitat: '淺水·河口', desc: '鰳魚科，銀身細鱗', rarity: 'common', photo: null},
   { name: '白鬚公', icon: '🐟', sci: 'Polynemus paradiseus', habitat: '沙底·淺海', desc: '馬鮁科，胸鰭呈鬚狀', rarity: 'common', photo: 'photos/白鬚公'},
   { name: '海狼', icon: '🐟', sci: 'Sphyraena jello', habitat: '中層·外海', desc: '大型梭魚，泳速快，釣手感佳', rarity: 'uncommon', photo: 'photos/海狼'},
-  { name: '煙仔', icon: '🐟', sci: 'Hyporhamphus', habitat: '中層·淺海', desc: '鱵魚科，下頷延長如針', rarity: 'common', photo: 'photos/煙仔'},
-  { name: '馬友', icon: '🐟', sci: 'Caranx spp', habitat: '中層·外海', desc: '鰺科，群居性，曳繩釣對象', rarity: 'common', photo: 'photos/馬友'},
+  { name: '煙仔', icon: '🐟', sci: 'Hyporhamphus', habitat: '中層·淺海', desc: '鱵魚科，下頷延長如針', rarity: 'common', photo: null},
+  { name: '馬友', icon: '🐟', sci: 'Eleutheronema tetradactylum', habitat: '中層·外海', desc: '馬鮁科，群居性，曳繩釣對象', rarity: 'common', photo: 'photos/馬友'},
   { name: '花鱸', icon: '🐠', sci: 'Lateolabrax japonicus', habitat: '河口·岩礁', desc: '七星鱸科，銀身黑斑，高級食用魚', rarity: 'uncommon', photo: 'photos/花鱸'},
-  { name: '星鱸', icon: '🐠', sci: 'Pseudorasbora parva', habitat: '淡水·河口', desc: '小型淡水魚，半鹹淡水域', rarity: 'common', photo: 'photos/星鱸'},
+  { name: '星鱸', icon: '🐠', sci: 'Pseudorasbora parva', habitat: '淡水·河口', desc: '小型淡水魚，半鹹淡水域', rarity: 'common', photo: null},
   { name: '黃立鯧', icon: '🐠', sci: 'Trachinotus blochii', habitat: '淺海·岩礁', desc: '銀身黃尾，淺海岩礁常見，肉質細嫩', rarity: 'common', photo: 'photos/黃立鯧'},
   { name: '石剎', icon: '🐠', sci: 'Abudefduf bengalensis', habitat: '珊瑚礁·淺水', desc: '孟加拉豆娘魚，香港礁岩海岸常見', rarity: 'common', photo: 'photos/石剎'},
-  { name: '黃花', icon: '🐠', sci: 'Larimichthys crocea', habitat: '沙泥底·深海', desc: '石首魚科黃魚屬，高級食用魚', rarity: 'uncommon', photo: 'photos/黃花'},
+  { name: '黃花', icon: '🐠', sci: 'Larimichthys crocea', habitat: '沙泥底·深海', desc: '石首魚科黃魚屬，高級食用魚', rarity: 'uncommon', photo: null},
   { name: '䱛仔', icon: '🐠', sci: 'Pampus argenteus', habitat: '沙底·淺至深海', desc: '白鯧幼體（白䱽），銀身高體，肉質細嫩，高級食用魚', rarity: 'uncommon', photo: 'photos/䱛仔'},
   { name: '雞魚', icon: '🐠', sci: 'Parupeneus indicus', habitat: '礁石·沙底', desc: '鬚鯛科，下頷有長鬚', rarity: 'common', photo: 'photos/雞魚'},
   { name: '牛廣GT', icon: '🐟', sci: 'Caranx ignobilis', habitat: '珊瑚礁外海', desc: '巨型鰺科，俗稱 GT，磯釣夢幻魚', rarity: 'rare', photo: 'photos/牛廣GT'},
-  { name: '魔鬼魚', icon: '🐡', sci: 'Mobula', habitat: '中層·外海', desc: '鱝科，扁平胸鰺，悠遊外海', rarity: 'rare', photo: 'photos/魔鬼魚'},
-  { name: '青斑', icon: '🐡', sci: 'Epinephelus awoensi', habitat: '珊瑚礁·岩礁', desc: '石斑科，淺藍斑紋', rarity: 'uncommon', photo: 'photos/青斑'},
-  { name: '芝麻斑', icon: '🐡', sci: 'Epinephelus', habitat: '珊瑚礁·深海', desc: '石斑科，斑點如芝麻', rarity: 'rare', photo: 'photos/芝麻斑'},
+  { name: '魔鬼魚', icon: '🐡', sci: 'Mobula', habitat: '中層·外海', desc: '鱝科，扁平胸鰺，悠遊外海', rarity: 'rare', photo: null},
+  { name: '青斑', icon: '🐡', sci: 'Epinephelus awoara', habitat: '珊瑚礁·岩礁', desc: '石斑科，淺藍斑紋', rarity: 'uncommon', photo: 'photos/青斑'},
+  { name: '芝麻斑', icon: '🐡', sci: 'Epinephelus', habitat: '珊瑚礁·深海', desc: '石斑科，斑點如芝麻', rarity: 'rare', photo: null},
   { name: '白鱲', icon: '🐟', sci: 'Acanthopagrus berda', habitat: '礁石區·沙底', desc: '底棲魚，礁石與沙底交界處', rarity: 'common', photo: 'photos/白鱲'},
   { name: '星點泥鯭', icon: '🐡', sci: 'Siganus guttatus', habitat: '淺水礁區', desc: '泥鯭科變種，背部有星狀斑點', rarity: 'uncommon', photo: 'photos/星點泥鯭'},
-  { name: '其他', icon: '🐟', custom: true, photo: 'photos/其他'},
+  { name: '其他', icon: '🐟', custom: true, photo: null},
 ];
 const FISHING_SPOTS = [
   { name: '魚排', lat: 22.247, lng: 114.165 },
@@ -1900,9 +1900,9 @@ function getSpotInfo(name) { return FISHING_SPOTS.find(s => s.name === name) || 
 // photo field 用 base path (無 ext): 'photos/泥鯭'
 // 將來 push 真實 jpg 就直接覆蓋 photos/泥鯭.jpg，唔使改 code
 // 44 種魚全部已有真實 jpg/png (.svg 全部刪走)，鏈由 5 級減到 4 級
-const FISH_PHOTO_EXTS = ['jpg', 'jpeg', 'png', 'webp'];
+const FISH_PHOTO_EXTS = ['webp'];   // v180：只用有來源嘅 WebP（photos/CREDITS.md），唔再逐個副檔名試（以前 png 魚每張 2 個 404）
 function fishPhotoImg(base, icon, klass) {
-  if (!base) return '<div class="' + (klass || 'sp-icon-emoji') + '">' + icon + '</div>';
+  if (!base) return '<div class="' + (klass || 'sp-icon-emoji') + '">🐟</div>';   // v180：統一 🐟 佔位
   // 用 data-attr 儲 base，onerror chain 試下一個 ext
   klass = klass || 'sp-icon-img';
   const firstExt = FISH_PHOTO_EXTS[0];
@@ -1915,7 +1915,7 @@ window._fishPhotoNext = function(img) {
   if (idx >= FISH_PHOTO_EXTS.length) {
     // 全部 miss → 拎魚種 emoji fallback
     const fish = FISH_SPECIES.find(f => f.photo === base);
-    img.outerHTML = '<div class="' + img.className.replace('-img', '-emoji') + '">' + (fish ? fish.icon : '🐟') + '</div>';
+    img.outerHTML = '<div class="' + img.className.replace('-img', '-emoji') + '">🐟</div>';   // v180：載入失敗統一 🐟
     return;
   }
   img.dataset.idx = idx;
@@ -1950,6 +1950,12 @@ function catchThumbHtml(c, opts) {
   }
   // 3) SVG fallback
   return fallbackSvg;
+}
+const PHOTO_CREDITS = [["䱛仔", "User:Ch.Andrew", "CC BY 3.0", "https://commons.wikimedia.org/wiki/File:Pampus_argenteus_at_Nanfangao_harbor.jpg"], ["三刀", "SEFSC Pascagoula Laboratory; Collection of Brandi Noble, NOAA/NMFS/SEFSC.", "Public domain", "https://commons.wikimedia.org/wiki/File:Fish4504_-_Flickr_-_NOAA_Photo_Library.jpg"], ["左口", "User:Vmenkov", "CC BY-SA 3.0", "https://commons.wikimedia.org/wiki/File:Paralichthys-olivaceus-Federal-Way-3583.jpg"], ["星點泥鯭", "Karelj", "Public domain", "https://commons.wikimedia.org/wiki/File:Siganus_guttatis_3.jpg"], ["梳羅", "Daiju Azuma", "CC BY-SA 2.5", "https://commons.wikimedia.org/wiki/File:Belted_beard_grunt_Hapalogenys_mucronatus.jpg"], ["沙巴龍躉", "Sahat Ratmuangkhwang", "CC BY 3.0", "https://commons.wikimedia.org/wiki/File:Epinephelus_coioides_Thailand.jpg"], ["沙鑽", "Izuzuki", "CC BY-SA 3.0", "https://commons.wikimedia.org/wiki/File:ShiroGSiop.jpg"], ["油蠟", "川原慶賀 Kawahara Keiga（Naturalis Biodiversity Center 藏）", "Public domain", "https://commons.wikimedia.org/wiki/File:Sphyraena_pinguis.jpeg"], ["泥鯭", "Izuzuki", "CC BY-SA 2.5", "https://commons.wikimedia.org/wiki/File:AigoShima.jpg"], ["海狼", "Rickard Zerpe", "CC BY 2.0", "https://commons.wikimedia.org/wiki/File:Pickhandle_barracuda_(Sphyraena_jello)_(46722836461).jpg"], ["火點", "NicoDesSables", "CC BY-SA 3.0", "https://commons.wikimedia.org/wiki/File:Lutjanus_fulvus.JPG"], ["烏頭", "Izuzuki", "CC BY-SA 3.0", "https://commons.wikimedia.org/wiki/File:Bora201312.jpg"], ["牙點", "Buffon, Georges Louis Leclerc; Cuvier, Georges; Valenciennes", "Public domain", "https://commons.wikimedia.org/wiki/File:Histoire_naturelle_des_poissons_(Pl._55)_(7949943842).jpg"], ["牛屎鱲", "Izuzuki", "CC BY-SA 3.0", "https://commons.wikimedia.org/wiki/File:HeDIall.jpg"], ["牛廣GT", "NasserHalaweh", "CC BY-SA 4.0", "https://commons.wikimedia.org/wiki/File:Carangidae_Caranx_ignobilis_1.jpg"], ["牛鰍", "Hamid Badar Osmany", "CC BY 3.0", "https://commons.wikimedia.org/wiki/File:Platycephalus_indicus_Pakistan_1.jpg"], ["白鬚公", "Hamid Badar Osmany", "CC BY 3.0", "https://commons.wikimedia.org/wiki/File:Polynemus_paradiseus.png"], ["白鱲", "BEDO (Thailand)", "CC BY-SA 4.0", "https://commons.wikimedia.org/wiki/File:Acanthopagrus_berda_(Forssk%C3%A5l,_1775).jpg"], ["盲鰽", "Miyazaki Y, Teramura A, Senou H (2019) Preliminary report on bycatch fish species collected from the Tokyo Submarine Canyon, Japan. ZooKeys 843: 129-147. https://doi.org/10.3897/zookeys.843.32410", "CC BY 4.0", "https://commons.wikimedia.org/wiki/File:Atrobucca_nibe.png"], ["石剎", "Izuzuki", "CC BY-SA 3.0", "https://commons.wikimedia.org/wiki/File:TenjikuSD.jpg"], ["石狗公", "Joi Ito", "CC BY 2.0", "https://commons.wikimedia.org/wiki/File:SebastiscusMarmoratusJI1.jpg"], ["紅衫魚", "川原慶賀 Kawahara Keiga（Naturalis Biodiversity Center 藏）", "Public domain", "https://commons.wikimedia.org/wiki/File:Naturalis_Biodiversity_Center_-_RMNH.ART.448_-_Nemipterus_virgatus_(Houttuyn)_-_Kawahara_Keiga_-_1823_-_1829_-_Siebold_Collection_-_pencil_drawing_-_water_colour.jpeg"], ["花鱸", "Σ64", "CC BY 4.0", "https://commons.wikimedia.org/wiki/File:Lateolabrax_japonicas_02.jpg"], ["赤鱲", "Ciushoak", "CC BY-SA 3.0", "https://commons.wikimedia.org/wiki/File:HK_seafood_fish_%E7%B4%85%E9%AE%8B_%E6%B5%B7%E9%AE%AE%E9%AD%9A_Red_Rockfish_03.JPG"], ["金鼓", "Karelj", "Public domain", "https://commons.wikimedia.org/wiki/File:Scatophagus_argus_1.jpg"], ["釘公", "Sahat Ratmuangkhwang", "CC BY 3.0", "https://commons.wikimedia.org/wiki/File:Terapon_jarbua.jpg"], ["雞泡", "Karelj", "Public domain", "https://commons.wikimedia.org/wiki/File:Diodon_holocanthus_1.jpg"], ["雞魚", "Hamid Badar Osmany", "CC BY 3.0", "https://commons.wikimedia.org/wiki/File:Parupeneus_indicus_2.png"], ["青斑", "Totti", "CC BY-SA 4.0", "https://commons.wikimedia.org/wiki/File:Epinephelus_awoara_Hakkeijima.jpg"], ["馬友", "BEDO (Thailand)", "CC BY-SA 4.0", "https://commons.wikimedia.org/wiki/File:Eleutheronema_tetradactylum(Shaw,_1804).jpg"], ["黃立鯧", "Roberto Pillon", "CC BY 3.0", "https://commons.wikimedia.org/wiki/File:Trachinotus_blochii_Praslin_2.JPG"], ["黃腳鱲", "Ranjith-chemmad", "CC BY-SA 4.0", "https://commons.wikimedia.org/wiki/File:Acanthopagrus_latus_Doha.jpg"], ["黑鱲", "TMDSA", "CC BY-SA 3.0", "https://commons.wikimedia.org/wiki/File:Black_Porgy.JPG"]];   // v180：魚種相來源（Wikimedia Commons），同 photos/CREDITS.md 一致
+function photoCreditsHTML() {
+  return '<details style="margin:16px;font-size:11px;color:var(--gray-4);"><summary style="cursor:pointer;">📷 相片來源</summary><div style="margin-top:6px;line-height:1.7;">'
+    + PHOTO_CREDITS.map(r => escapeHtml(r[0]) + '：' + escapeHtml(r[1]) + '，' + escapeHtml(r[2]) + '，<a href="' + escapeHtml(r[3]) + '" target="_blank" rel="noopener">Wikimedia Commons</a>').join('<br>')
+    + '<br>未有合適授權相嘅魚種用 🐟 代替。</div></details>';
 }
 function speciesPhotoHtml(name, opts) {
   opts = opts || {};
@@ -2346,7 +2352,7 @@ function renderSpeciesSelector() {
     // Image vs emoji：如有 photo 就用真實魚圖 (auto try .jpg/.png/.webp)，否則 fallback 為 emoji
     const iconHtml = f.photo
       ? fishPhotoImg(f.photo, f.icon, 'sp-icon-img').replace('alt=""', 'alt="' + escapeHtml(f.name) + '"')
-      : `<div class="sp-icon-emoji">${f.icon}</div>`;
+      : `<div class="sp-icon-emoji">🐟</div>`;
     return `<div class="sp-card ${isSelected ? 'selected' : ''} ${isPinned ? 'pinned' : ''} ${isCustom ? 'custom-species' : ''}" onclick="${clickAction}" data-species="${escapeHtml(f.name)}">
       <div class="sp-pin-toggle ${isPinned ? 'active' : ''}" onclick="event.stopPropagation();togglePinSpecies('${escapeHtml(f.name)}')" title="${isPinned ? '取消收藏' : '加入收藏'}">${isPinned ? '⭐' : '☆'}</div>
       <div class="sp-icon">${iconHtml}</div>
@@ -3223,7 +3229,7 @@ function closeTallySheet() { const ov = document.getElementById('tally-modal'); 
 function tallyFishThumb(sp) {
   const f = FISH_SPECIES.find(x => x.name === sp);
   if (f && f.photo) return fishPhotoImg(f.photo, f.icon, 'tally-fish-img').replace('alt=""', 'alt="' + escapeHtml(sp) + '"');
-  return '<div class="tally-fish-emoji">' + (f ? f.icon : '🐟') + '</div>';
+  return '<div class="tally-fish-emoji">🐟</div>';
 }
 function renderTallySheet() {
   const ov = document.getElementById('tally-modal'); if (!ov || !_tallyTrip) return;
@@ -4107,7 +4113,7 @@ function renderMyView() {
     + '<button class="my-sub-tab '+(state.mySubTab==='stats'?'active':'')+'" onclick="setMySubTab(\'stats\')">📊 我的統計</button>'
     + '</div>';
   if (state.mySubTab === 'pokedex') {
-    view.innerHTML = subTabsHtml + getPokedexHTML();
+    view.innerHTML = subTabsHtml + getPokedexHTML() + photoCreditsHTML();
     return;
   }
   if (state.mySubTab === 'stats') {
@@ -5917,7 +5923,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v179</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v180</span>';
   }
   renderView(name);
 }
@@ -6616,11 +6622,9 @@ document.addEventListener('click', function(e) {
 
 });
 
-// 強制 unregister 舊 service worker（解決緩存問題）
+// v180：重新註冊 SW，但 sw.js 只快取魚種相（photos/*.webp），其他請求唔經 SW 快取，唔會再有舊版 index/lib 問題
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(regs => {
-    regs.forEach(reg => reg.unregister());
-  });
+  navigator.serviceWorker.register('sw.js').catch(e => console.warn('[sw]', e));
 }
 /* ---------- v152：客戶端錯誤回報 + 公告橫幅（失敗都唔影響 App 運作） ---------- */
 const APP_BUILD_LABEL = 'v164';
