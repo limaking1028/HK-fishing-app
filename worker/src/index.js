@@ -46,7 +46,10 @@ export function buildMeta(d) {
   const title = '🎣 ' + String(d.species).slice(0, 30) + (w ? ' ' + w : '') + (r ? '｜' + PERIOD[r.period] + '第 ' + r.rank + ' 名' : '');
   const place = String(d.area || d.spot || '').slice(0, 40);
   const date = /^\d{4}-\d{2}-\d{2}$/.test(String(d.date || '')) ? d.date : '';
-  const desc = [place, date].filter(Boolean).join('・') + (place || date ? '，' : '') + '撳入釣港睇排行榜';
+  // v176：尾句「唔使安裝…」一定要睇到；太長就截短魚獲部分（唔截尾句）
+  const tail = '撳入釣港睇排行榜｜唔使安裝，手機瀏覽器直接用';
+  const head = [place.length > 16 ? place.slice(0, 15) + '…' : place, date].filter(Boolean).join('・');
+  const desc = head + (head ? '，' : '') + tail;
   return { title, desc };
 }
 

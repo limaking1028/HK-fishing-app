@@ -82,7 +82,7 @@
   <script src="./lib/geo.js"></script>
   <!-- Route K+: 魚獲 stats 增強（時間桶/月相/太陽/潮汐/地理，純前端） -->
   <script src="./lib/catchStats.js"></script>
-  <!-- v142: 我的統計（免費版） -->
+  <!-- v142: 我的統計（基本版） -->
   <script src="./lib/myStats.js"></script>
   <!-- Auth++: WhatsApp OTP 認證（電話格式化 + Edge Function 封裝） -->
   <script src="./lib/auth.js"></script>
@@ -4226,7 +4226,7 @@ function renderMyView() {
     state._myTimeTick = null;
   }
 }
-/* ===== v142：我的統計（免費版，純前端計算，唔會上傳任何數據）===== */
+/* ===== v142：我的統計（基本版，純前端計算，唔會上傳任何數據）===== */
 function setStatsPeriod(p) { state.statsPeriod = p; renderMyView(); }
 function msBarRows(items, opts) {
   const max = Math.max(1, ...items.map(x => x.n));
@@ -5484,7 +5484,7 @@ function renderWeatherCards(view, results) {
 }
 
 function setMapTilerKey() {
-  const key = prompt('輸入 MapTiler 免費 API key（到 https://maptiler.com 註冊拿 key）：\n\n免費 100,000 tiles/月，繁體中文地圖', localStorage.getItem('maptiler_key') || '');
+  const key = prompt('輸入 MapTiler API key（到 https://maptiler.com 註冊拿 key）：\n\n每月 100,000 tiles 額度，繁體中文地圖', localStorage.getItem('maptiler_key') || '');
   if (key && key.trim()) {
     localStorage.setItem('maptiler_key', key.trim());
     toast('已儲存，重新整理地圖即可使用繁體中文');
@@ -5512,8 +5512,8 @@ function initMap(items) {
     maxZoom: 19,
   });
 
-  // 2. MapTiler 繁體中文（需到 https://maptiler.com 註冊拿免費 key）
-  //    免費額度 100K tile/月，個人使用綽綽有餘
+  // 2. MapTiler 繁體中文（需到 https://maptiler.com 註冊拿 key）
+  //    每月額度 100K tile，個人使用綽綽有餘
   //    預設 key 在模組頂層宣告 DEFAULT_MAPTILER_KEY
   const MAPTILER_KEY = (typeof localStorage !== 'undefined' && localStorage.getItem('maptiler_key')) || DEFAULT_MAPTILER_KEY;
   const maptilerLayer = L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MAPTILER_KEY}&language=zh-Hant`, {
@@ -5934,7 +5934,7 @@ function showToast(msg) {
  * 適合香港釣魚用戶：
  *   - 唔使記密碼 / PIN(40-50 歲用戶友善)
  *   - 唔使 WhatsApp / SMS 設定(零成本)
- *   - 完全免費(Supabase 內建,每月 50,000 用戶免費額)
+ *   - Supabase 內建(每月 50,000 用戶額度)
  */
 let authStep = 'pw';           // 'pw' | 'email' | 'sent'
 let authMode = 'login';        // 'login' | 'register'

@@ -66,3 +66,10 @@ v173 令 Worker 每次有**真人**打開分享連結，就幫「分享連結打
 ## 更新 Worker 程式碼（v175：預覽字眼）
 
 v175 改咗 Worker 預設預覽描述做「記低每條魚獲、同釣友鬥排行榜。唔使安裝，手機瀏覽器直接用。」，預覽頁多一行同樣字眼。步驟同上面 v173 一樣（複製 main 分支 `worker/src/index.js` 全個檔 → Cloudflare → fishport-share → Edit code → 全選刪晒 → 貼上 → Deploy；變數唔使郁）。**要等 v175 merge 咗先貼。** 未貼之前舊 Worker 照用得。
+
+## v176：預覽描述加「唔使安裝」
+
+- 有效分享連結嘅 WhatsApp／FB 預覽描述，尾句會變成「撳入釣港睇排行榜｜唔使安裝，手機瀏覽器直接用」。
+- 釣點名太長會自動截短（加「…」），尾句一定睇到。
+- 貼法同之前一樣：複製 main 嘅 worker/src/index.js → Cloudflare fishport-share → Edit code → 全選貼上 → Deploy。
+- 還原：貼返 commit 7324608 嘅版本：https://raw.githubusercontent.com/limaking1028/HK-fishing-app/7324608cdb09ac981e832f4fee9f08f5ef054853/worker/src/index.js
