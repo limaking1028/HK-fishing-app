@@ -14,6 +14,21 @@
   <link rel="icon" type="image/png" href="icon-192.png?v=115">
   <meta name="apple-mobile-web-app-title" content="釣港">
   <title>釣港</title>
+  <!-- v164 B1：通用連結預覽（WhatsApp／FB／Telegram） -->
+  <meta name="description" content="香港釣魚記錄 App：記低每條魚獲，同釣友鬥排行榜。">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="釣港">
+  <meta property="og:title" content="釣港 🎣 香港釣魚記錄＋排行榜">
+  <meta property="og:description" content="記低每條魚獲，同釣友鬥排行榜。撳入嚟睇！">
+  <meta property="og:url" content="https://limaking1028.github.io/HK-fishing-app/">
+  <meta property="og:image" content="https://limaking1028.github.io/HK-fishing-app/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="釣港 🎣 香港釣魚記錄＋排行榜">
+  <meta name="twitter:description" content="記低每條魚獲，同釣友鬥排行榜。撳入嚟睇！">
+  <meta name="twitter:image" content="https://limaking1028.github.io/HK-fishing-app/og-image.jpg">
   <script>
   // v103: 早期錯誤捕獲 — 即使主 script 語法錯誤也能顯示訊息
   window.__bootErrors = [];
@@ -1257,7 +1272,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v163</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v164</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -4459,6 +4474,12 @@ function shareRankText(ranks) {
 // v163：分享連結一律用正式網址（唔用 location，避免 localhost／index.html／APK 殼網址出現喺卡同連結）
 const APP_PUBLIC_URL = 'https://limaking1028.github.io/HK-fishing-app/';
 function appBaseUrl() { return APP_PUBLIC_URL; }
+// v164：分享連結基底。空 = 用 APP_PUBLIC_URL?c=<token>；設做 Cloudflare Worker 網址（例如 https://fishport-share.xxx.workers.dev）就變 <worker>/c/<token>
+const SHARE_BASE_URL = '';
+function shareUrlFor(token) {
+  const t = encodeURIComponent(token);
+  return SHARE_BASE_URL ? SHARE_BASE_URL.replace(/\/+$/, '') + '/c/' + t : APP_PUBLIC_URL + '?c=' + t;
+}
 async function getCatchShare(c) {
   // 回傳 { url, info }；冇雲端記錄（訪客／未同步／收藏）就 url = 主頁、info = null
   const cloud = SB_ENABLED && sb && state.user && c.isMine && !c.imported && !String(c.id).startsWith('temp-');
@@ -4466,7 +4487,7 @@ async function getCatchShare(c) {
   const { data: token, error } = await sb.rpc('share_catch_create', { p_catch: c.id });
   if (error || !token) throw error || new Error('建立分享連結失敗');
   const { data: info } = await sb.rpc('share_catch_get', { p_token: token });
-  return { url: appBaseUrl() + '?c=' + encodeURIComponent(token), info: info || null };
+  return { url: shareUrlFor(token), info: info || null };
 }
 async function shareCatch(id) {
   try {
@@ -4546,7 +4567,7 @@ function drawScoreCard(c, info, url) {
   } else {
     g.fillStyle = '#334155'; g.font = '600 34px ' + F; g.fillText(scoreCardPromo(c, null, wtxt), W / 2, 658);
   }
-  const hasLink = /\?c=[A-Za-z0-9_-]{12}$/.test(url);
+  const hasLink = /(\?c=|\/c\/)[A-Za-z0-9_-]{12}$/.test(url);
   if (hasLink && typeof qrcode === 'function') {
     const q = qrcode(0, 'M'); q.addData(url); q.make();
     const n = q.getModuleCount(), S = 132, cell = Math.floor(S / (n + 8)), size = cell * (n + 8), x0 = W - 40 - size, y0 = H - 18 - size;
@@ -4582,8 +4603,23 @@ async function renderScoreCard(id) {
   card.canvas.toBlob(b => { if (b && state.scoreCard) state.scoreCard.file = new File([b], 'diaogang-score.png', { type: 'image/png' }); }, 'image/png');
   wrap.innerHTML = '<img id="score-card-img" alt="成績卡" src="' + state.scoreCard.dataUrl + '" style="width:100%;max-width:320px;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.18);">'
     + '<div style="display:flex;gap:8px;max-width:320px;margin:10px auto 0;">'
-    + '<button class="btn btn-primary" style="flex:1;background:#25D366;border-color:#25D366;" data-action="card-wa">💬 WhatsApp</button>'
-    + '<button class="btn btn-outline" style="flex:1;" data-action="card-save">💾 儲存圖片</button></div>';
+    + '<div style="width:100%;max-width:320px;margin:10px auto 0;display:flex;flex-direction:column;gap:8px;">'
+    + '<button class="btn btn-primary" style="background:#25D366;border-color:#25D366;" data-action="card-link">💬 分享連結（WhatsApp）</button>'
+    + '<div style="display:flex;gap:6px;">'
+    + '<button class="btn btn-outline" style="flex:1;padding:10px 4px;font-size:14px;white-space:nowrap;" data-action="card-wa">🖼 發圖片</button>'
+    + '<button class="btn btn-outline" style="flex:1;padding:10px 4px;font-size:14px;white-space:nowrap;" data-action="card-copy">🔗 複製連結</button>'
+    + '<button class="btn btn-outline" style="flex:1;padding:10px 4px;font-size:14px;white-space:nowrap;" data-action="card-save">💾 儲存</button></div></div>';
+}
+// v164：預設分享 = 文字＋連結（唔夾相），等 WhatsApp 出連結預覽；冇 Web Share 就 wa.me
+function shareTextLink(text, url) {
+  if (navigator.share) navigator.share({ title: '釣港', text: text, url: url }).catch(() => {});
+  else window.open('https://wa.me/?text=' + encodeURIComponent(text + '\n' + url), '_blank', 'noopener');
+}
+function copyLinkToast(url) {
+  const done = () => showToast('連結已複製，可以貼落 WhatsApp');
+  const legacy = () => { const ta = document.createElement('textarea'); ta.value = url; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { showToast('複製失敗，請手動複製'); } ta.remove(); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done).catch(legacy); else legacy();
 }
 function shareScoreCardWhatsApp() {
   const sc = state.scoreCard; if (!sc) return;
@@ -4601,11 +4637,7 @@ function saveScoreCard() {
 }
 function nativeShare() {
   const m = state.shareMsg; if (!m) return;
-  if (navigator.share) {
-    navigator.share({ title: '釣港', text: m.text, url: m.url }).catch(()=>{});
-  } else {
-    navigator.clipboard.writeText(m.text + '\n' + m.url).then(() => showToast('已複製，可貼到 WhatsApp / 微信')).catch(()=>{});
-  }
+  shareTextLink(m.text, m.url);
 }
 function copyShareLink() {
   const m = state.shareMsg; if (!m) return;
@@ -5777,7 +5809,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v163</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v164</span>';
   }
   renderView(name);
 }
@@ -6427,6 +6459,8 @@ function setupGlobalHandlers() {
 // 分享掣統一處理（catch-card + modal 入面兩個掣 + 成功畫面）
 document.addEventListener('click', function(e) {
   // v163：成績卡掣
+  if (e.target.closest('[data-action="card-link"]')) { e.preventDefault(); if (state.scoreCard) shareTextLink(state.scoreCard.text, state.scoreCard.url); return; }
+  if (e.target.closest('[data-action="card-copy"]')) { e.preventDefault(); if (state.scoreCard) copyLinkToast(state.scoreCard.url); return; }
   if (e.target.closest('[data-action="card-wa"]')) { e.preventDefault(); shareScoreCardWhatsApp(); return; }
   if (e.target.closest('[data-action="card-save"]')) { e.preventDefault(); saveScoreCard(); return; }
   // 0. 成功畫面嘅「即時分享這條魚獲」
@@ -6521,7 +6555,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 /* ---------- v152：客戶端錯誤回報 + 公告橫幅（失敗都唔影響 App 運作） ---------- */
-const APP_BUILD_LABEL = 'v163';
+const APP_BUILD_LABEL = 'v164';
 const ERR_REPORTED = new Set();
 let errReportCount = 0;
 function reportClientError(err, source) {

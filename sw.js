@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v163';  // v163: 成績卡＋WhatsApp 分享＋QR
+const CACHE = 'hk-fishing-v164';  // v164: 連結預覽（og）＋分享連結／發圖片／複製連結
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
   './lib/astronomy.js', './lib/fish-icons.js', './lib/trips.js', './lib/tides.js', './lib/weather.js', './lib/geo.js',
   './lib/catchStats.js',  // Route L+
