@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v183';  // v182: 只快取魚種相（WebP），其他請求一律唔掂
+const CACHE = 'hk-fishing-v184';  // v184 跟 App 版本號；v182: 只快取魚種相（WebP），其他請求一律唔掂
 // v180：v102 起 SW 停用（舊版網絡優先快取 index/lib 引起問題）。今次重開，但只處理 photos/*.webp：
 //   install 時 precache 魚種相；fetch 只對魚種相 cache-first；其他請求唔 respondWith，行返瀏覽器正常網絡。
 //   activate 時刪走所有舊 cache（包括 v101–v179 留低嘅）。

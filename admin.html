@@ -449,7 +449,7 @@ const rt=c=>(window.lbLib&&lbLib.reasonText)?lbLib.reasonText(c):(c||'');
 const toast=(m)=>{const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('show'),2600);};
 async function rpc(name,args){const {data,error}=await sb.rpc(name,args||{});if(error)throw new Error(error.message||'發生錯誤');return data;}
 const S={tab:'overview',detail:null,pending:0,fbNew:0,fbFilter:'new',photos:[],photoUser:null,photoUserName:'',photoFilter:'all',photoDone:false,fbCat:'all',users:[],queue:[],updated:null,email:''};
-const TABS=[['overview','總覽','home'],['review','審核中心','shield'],['feedback','意見箱','chat'],['photos','相片牆','photos'],['promo','推廣追蹤','spark'],['usage','使用分析','chart'],['insights','付費準備','coins'],['users','用戶','users'],['cleanup','測試清理','alert'],['todo','上架待辦','check'],['tester','測試進度','users'],['monitor','系統監察','pulse'],['audit','操作記錄','log']];
+const TABS=[['overview','總覽','home'],['review','審核中心','shield'],['feedback','意見箱','chat'],['photos','相片牆','photos'],['promo','推廣追蹤','spark'],['usage','使用分析','chart'],['insights','付費準備','coins'],['users','用戶','users'],['cleanup','測試清理','alert'],['todo','上架待辦','check'],['tester','測試進度','users'],['monitor','系統監察','pulse'],['names','改名紀錄','users'],['audit','操作記錄','log']];
 
 /* ---------- Dialog ---------- */
 function ask(o){ // {title, body, ok, danger, note, confirm}
@@ -530,7 +530,7 @@ function navItem(t){
   return '<a href="#'+t[0]+'" data-tab="'+t[0]+'" '+(S.tab===t[0]?'aria-current="page"':'')+' onclick="event.preventDefault();navGo(\''+t[0]+'\')">'
     +ic(t[2])+'<span class="lbl">'+t[1]+'</span>'+navBadge(t[0])+'</a>';
 }
-const NAV_GROUPS=[['主要',['overview','users']],['增長',['promo','usage','insights']],['管理',['review','feedback','photos','monitor','audit']],['工具',['cleanup','todo','tester'],1]];
+const NAV_GROUPS=[['主要',['overview','users']],['增長',['promo','usage','insights']],['管理',['review','feedback','photos','monitor','names','audit']],['工具',['cleanup','todo','tester'],1]];
 function navHtml(kind){
   if(kind!=='tab'){const T=k=>TABS.find(t=>t[0]===k);let tOpen;try{tOpen=localStorage.getItem('adm_tools')==='1';}catch(e){}
     return NAV_GROUPS.map(g=>{const items=g[1].map(k=>navItem(T(k))).join('');
@@ -590,14 +590,14 @@ function header(title,extra){
 function loading(tab){ // 骨架形狀跟返每頁實際版面
   const sk=(c,n)=>('<div class="sk '+c+'"></div>').repeat(n||1),kp=n=>'<div class="grid kpis">'+sk('kpi-s',n)+'</div>',two='<div class="grid two" style="margin-top:12px">'+sk('panel',2)+'</div>';
   const map={overview:sk('bar')+kp(8)+two,review:sk('panel tall',2),feedback:sk('chips-s')+sk('panel',3),photos:sk('chips-s')+'<div class="photos">'+sk('sq',10)+'</div>',
-    usage:kp(4)+two,promo:kp(4)+two,insights:kp(3)+two,users:sk('bar')+'<div class="sk-rows">'+sk('row',7)+'</div>',audit:'<div class="sk-rows">'+sk('row',8)+'</div>',cleanup:'<div class="sk-rows">'+sk('row',6)+'</div>',todo:'<div class="sk-rows">'+sk('row',6)+'</div>',tester:'<div class="sk-rows">'+sk('row',6)+'</div>',monitor:'<div class="sk-rows">'+sk('row',6)+'</div>'};
+    usage:kp(4)+two,promo:kp(4)+two,insights:kp(3)+two,users:sk('bar')+'<div class="sk-rows">'+sk('row',7)+'</div>',audit:'<div class="sk-rows">'+sk('row',8)+'</div>',cleanup:'<div class="sk-rows">'+sk('row',6)+'</div>',todo:'<div class="sk-rows">'+sk('row',6)+'</div>',tester:'<div class="sk-rows">'+sk('row',6)+'</div>',monitor:'<div class="sk-rows">'+sk('row',6)+'</div>',names:'<div class="sk-rows">'+sk('row',6)+'</div>'};
   return '<div aria-busy="true" aria-label="載入中">'+(map[tab]||map.overview)+'</div>';
 }
 async function go(tab,keep){
   if(keep!=='keep')S.detail=null;
   S.tab=tab;history.replaceState(null,'','#'+tab);renderNav();
   const m=$('main');m.classList.add('enter');clearTimeout(S.enterT);m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+loading(tab);
-  try{await ({overview:vOverview,review:vReview,feedback:vFeedback,photos:vPhotos,usage:vUsage,promo:vPromo,insights:vInsights,users:()=>S.detail?vUserDetail():vUsers(),audit:vAudit,cleanup:vCleanup,todo:vTodo,tester:vTester,monitor:vMonitor})[tab]();S.updated=new Date().toLocaleTimeString('zh-HK',{hour12:false,hour:'2-digit',minute:'2-digit'});}
+  try{await ({overview:vOverview,review:vReview,feedback:vFeedback,photos:vPhotos,usage:vUsage,promo:vPromo,insights:vInsights,users:()=>S.detail?vUserDetail():vUsers(),audit:vAudit,cleanup:vCleanup,todo:vTodo,tester:vTester,monitor:vMonitor,names:vNames})[tab]();S.updated=new Date().toLocaleTimeString('zh-HK',{hour12:false,hour:'2-digit',minute:'2-digit'});}
   catch(e){m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+'<div class="card err" role="alert"><h2>載入失敗</h2><p class="hint" style="color:inherit">'+esc(e.message)+'</p><button class="btn" onclick="go(S.tab)">'+ic('refresh')+'再試一次</button></div>';}
   window.scrollTo({top:0,behavior:'instant'});
   S.enterT=setTimeout(()=>{const mm=$('main');if(mm)mm.classList.remove('enter');},900);
@@ -987,6 +987,18 @@ async function vPromo(){
     +(rows.length?lineChart(rows,[['share_open','分享連結打開','#0b6e79'],['share_entry','由分享入 App','#3a8f99'],['signups','註冊','#a36a00'],['first_catches','第一條魚','#1a9a5b']]):empty('pulse','暫時冇資料','有人打開分享連結後會顯示'))+'</section>';
   $('main').innerHTML=h;
   growthCard();   // v173：14 日明細表（原本喺使用分析頁）
+}
+
+/* ---------- v184：改名紀錄（admin_name_changes，只限管理員） ---------- */
+async function vNames(){
+  let rows;
+  try{rows=await rpc('admin_name_changes',{p_limit:200});}
+  catch(e){if(/admin_name_changes|schema cache|function/i.test(e.message)){$('main').innerHTML=header('改名紀錄')+'<div class="card">'+empty('alert','未啟用改名紀錄','要先套用 v184 migration')+'</div>';return;}throw e;}
+  rows=rows||[];
+  $('main').innerHTML=header('改名紀錄')+'<p class="hint page-intro">每次改名都會記低（最新 200 條，香港時間）。規則：2–12 個字、唔准撞名、每 30 日改一次、禁用「官方」「管理員」「釣港」同粗口；管理員唔受字數、禁用字同 30 日限制。</p>'
+   +'<section class="card">'+(rows.length?'<div class="tw" style="box-shadow:none"><table class="t"><thead><tr><th>時間</th><th>舊名</th><th>新名</th><th>而家個名</th><th>改嘅人</th></tr></thead><tbody>'
+   +rows.map(r=>'<tr><td class="first" data-l="時間">'+esc(fmt(r.changed_at))+'</td><td data-l="舊名">'+esc(r.old_name||'—')+'</td><td data-l="新名"><b>'+esc(r.new_name)+'</b></td><td data-l="而家個名">'+esc(r.current_name||'—')+'</td><td data-l="改嘅人">'+(r.changed_by==null?'系統／Dashboard':r.by_other?'管理員代改':'用戶自己')+'</td></tr>').join('')
+   +'</tbody></table></div>':empty('users','未有改名紀錄','用戶改名後會顯示喺呢度'))+'</section>';
 }
 
 /* ---------- v173：新用戶每日總數（只係總數，冇 IP／位置／個人資料） ---------- */

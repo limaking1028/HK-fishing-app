@@ -1281,7 +1281,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v183</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v184</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -1317,7 +1317,7 @@ button { touch-action: manipulation; }
     <div class="modal-sheet" style="position:relative;">
       <span class="modal-close" onclick="closeNameDialog()">✕</span>
       <div class="modal-title">設置你的釣友名稱</div>
-      <input type="text" class="modal-input" id="name-input" placeholder="輸入你的名稱" maxlength="12">
+      <input type="text" class="modal-input" id="name-input" placeholder="輸入你的名稱（2–12 個字）" maxlength="24">
       <div class="modal-btns">
         <button class="btn btn-outline" onclick="closeNameDialog()">取消</button>
         <button class="btn btn-primary" onclick="saveName()">保存</button>
@@ -1841,17 +1841,32 @@ try {
   if (pinnedJson) state.pinnedSpecies = JSON.parse(pinnedJson);
 } catch(e) { state.pinnedSpecies = []; }
 function getUserName() { return state.user ? (state.user.display_name || (state.user.email ? state.user.email.split('@')[0] : '釣友')) : (localStorage.getItem(USERNAME_KEY) || '我'); }
+// v184：改名規則由 DB 強制（2–12 字、唔准撞名、30 日一次、禁用字），呢度只係將錯誤碼轉做廣東話
+function nameRuleMsg(err) {
+  const m = String((err && err.message) || '');
+  if (m.includes('NAME_TOO_SHORT')) return '名字太短，最少要 2 個字';
+  if (m.includes('NAME_TOO_LONG')) return '名字太長，最多 12 個字';
+  if (m.includes('NAME_TAKEN') || (err && err.code === '23505')) return '呢個名已經有人用咗，揀過另一個啦';
+  if (m.includes('NAME_BANNED')) return '名字含有唔可以用嘅字（例如「官方」「管理員」「釣港」或粗口）';
+  const c = m.match(/NAME_COOLDOWN:(\d{4}-\d{2}-\d{2})/);
+  if (c) return '每 30 日只可以改一次名，' + c[1] + ' 之後先可以再改';
+  return '';
+}
 async function setUserName(name) {
-  name = (name || '').trim() || '我';
+  name = (name || '').trim();
   if (SB_ENABLED && state.user) {
-    // 雲端模式：同步更新 Supabase users.display_name
+    // 雲端模式：同步更新 Supabase users.display_name（DB trigger 會檢查規則）
+    if (name === (state.user.display_name || '')) return true;
+    const n = [...name].length;
+    if (n < 2) { toast('名字太短，最少要 2 個字', 3500); return false; }
+    if (n > 12) { toast('名字太長，最多 12 個字', 3500); return false; }
     try {
       const { error } = await sb.from('users')
         .update({ display_name: name })
         .eq('id', state.user.id);
       if (error) {
         console.warn('更新 display_name 失敗:', error);
-        toast('名稱同步失敗：' + error.message);
+        toast(nameRuleMsg(error) || ('名稱同步失敗：' + error.message), 4000);
         return false;
       }
       state.user.display_name = name;
@@ -1863,6 +1878,7 @@ async function setUserName(name) {
     }
   }
   // 離線模式：只存 localStorage
+  name = name || '我';
   localStorage.setItem(USERNAME_KEY, name);
   state.catches.forEach(c => { if (c.isMine) c.user = name; });
   saveCatches(state.catches);
@@ -4410,8 +4426,8 @@ function setPrefWeightUnit(u) {
 window.setPrefWeightUnit = setPrefWeightUnit;
 function closeNameDialog() { document.getElementById('name-modal').classList.remove('show'); }
 async function saveName() {
-  const name = document.getElementById('name-input').value.trim() || '我';
-  const ok = await setUserName(name);
+  const ok = await setUserName(document.getElementById('name-input').value);
+  const name = getUserName();
   if (!ok) return; // 更新失敗時保持對話框開啟
   document.getElementById('header-username').textContent = getUserName();
   closeNameDialog();
@@ -5917,7 +5933,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v183</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v184</span>';
   }
   renderView(name);
 }
