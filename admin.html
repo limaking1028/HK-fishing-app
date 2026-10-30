@@ -376,7 +376,11 @@ dialog.lb .x{position:absolute;top:-8px;right:-4px;background:#fff;color:#000;bo
 .side .foot .btn{border-color:var(--bd)}
 .side .foot .btn:hover{background:var(--surface-2);border-color:var(--bd)}
 @media (min-width:1024px){body.rail .nav .ng{display:none}body.rail .nav .badge{box-shadow:0 0 0 2px var(--surface)}body.rail .nav details>summary{display:none}body.rail .nav details:not([open])>a{display:flex}}
-@media (max-width:1023px){.side .x-close{border-color:var(--bd)}}
+@media (max-width:1023px){.side .x-close{border-color:var(--bd)}
+  .mbar{background:var(--surface)!important;color:var(--tx);border-bottom:1px solid var(--bd)}
+  .mbar img{box-shadow:0 0 0 1px var(--bd)}
+  .mbar .btn{background:var(--surface);border-color:var(--bd);color:var(--tx)}
+  .mbar .btn:hover{background:var(--surface-2)}}
 .kpi .dl{font-size:12px;font-weight:600;margin-left:6px}
 .kpi .dl.up{color:var(--ok)}.kpi .dl.dn{color:var(--bad)}
 .kpi .spk{display:block;width:100%;height:28px;margin-top:6px;color:var(--bar)}
@@ -989,15 +993,16 @@ async function vPromo(){
 const SRC_LBL={direct:'冇標籤',fb:'FB',ig:'IG',yt:'YouTube',wa:'WhatsApp',threads:'Threads',tg:'Telegram',x:'X',other:'其他'};
 async function growthCard(){
   const box=document.createElement('section');box.className='card';box.style.marginTop='12px';box.id='growth-card';
-  box.innerHTML='<h2>新用戶每日總數（近 14 日，香港時間）</h2><p class="hint">分享連結打開＝Worker 計（唔計預覽機械人）；由分享入 App／新訪客＝App 計；註冊同第一條魚＝由帳戶同魚獲記錄計。只存每日總數，冇 IP、冇位置、冇個人資料。</p><div class="gc-body">載入中…</div>';
+  box.innerHTML='<h2>新用戶每日總數（近 14 日明細，香港時間）</h2><p class="hint">分享連結打開＝Worker 計（唔計預覽機械人）；由分享入 App／新訪客＝App 計；註冊同第一條魚＝由帳戶同魚獲記錄計。只存每日總數，冇 IP、冇位置、冇個人資料。</p><div class="gc-body">載入中…</div>';
   $('main').appendChild(box);
   let rows;
   try{rows=await rpc('admin_daily_counts',{p_days:14});}
   catch(e){box.querySelector('.gc-body').innerHTML=empty('alert','未啟用新用戶計數','要先套用 v173 migration');return;}
+  rows=(rows||[]).slice().sort((a,b)=>String(b.day).localeCompare(String(a.day))).slice(0,14);   // 只顯示最近 14 日，合計同標題一致
   const tot=k=>rows.reduce((a,r)=>a+(+r[k]||0),0);
   const srcs=r=>Object.entries(r.by_src||{}).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{const [ev,s]=k.split(':');return esc((ev==='share_open'?'開':ev==='share_entry'?'入':'新')+'·'+(SRC_LBL[s]||s))+' '+v;}).join('、')||'—';
   box.querySelector('.gc-body').innerHTML='<div class="tw" style="box-shadow:none;margin-top:8px"><table class="t"><thead><tr><th>日期</th><th>分享連結打開</th><th>由分享入 App</th><th>新訪客</th><th>註冊</th><th>第一條魚</th><th>來源</th></tr></thead><tbody>'
-    +'<tr><td class="first"><b>14 日合計</b></td><td class="num" data-l="分享連結打開">'+tot('share_open')+'</td><td class="num" data-l="由分享入 App">'+tot('share_entry')+'</td><td class="num" data-l="新訪客">'+tot('new_visitor')+'</td><td class="num" data-l="註冊">'+tot('signups')+'</td><td class="num" data-l="第一條魚">'+tot('first_catches')+'</td></tr>'
+    +'<tr><td class="first" data-l="日期"><b>14 日合計</b></td><td class="num" data-l="分享連結打開">'+tot('share_open')+'</td><td class="num" data-l="由分享入 App">'+tot('share_entry')+'</td><td class="num" data-l="新訪客">'+tot('new_visitor')+'</td><td class="num" data-l="註冊">'+tot('signups')+'</td><td class="num" data-l="第一條魚">'+tot('first_catches')+'</td><td data-l="來源">—</td></tr>'
     +rows.map(r=>'<tr><td class="first">'+esc(r.day)+'</td><td class="num" data-l="分享連結打開">'+r.share_open+'</td><td class="num" data-l="由分享入 App">'+r.share_entry+'</td><td class="num" data-l="新訪客">'+r.new_visitor+'</td><td class="num" data-l="註冊">'+r.signups+'</td><td class="num" data-l="第一條魚">'+r.first_catches+'</td><td data-l="來源" style="font-size:12px">'+srcs(r)+'</td></tr>').join('')
     +'</tbody></table></div><p class="hint" style="margin-top:6px">來源：開＝分享連結打開、入＝由分享入 App、新＝新訪客。註冊同第一條魚冇來源分類。</p>';
 }
