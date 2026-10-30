@@ -1281,7 +1281,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v182</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v183</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -4556,7 +4556,7 @@ function appBaseUrl() { return APP_PUBLIC_URL; }
 const SHARE_BASE_URL = 'https://fishport-share.fishport1028.workers.dev';
 function shareUrlFor(token) {
   const t = encodeURIComponent(token);
-  return SHARE_BASE_URL ? SHARE_BASE_URL.replace(/\/+$/, '') + '/c/' + t : APP_PUBLIC_URL + '?c=' + t;
+  return SHARE_BASE_URL ? SHARE_BASE_URL.replace(/\/+$/, '') + '/c/' + t + '?u=' + weightLib.getPref() : APP_PUBLIC_URL + '?c=' + t;   // v183：?u= 俾 Worker 預覽用同一單位
 }
 async function getCatchShare(c) {
   // 回傳 { url, info }；冇雲端記錄（訪客／未同步／收藏）就 url = 主頁、info = null
@@ -4616,10 +4616,10 @@ function scoreCardPromo(c, rank, wtxt) {
 function bestRank(ranks) {
   return (ranks || []).filter(r => r && r.rank > 0).sort((a, b) => a.rank - b.rank)[0] || null;
 }
-// v166：分享文字重量 = 克／公斤＋（斤），同 Worker 預覽一致（Worker 冇用戶單位設定）
+// v183：分享文字重量 = 跟用戶單位，同成績卡、Worker 預覽（?u=）一致
 function shareWeightText(kg) {
   const n = Number(kg); if (!isFinite(n) || n <= 0) return '';
-  return (n < 1 ? Math.round(n * 1000) + 'g' : n.toFixed(2).replace(/\.?0+$/, '') + 'kg') + '（' + weightLib.format(n, 'jin').value + ' 斤）';
+  return weightLib.format(n, weightLib.getPref()).text;
 }
 // v168：成績卡魚相 — 有上傳相就用（crossOrigin，5 秒逾時），冇／失敗就用 🐠；相只喺本機畫，唔會送去任何地方
 function loadCardPhoto(src) {
@@ -4717,7 +4717,8 @@ function cardLinkReady() { if (state.cardLink) return true; showToast('分享連
 // v164：預設分享 = 文字＋連結（唔夾相），等 WhatsApp 出連結預覽；冇 Web Share 就 wa.me
 function shareTextLink(text, url) {
   if (navigator.share) navigator.share({ title: '釣港', text: text + '\n' + url }).catch(() => {});   // v166：連結自己一行（唔用 url 欄，免得黐埋句尾）
-  else window.open('https://wa.me/?text=' + encodeURIComponent(text + '\n' + url), '_blank', 'noopener');
+  // v183：唔用 wa.me（佢 302 轉址時會將 4-byte emoji 變做 �），直接用 api.whatsapp.com/send
+  else window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(text + '\n' + url), '_blank', 'noopener');
 }
 function shareScoreCardWhatsApp() {
   if (!scoreCardReady()) return; const sc = state.scoreCard;
@@ -4725,7 +4726,7 @@ function shareScoreCardWhatsApp() {
   if (sc.file && navigator.canShare && navigator.share && navigator.canShare({ files: [sc.file] })) {
     navigator.share({ files: [sc.file], text: msg }).catch(() => {});
   } else {
-    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+    window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(msg), '_blank', 'noopener');
   }
 }
 function saveScoreCard() {
@@ -5916,7 +5917,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v182</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v183</span>';
   }
   renderView(name);
 }

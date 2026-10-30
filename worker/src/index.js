@@ -25,10 +25,16 @@ const PERIOD = { all: '全部時間', year: '今年', quarter: '今季', month: 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"'`]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;' }[c]));
 }
-function fmtKg(kg) {
+// v183：同 App lib/weight.js format() 一致：跟分享者單位（?u=），預設公斤
+const W_GRAMS = { g: 1, kg: 1000, jin: 604.79, tael: 37.7994 };
+const W_NAMES = { g: '克', kg: '公斤', jin: '斤', tael: '兩' };
+const W_DEC = { g: 0, kg: 2, jin: 1, tael: 1 };
+export function fmtKg(kg, unit) {
   const n = Number(kg);
   if (!isFinite(n) || n <= 0) return '';
-  return (n < 1 ? Math.round(n * 1000) + 'g' : n.toFixed(2).replace(/\.?0+$/, '') + 'kg') + '（' + (n * 1000 / 604.79).toFixed(1) + ' 斤）';   // v166：同 App 分享文字一致（1 斤 = 604.79 克）
+  const u = Object.prototype.hasOwnProperty.call(W_GRAMS, unit) ? unit : 'kg';
+  const v = n * 1000 / W_GRAMS[u], p = Math.pow(10, W_DEC[u]);
+  return (Math.round((v + Number.EPSILON) * p) / p).toFixed(W_DEC[u]) + ' ' + W_NAMES[u];
 }
 function bestRank(ranks) {
   return (Array.isArray(ranks) ? ranks : [])
@@ -36,12 +42,12 @@ function bestRank(ranks) {
     .sort((a, b) => a.rank - b.rank)[0] || null;
 }
 
-export function buildMeta(d) {
+export function buildMeta(d, unit) {
   // d = share_catch_get 結果（或 null）
   if (!d || typeof d !== 'object' || !d.species) {
     return { title: '釣港 🎣 香港釣魚記錄＋排行榜', desc: '記低每條魚獲、同釣友鬥排行榜。唔使安裝，手機瀏覽器直接用。' };   // v175
   }
-  const w = fmtKg(d.weight_kg);
+  const w = fmtKg(d.weight_kg, unit);
   const r = bestRank(d.ranks);
   const title = '🎣 ' + String(d.species).slice(0, 30) + (w ? ' ' + w : '') + (r ? '｜' + PERIOD[r.period] + '第 ' + r.rank + ' 名' : '');
   const place = String(d.area || d.spot || '').slice(0, 40);
@@ -105,7 +111,8 @@ export default {
     if (token && data && request.method === 'GET' && !isBot(request.headers.get('user-agent')) && ctx && ctx.waitUntil) {
       ctx.waitUntil(trackOpen(env, src));
     }
-    const html = renderHtml({ ...buildMeta(data), image, pageUrl: token && data ? url.origin + '/c/' + token : app, target });
+    const unit = url.searchParams.get('u');   // v183：只接受 g/kg/jin/tael，其他當 kg
+    const html = renderHtml({ ...buildMeta(data, unit), image, pageUrl: token && data ? url.origin + '/c/' + token : app, target });
     return new Response(request.method === 'HEAD' ? null : html, {
       status: 200,
       headers: {
