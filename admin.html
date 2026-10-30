@@ -358,6 +358,41 @@ dialog.lb .x{position:absolute;top:-8px;right:-4px;background:#fff;color:#000;bo
   .hb .t{grid-column:1/-1;order:3}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---- 後台第一期：白色側欄、分組導航、KPI 趨勢、推廣追蹤 ---- */
+.side{background:var(--surface)!important;border-right:1px solid var(--bd);--ink-tx:var(--tx);--ink-mu:var(--mu);--ink-hi:var(--brand)}
+.side .brand span{color:var(--mu)}
+.nav a{color:var(--mu);min-height:38px;font-size:14px}
+.nav a:hover{background:var(--surface-2);color:var(--tx)}
+.nav a:active{background:var(--brand-weak)}
+.nav a[aria-current=page]{background:var(--brand-weak);color:var(--brand);font-weight:600}
+.nav .ng{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--mu);opacity:.8;padding:14px 12px 4px;text-transform:uppercase}
+.nav .ng:first-child{padding-top:0}
+.nav details>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between}
+.nav details>summary::-webkit-details-marker{display:none}
+.nav details>summary::after{content:"▸";font-size:11px}
+.nav details[open]>summary::after{content:"▾"}
+.side .foot{border-top-color:var(--bd)}
+.side .foot .btn{border-color:var(--bd)}
+.side .foot .btn:hover{background:var(--surface-2);border-color:var(--bd)}
+@media (min-width:1024px){body.rail .nav .ng{display:none}body.rail .nav .badge{box-shadow:0 0 0 2px var(--surface)}body.rail .nav details>summary{display:none}body.rail .nav details:not([open])>a{display:flex}}
+@media (max-width:1023px){.side .x-close{border-color:var(--bd)}
+  .mbar{background:var(--surface)!important;color:var(--tx);border-bottom:1px solid var(--bd)}
+  .mbar img{box-shadow:0 0 0 1px var(--bd)}
+  .mbar .btn{background:var(--surface);border-color:var(--bd);color:var(--tx)}
+  .mbar .btn:hover{background:var(--surface-2)}}
+.kpi .dl{font-size:12px;font-weight:600;margin-left:6px}
+.kpi .dl.up{color:var(--ok)}.kpi .dl.dn{color:var(--bad)}
+.kpi .spk{display:block;width:100%;height:28px;margin-top:6px;color:var(--bar)}
+.fun{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:6px}
+.fun .st{background:var(--surface-2);border-radius:var(--r-sm);padding:12px 14px;position:relative}
+.fun .st b{display:block;font-size:24px;line-height:1.2}
+.fun .st span{font-size:12.5px;color:var(--mu)}
+.fun .st em{display:block;font-style:normal;font-size:12px;color:var(--brand);font-weight:600;margin-top:4px}
+.fun .st i{display:block;height:6px;border-radius:3px;background:var(--bar);margin-top:8px}
+.lc{width:100%;height:180px;display:block}
+.lg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mu);margin-top:6px}.lg span::before{content:"";display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle;background:var(--c)}
+@media (max-width:720px){.fun{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
@@ -414,7 +449,7 @@ const rt=c=>(window.lbLib&&lbLib.reasonText)?lbLib.reasonText(c):(c||'');
 const toast=(m)=>{const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('show'),2600);};
 async function rpc(name,args){const {data,error}=await sb.rpc(name,args||{});if(error)throw new Error(error.message||'發生錯誤');return data;}
 const S={tab:'overview',detail:null,pending:0,fbNew:0,fbFilter:'new',photos:[],photoUser:null,photoUserName:'',photoFilter:'all',photoDone:false,fbCat:'all',users:[],queue:[],updated:null,email:''};
-const TABS=[['overview','總覽','home'],['review','審核中心','shield'],['feedback','意見箱','chat'],['photos','相片牆','photos'],['usage','使用分析','chart'],['insights','付費準備','coins'],['users','用戶','users'],['cleanup','測試清理','alert'],['todo','上架待辦','check'],['tester','測試進度','users'],['monitor','系統監察','pulse'],['audit','操作記錄','log']];
+const TABS=[['overview','總覽','home'],['review','審核中心','shield'],['feedback','意見箱','chat'],['photos','相片牆','photos'],['promo','推廣追蹤','spark'],['usage','使用分析','chart'],['insights','付費準備','coins'],['users','用戶','users'],['cleanup','測試清理','alert'],['todo','上架待辦','check'],['tester','測試進度','users'],['monitor','系統監察','pulse'],['audit','操作記錄','log']];
 
 /* ---------- Dialog ---------- */
 function ask(o){ // {title, body, ok, danger, note, confirm}
@@ -495,8 +530,13 @@ function navItem(t){
   return '<a href="#'+t[0]+'" data-tab="'+t[0]+'" '+(S.tab===t[0]?'aria-current="page"':'')+' onclick="event.preventDefault();navGo(\''+t[0]+'\')">'
     +ic(t[2])+'<span class="lbl">'+t[1]+'</span>'+navBadge(t[0])+'</a>';
 }
+const NAV_GROUPS=[['主要',['overview','users']],['增長',['promo','usage','insights']],['管理',['review','feedback','photos','monitor','audit']],['工具',['cleanup','todo','tester'],1]];
 function navHtml(kind){
-  if(kind!=='tab')return TABS.map(navItem).join('');
+  if(kind!=='tab'){const T=k=>TABS.find(t=>t[0]===k);let tOpen;try{tOpen=localStorage.getItem('adm_tools')==='1';}catch(e){}
+    return NAV_GROUPS.map(g=>{const items=g[1].map(k=>navItem(T(k))).join('');
+      if(!g[2])return '<div class="ng" role="presentation">'+g[0]+'</div>'+items;
+      const open=tOpen||g[1].includes(S.tab);
+      return '<details'+(open?' open':'')+' ontoggle="try{localStorage.setItem(\'adm_tools\',this.open?\'1\':\'0\')}catch(e){}"><summary class="ng">'+g[0]+'</summary>'+items+'</details>';}).join('');}
   const sec=!PRIMARY.includes(S.tab),cur=TABS.find(t=>t[0]===S.tab);
   return TABS.filter(t=>PRIMARY.includes(t[0])).map(navItem).join('')
     +'<button type="button" class="more'+(sec?' on':'')+'" aria-expanded="'+!!S.navOpen+'" aria-controls="side" onclick="navOpen(this)">'
@@ -550,14 +590,14 @@ function header(title,extra){
 function loading(tab){ // 骨架形狀跟返每頁實際版面
   const sk=(c,n)=>('<div class="sk '+c+'"></div>').repeat(n||1),kp=n=>'<div class="grid kpis">'+sk('kpi-s',n)+'</div>',two='<div class="grid two" style="margin-top:12px">'+sk('panel',2)+'</div>';
   const map={overview:sk('bar')+kp(8)+two,review:sk('panel tall',2),feedback:sk('chips-s')+sk('panel',3),photos:sk('chips-s')+'<div class="photos">'+sk('sq',10)+'</div>',
-    usage:kp(4)+two,insights:kp(3)+two,users:sk('bar')+'<div class="sk-rows">'+sk('row',7)+'</div>',audit:'<div class="sk-rows">'+sk('row',8)+'</div>',cleanup:'<div class="sk-rows">'+sk('row',6)+'</div>',todo:'<div class="sk-rows">'+sk('row',6)+'</div>',tester:'<div class="sk-rows">'+sk('row',6)+'</div>',monitor:'<div class="sk-rows">'+sk('row',6)+'</div>'};
+    usage:kp(4)+two,promo:kp(4)+two,insights:kp(3)+two,users:sk('bar')+'<div class="sk-rows">'+sk('row',7)+'</div>',audit:'<div class="sk-rows">'+sk('row',8)+'</div>',cleanup:'<div class="sk-rows">'+sk('row',6)+'</div>',todo:'<div class="sk-rows">'+sk('row',6)+'</div>',tester:'<div class="sk-rows">'+sk('row',6)+'</div>',monitor:'<div class="sk-rows">'+sk('row',6)+'</div>'};
   return '<div aria-busy="true" aria-label="載入中">'+(map[tab]||map.overview)+'</div>';
 }
 async function go(tab,keep){
   if(keep!=='keep')S.detail=null;
   S.tab=tab;history.replaceState(null,'','#'+tab);renderNav();
   const m=$('main');m.classList.add('enter');clearTimeout(S.enterT);m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+loading(tab);
-  try{await ({overview:vOverview,review:vReview,feedback:vFeedback,photos:vPhotos,usage:vUsage,insights:vInsights,users:()=>S.detail?vUserDetail():vUsers(),audit:vAudit,cleanup:vCleanup,todo:vTodo,tester:vTester,monitor:vMonitor})[tab]();S.updated=new Date().toLocaleTimeString('zh-HK',{hour12:false,hour:'2-digit',minute:'2-digit'});}
+  try{await ({overview:vOverview,review:vReview,feedback:vFeedback,photos:vPhotos,usage:vUsage,promo:vPromo,insights:vInsights,users:()=>S.detail?vUserDetail():vUsers(),audit:vAudit,cleanup:vCleanup,todo:vTodo,tester:vTester,monitor:vMonitor})[tab]();S.updated=new Date().toLocaleTimeString('zh-HK',{hour12:false,hour:'2-digit',minute:'2-digit'});}
   catch(e){m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+'<div class="card err" role="alert"><h2>載入失敗</h2><p class="hint" style="color:inherit">'+esc(e.message)+'</p><button class="btn" onclick="go(S.tab)">'+ic('refresh')+'再試一次</button></div>';}
   window.scrollTo({top:0,behavior:'instant'});
   S.enterT=setTimeout(()=>{const mm=$('main');if(mm)mm.classList.remove('enter');},900);
@@ -568,7 +608,10 @@ const empty=(icn,t,s)=>'<div class="empty">'+ic(icn)+'<b>'+esc(t)+'</b><span>'+e
 async function vOverview(){
   const o=await rpc('admin_overview');S.pending=o.pending_reviews||0;renderNav();
   const pct=o.catches_total?Math.round(o.eligible_total*100/o.catches_total):0;
-  const k=(icn,l,v,s)=>'<div class="kpi"><span class="l">'+ic(icn)+l+'</span><span class="v">'+esc(v)+'</span><span class="s">'+esc(s||'')+'</span></div>';
+  const N=x=>(x==null||x===''||Number.isNaN(x))?'—':x;
+  const k=(icn,l,v,s,ex)=>'<div class="kpi"><span class="l">'+ic(icn)+l+'</span><span class="v">'+esc(N(v))+(ex&&ex.d||'')+'</span><span class="s">'+esc(String(s||'').replace(/undefined|null|NaN/g,'—'))+'</span>'+(ex&&ex.sp||'')+'</div>';
+  const ser=dailySeries(o.daily,14),c7=ser.slice(7).reduce((a,d)=>a+d.n,0),p7=ser.slice(0,7).reduce((a,d)=>a+d.n,0);
+  const tr={d:deltaTag(c7,p7),sp:sparkSvg(ser.map(d=>d.n),'近 14 日每日魚獲')},sp={sp:sparkSvg(ser.map(d=>d.n),'近 14 日每日魚獲')};
   const rs=o.reasons||[],rsum=rs.reduce((a,r)=>a+r.n,0)||1;
   const dl=o.daily||[],dmax=Math.max(1,...dl.map(d=>d.n));
   let h=header('總覽');
@@ -580,8 +623,8 @@ async function vOverview(){
   const tiles={
     users:k('users','註冊用戶',o.users_total,'近 7 日新增 '+o.users_7d),
     active:k('pulse','近 7 日活躍',o.users_active_7d,'有登入嘅用戶'),
-    catches:k('fish','魚獲總數',o.catches_total,'今日 +'+o.catches_today),
-    catches7:k('cal','近 7 日魚獲',o.catches_7d,''),
+    catches:k('fish','魚獲總數',o.catches_total,'今日 +'+N(o.catches_today),sp),
+    catches7:k('cal','近 7 日魚獲',o.catches_7d,'對上 7 日 '+p7,tr),
     trips:k('trip','行程總數',o.trips_total,''),
     photo:k('image','有相片魚獲',o.with_photo,o.catches_total?Math.round(o.with_photo*100/o.catches_total)+'% 有相':''),
     eligible:k('pct','符合上榜比例',pct+'%',o.eligible_total+' / '+o.catches_total),
@@ -898,22 +941,68 @@ async function vUsage(){
     +'<section class="card" aria-labelledby="t2"><h2 id="t2">熱門釣點（近 30 日）</h2><p class="hint">按用戶輸入嘅釣點名稱統計</p>'+((t.spots||[]).length?hbars(t.spots,'n',' 條'):empty('fish','未有數據'))+'</section></div>';
   h+='<section class="card" style="margin-top:12px"><h2>每週魚獲趨勢（近 8 週）</h2><p class="hint">每週一開始計</p>'+(wk.length?'<div class="bars" role="img" aria-label="每週魚獲條數圖表">'+wk.map(w=>'<div class="c" title="'+esc(w.w)+'：'+w.n+' 條"><b>'+w.n+'</b><i style="height:'+Math.max(3,Math.round(w.n*100/wmax))+'%"></i></div>').join('')+'</div><div class="xl" aria-hidden="true">'+wk.map(w=>'<span>'+esc(String(w.w).slice(5))+'</span>').join('')+'</div>':empty('fish','未有數據'))+'</section>';
   $('main').innerHTML=h;
-  growthCard();   // v173
+  // 第一期：新用戶每日總數已搬去「推廣追蹤」頁
+}
+
+/* ---------- 第一期：KPI 趨勢小工具（只用現有 RPC 數據） ---------- */
+function dailySeries(rows,days){ // 補齊冇數據嘅日子（香港日期）
+  const m={};(rows||[]).forEach(r=>{m[String(r.d||r.day).slice(0,10)]=r;});
+  const out=[];for(let i=days-1;i>=0;i--){const d=new Date(Date.now()+8*36e5-i*864e5).toISOString().slice(0,10);const r=m[d]||{};out.push({d,n:+r.n||0,u:+r.u||0});}
+  return out;
+}
+function deltaTag(cur,prev){
+  if(!prev)return cur?'<span class="dl up" title="對上一期為 0">▲ 新</span>':'';
+  const p=Math.round((cur-prev)*100/prev);return '<span class="dl '+(p>=0?'up':'dn')+'" title="對上一期 '+prev+'">'+(p>=0?'▲':'▼')+Math.abs(p)+'%</span>';
+}
+function sparkSvg(vals,label){
+  if(!vals||!vals.length)return '';const mx=Math.max(1,...vals),w=100,h=28,st=vals.length>1?w/(vals.length-1):0;
+  const pts=vals.map((v,i)=>(i*st).toFixed(1)+','+(h-2-(v*(h-4)/mx)).toFixed(1)).join(' ');
+  return '<svg class="spk" viewBox="0 0 100 28" preserveAspectRatio="none" role="img" aria-label="'+esc(label)+'"><polyline points="'+pts+'" fill="none" stroke="currentColor" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>';
+}
+function lineChart(rows,keys){ // keys: [[欄位,名稱,顏色]]
+  const n=rows.length;if(!n)return '';const W=600,H=180,P=24,mx=Math.max(1,...rows.flatMap(r=>keys.map(k=>+r[k[0]]||0)));
+  const x=i=>P+(n>1?i*(W-2*P)/(n-1):0),y=v=>H-P-(v*(H-2*P)/mx);
+  let g='<line x1="'+P+'" y1="'+(H-P)+'" x2="'+(W-P)+'" y2="'+(H-P)+'" stroke="var(--bd)"/><text x="'+P+'" y="'+(P-8)+'" font-size="11" fill="var(--mu)">最高 '+mx+'</text>';
+  g+='<text x="'+P+'" y="'+(H-6)+'" font-size="11" fill="var(--mu)">'+esc(String(rows[0].day).slice(5))+'</text><text x="'+(W-P)+'" y="'+(H-6)+'" font-size="11" fill="var(--mu)" text-anchor="end">'+esc(String(rows[n-1].day).slice(5))+'</text>';
+  keys.forEach(k=>{g+='<polyline fill="none" stroke="'+k[2]+'" stroke-width="2" points="'+rows.map((r,i)=>x(i).toFixed(1)+','+y(+r[k[0]]||0).toFixed(1)).join(' ')+'"/>';});
+  return '<svg class="lc" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="近 30 日推廣趨勢折線圖">'+g+'</svg><div class="lg">'+keys.map(k=>'<span style="--c:'+k[2]+'">'+esc(k[1])+'</span>').join('')+'</div>';
+}
+
+/* ---------- 第一期：推廣追蹤（用現有 admin_daily_counts，唔使 migration） ---------- */
+async function vPromo(){
+  let rows;
+  try{rows=await rpc('admin_daily_counts',{p_days:30});}
+  catch(e){$('main').innerHTML=header('推廣追蹤')+'<div class="card">'+empty('alert','未啟用新用戶計數','要先套用 v173 migration')+'</div>';return;}
+  rows=(rows||[]).slice().sort((a,b)=>String(a.day).localeCompare(String(b.day)));
+  const tot=k=>rows.reduce((a,r)=>a+(+r[k]||0),0),half=k=>{const m=Math.floor(rows.length/2);return [rows.slice(m).reduce((a,r)=>a+(+r[k]||0),0),rows.slice(0,m).reduce((a,r)=>a+(+r[k]||0),0)];};
+  const st=[['share_open','分享連結打開'],['share_entry','由分享入 App'],['signups','註冊'],['first_catches','第一條魚']].map(([k,l])=>({k,l,n:tot(k)}));
+  const top=Math.max(1,st[0].n,...st.map(s=>s.n));
+  const k=(icn,l,v,s,d)=>'<div class="kpi"><span class="l">'+ic(icn)+l+'</span><span class="v">'+esc(v)+(d||'')+'</span><span class="s">'+esc(s||'')+'</span></div>';
+  const rate=(a,b)=>b?Math.round(a*100/b)+'%':'—';
+  let h=header('推廣追蹤')+'<p class="hint page-intro">近 30 日（香港時間）。只存每日總數，冇 IP、冇位置、冇個人資料。▲▼ 係近 15 日對上 15 日。</p>';
+  h+='<div class="grid kpis">'+st.map((s,i)=>{const [c,p]=half(s.k);return k(['spark','image','users','fish'][i],s.l,s.n,i?'上一步轉化 '+rate(s.n,st[i-1].n):'30 日合計',deltaTag(c,p));}).join('')+'</div>';
+  h+='<section class="card" style="margin-top:12px" aria-labelledby="pf"><h2 id="pf">轉化漏斗</h2><p class="hint">分享打開 → 入 App → 註冊 → 第一條魚</p><div class="fun">'
+    +st.map((s,i)=>'<div class="st"><span>'+esc(s.l)+'</span><b>'+s.n+'</b><em>'+(i?'由上一步 '+rate(s.n,st[i-1].n):'起點')+'</em><i style="width:'+Math.max(3,Math.round(s.n*100/top))+'%"></i></div>').join('')+'</div></section>';
+  h+='<section class="card" style="margin-top:12px" aria-labelledby="pt"><h2 id="pt">30 日趨勢</h2><p class="hint">每日總數</p>'
+    +(rows.length?lineChart(rows,[['share_open','分享連結打開','#0b6e79'],['share_entry','由分享入 App','#3a8f99'],['signups','註冊','#a36a00'],['first_catches','第一條魚','#1a9a5b']]):empty('pulse','暫時冇資料','有人打開分享連結後會顯示'))+'</section>';
+  $('main').innerHTML=h;
+  growthCard();   // v173：14 日明細表（原本喺使用分析頁）
 }
 
 /* ---------- v173：新用戶每日總數（只係總數，冇 IP／位置／個人資料） ---------- */
 const SRC_LBL={direct:'冇標籤',fb:'FB',ig:'IG',yt:'YouTube',wa:'WhatsApp',threads:'Threads',tg:'Telegram',x:'X',other:'其他'};
 async function growthCard(){
   const box=document.createElement('section');box.className='card';box.style.marginTop='12px';box.id='growth-card';
-  box.innerHTML='<h2>新用戶每日總數（近 14 日，香港時間）</h2><p class="hint">分享連結打開＝Worker 計（唔計預覽機械人）；由分享入 App／新訪客＝App 計；註冊同第一條魚＝由帳戶同魚獲記錄計。只存每日總數，冇 IP、冇位置、冇個人資料。</p><div class="gc-body">載入中…</div>';
+  box.innerHTML='<h2>新用戶每日總數（近 14 日明細，香港時間）</h2><p class="hint">分享連結打開＝Worker 計（唔計預覽機械人）；由分享入 App／新訪客＝App 計；註冊同第一條魚＝由帳戶同魚獲記錄計。只存每日總數，冇 IP、冇位置、冇個人資料。</p><div class="gc-body">載入中…</div>';
   $('main').appendChild(box);
   let rows;
   try{rows=await rpc('admin_daily_counts',{p_days:14});}
   catch(e){box.querySelector('.gc-body').innerHTML=empty('alert','未啟用新用戶計數','要先套用 v173 migration');return;}
+  rows=(rows||[]).slice().sort((a,b)=>String(b.day).localeCompare(String(a.day))).slice(0,14);   // 只顯示最近 14 日，合計同標題一致
   const tot=k=>rows.reduce((a,r)=>a+(+r[k]||0),0);
   const srcs=r=>Object.entries(r.by_src||{}).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{const [ev,s]=k.split(':');return esc((ev==='share_open'?'開':ev==='share_entry'?'入':'新')+'·'+(SRC_LBL[s]||s))+' '+v;}).join('、')||'—';
   box.querySelector('.gc-body').innerHTML='<div class="tw" style="box-shadow:none;margin-top:8px"><table class="t"><thead><tr><th>日期</th><th>分享連結打開</th><th>由分享入 App</th><th>新訪客</th><th>註冊</th><th>第一條魚</th><th>來源</th></tr></thead><tbody>'
-    +'<tr><td class="first"><b>14 日合計</b></td><td class="num" data-l="分享連結打開">'+tot('share_open')+'</td><td class="num" data-l="由分享入 App">'+tot('share_entry')+'</td><td class="num" data-l="新訪客">'+tot('new_visitor')+'</td><td class="num" data-l="註冊">'+tot('signups')+'</td><td class="num" data-l="第一條魚">'+tot('first_catches')+'</td></tr>'
+    +'<tr><td class="first" data-l="日期"><b>14 日合計</b></td><td class="num" data-l="分享連結打開">'+tot('share_open')+'</td><td class="num" data-l="由分享入 App">'+tot('share_entry')+'</td><td class="num" data-l="新訪客">'+tot('new_visitor')+'</td><td class="num" data-l="註冊">'+tot('signups')+'</td><td class="num" data-l="第一條魚">'+tot('first_catches')+'</td><td data-l="來源">—</td></tr>'
     +rows.map(r=>'<tr><td class="first">'+esc(r.day)+'</td><td class="num" data-l="分享連結打開">'+r.share_open+'</td><td class="num" data-l="由分享入 App">'+r.share_entry+'</td><td class="num" data-l="新訪客">'+r.new_visitor+'</td><td class="num" data-l="註冊">'+r.signups+'</td><td class="num" data-l="第一條魚">'+r.first_catches+'</td><td data-l="來源" style="font-size:12px">'+srcs(r)+'</td></tr>').join('')
     +'</tbody></table></div><p class="hint" style="margin-top:6px">來源：開＝分享連結打開、入＝由分享入 App、新＝新訪客。註冊同第一條魚冇來源分類。</p>';
 }
