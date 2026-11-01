@@ -57,5 +57,5 @@
 2. **Service worker**：WKWebView 喺 `capacitor://` 自訂 scheme 下**唔支援 service worker**，`navigator.serviceWorker` 可能係 undefined 或者 register 失敗。index.html 已有 `.catch`／feature check，唔會壞；而且魚相已經打包喺 App 入面，唔需要 SW 快取。
 3. **Apple 審核風險（Guideline 4.2）**：純網頁包殼有機會被拒；送審備註要講清楚 GPS、相機、離線魚圖等原生功能。
 4. **網頁更新**：網頁改咗之後，iOS 要重新 build＋上 TestFlight 先會更新。
-5. **App icon／啟動畫面**：而家係 Capacitor 預設圖，送審前要換（可以用 `@capacitor/assets` 由 icon-512.png 生成）。
+5. **App icon／啟動畫面**：已換成釣港正式 icon（來源 `store-assets/icon-1024.png`，原生 1024×1024，冇放大；RGB 無透明、方角，圓角由 iOS 自己加）。啟動畫面 2732×2732，深藍底 `#014890` 置中 icon（邊緣柔化）。
 6. **Linux 上未能驗證**：`pod install` 同 `xcodebuild` 要 macOS，第一次真 build 要等 Codemagic／GitHub Actions 跑。
