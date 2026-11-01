@@ -40,20 +40,20 @@
 7. 正式送審前要填：私隱網址 `https://limaking1028.github.io/HK-fishing-app/privacy.html`、App 私隱問卷（位置、相片、電郵、用戶 ID）、截圖。
 
 ### C. Supabase Dashboard（Auth → URL Configuration）
-**要等 index/auth 嘅 iOS 跟進改動做好先加**（見下面「已知問題」），而家唔使郁：
-- Redirect URLs 加：`app.hkfishing.ios://auth-callback`
+**iOS 登入修正 PR merge 之前／同時加**（加咗都唔影響網頁版）：
+- Redirect URLs 加：`app.hkfishing.ios://auth-callback`（如想保險可以再加 `app.hkfishing.ios://**`）
 - Site URL **唔好改**（保持網頁版）。
-- Google 登入：Google Cloud Console 唔使加 iOS client（因為仍經 Supabase 網頁 OAuth）。
+- Google 登入：**Google Cloud Console 唔使改**。Google 只會返去 Supabase 本身嘅 callback（`https://lucizjohiycxdynrkjus.supabase.co/auth/v1/callback`，已登記），之後由 Supabase 轉去 App scheme，所以只要上面 Supabase 允許清單有就得。
 
 ---
 
 ## 已知問題／跟進（今次刻意**冇改** index.html 同 lib/，以免影響網頁）
-1. **登入 redirect**：而家登入有三種：電郵＋密碼、電郵 magic link／重設密碼、Google OAuth。`lib/auth.js` 用 `window.location.origin` 做 redirect；喺 iOS App 入面 origin 係 `capacitor://localhost`，所以：
-   - **電郵＋密碼登入：應該直接用得**（唔使 redirect）。
-   - **Magic link／重設密碼／註冊確認信**：連結會打開 Safari 網頁版，唔會返 App。
-   - **Google 登入**：Google 唔准喺嵌入式 WebView 登入，會失敗或者跳出 App。
-   - 跟進做法（另開 PR）：加 `@capacitor/app`＋`@capacitor/browser`，只喺 `Capacitor.isNativePlatform()` 時用 `app.hkfishing.ios://auth-callback` 做 redirect、用 Browser 開 OAuth、`appUrlOpen` 收返 code 後 `exchangeCodeForSession`；網頁版行為不變。同時 Supabase 加上面嗰條 Redirect URL。
-   - 第一版 TestFlight 可以先只開電郵＋密碼登入。
+1. **登入 redirect（iOS 登入修正 PR 已處理）**：
+   - `lib/auth.js` 加 `isNativeIOS()`：只有 `window.Capacitor.isNativePlatform()` 同 `getPlatform()==='ios'` 先成立。網頁同 Android TWA 冇 `window.Capacitor`，永遠行返舊路（redirect = 網頁網址、supabase-js 預設 `implicit` flow），有單元測試＋Playwright 證明。
+   - iOS：magic link／重設密碼／註冊確認信同 Google 登入一律用 `app.hkfishing.ios://auth-callback`；iOS 改用 PKCE（返嚟帶 `?code=`），`appUrlOpen` 收到後 `exchangeCodeForSession`，再關 Browser。
+   - Google 登入喺 iOS 用 `@capacitor/browser`（系統 Safari 視窗）開，唔喺 WebView 入面登入。
+   - 冇 bundler：插件唔使 import，原生殼會注入 `window.Capacitor`，插件喺 `window.Capacitor.Plugins.App／Browser`；npm 套件只係俾 `pod install` 攞原生碼。
+   - 限制：PKCE 電郵連結要喺**同一部 iPhone** 撳先登入到（code verifier 存喺 App 入面）。
 2. **Service worker**：WKWebView 喺 `capacitor://` 自訂 scheme 下**唔支援 service worker**，`navigator.serviceWorker` 可能係 undefined 或者 register 失敗。index.html 已有 `.catch`／feature check，唔會壞；而且魚相已經打包喺 App 入面，唔需要 SW 快取。
 3. **Apple 審核風險（Guideline 4.2）**：純網頁包殼有機會被拒；送審備註要講清楚 GPS、相機、離線魚圖等原生功能。
 4. **網頁更新**：網頁改咗之後，iOS 要重新 build＋上 TestFlight 先會更新。
