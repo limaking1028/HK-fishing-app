@@ -1,0 +1,14 @@
+{
+  "name": "hk-fishing-app",
+  "private": true,
+  "description": "釣港 — iOS (Capacitor) build tooling only. The web app itself has no build step.",
+  "scripts": {
+    "ios:web": "node scripts/build-ios-web.js",
+    "ios:sync": "npm run ios:web && npx cap sync ios"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.0",
+    "@capacitor/core": "^7.4.0",
+    "@capacitor/ios": "^7.4.0"
+  }
+}

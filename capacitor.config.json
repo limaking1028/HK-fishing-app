@@ -1,0 +1,9 @@
+{
+  "appId": "app.hkfishing.ios",
+  "appName": "釣港",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "limitsNavigationsToAppBoundDomains": false
+  }
+}
