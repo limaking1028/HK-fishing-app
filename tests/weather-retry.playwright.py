@@ -1,5 +1,6 @@
 # v189 天氣錯誤訊息 + 「重新嘗試」smoke：390×844，訪客模式。
-# api.open-meteo.com 全部用 mock（指定站回 503，其餘 200）；supabase.co request 記錄並 abort（唔會掂 prod）。
+# v192 改寫：12 站合併做 1 個請求，冇咗「部分站失敗」；改為全部 503（連自動重試 4 個請求）→ 錯誤卡 → 撳掣 1 個請求恢復。
+# api.open-meteo.com 全部用 mock；supabase.co request 記錄並 abort（唔會掂 prod）。
 import http.server, threading, functools, os, json
 from playwright.sync_api import sync_playwright
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,19 +21,20 @@ def run(p, failset, tag):
         u = r.request.url
         if 'supabase.co' in u: sbreq.append(u); return r.abort()
         if 'api.open-meteo.com' in u:
-            lat = u.split('latitude=')[1].split('&')[0]; meteo.append(lat)
-            if st['fail'] == 'all' or lat in st['fail']: return r.fulfill(status=503, body='{"error":true,"reason":"busy"}', content_type='application/json')
-            return r.fulfill(status=200, body=OK, content_type='application/json')
+            lats = u.split('latitude=')[1].split('&')[0].split(','); meteo.append(lats)
+            if st['fail'] == 'all': return r.fulfill(status=503, body='{"error":true,"reason":"busy"}', content_type='application/json')
+            return r.fulfill(status=200, body=json.dumps([json.loads(OK)] * len(lats)) if len(lats) > 1 else OK, content_type='application/json')
         r.continue_()
     pg.route('**/*', route)
     pg.goto(f'http://127.0.0.1:{srv.server_port}/index.html'); pg.wait_for_timeout(2500)
     pg.click('text=唔登入，先睇潮汐同天氣'); pg.wait_for_timeout(1000)
     n0 = len(sbreq)
-    pg.evaluate("switchMapTab('weather')"); pg.wait_for_timeout(2500)
+    pg.evaluate("switchMapTab('weather')"); pg.wait_for_function("document.querySelector('.weather-list-grid')", timeout=25000)
     if os.environ.get('BEFORE'):
         pg.screenshot(path=f'{shots}/before-main-503-390x844.png'); b.close(); return
-    total = len(meteo); nfail = total if failset == 'all' else len(failset)
+    total = len(meteo[0]); nfail = total
     t = f'[{tag}] '
+    check(len(meteo) == 4, t + f'1 個請求 + 3 次自動重試（{len(meteo)}）')
     check(pg.locator('.weather-card-error').count() == nfail, t + f'{nfail} 張錯誤卡')
     check(pg.locator('text=暫時攞唔到天氣資料，可能係天氣來源繁忙，稍後再試').count() == nfail, t + '顯示友善訊息')
     check(pg.locator('.weather-err-code').first.inner_text() == '錯誤碼：HTTP 503', t + '細字錯誤碼 HTTP 503')
@@ -44,7 +46,7 @@ def run(p, failset, tag):
     pg.evaluate("document.getElementById('weather-retry-btn').click(); window.__dis = document.getElementById('weather-retry-btn') && document.getElementById('weather-retry-btn').disabled")
     check(pg.evaluate('window.__dis') is True, t + '撳咗之後掣 disabled（載入中）')
     pg.wait_for_timeout(2000)
-    check(len(meteo) == nfail and (failset == 'all' or sorted(meteo) == sorted(failset)), t + f'只重新攞失敗嘅站（{len(meteo)} 個 request）')
+    check(len(meteo) == 1 and len(meteo[0]) == nfail, t + f'重新嘗試只發 1 個請求，包晒失敗嘅 {nfail} 站')
     check(pg.locator('.weather-card-error').count() == 0, t + '失敗卡全部恢復')
     check(pg.locator('.weather-card').count() == total, t + f'仍然有 {total} 張卡')
     check(pg.locator('#weather-retry-btn').count() == 0, t + '全部成功後掣消失')
@@ -53,6 +55,6 @@ def run(p, failset, tag):
     b.close()
 with sync_playwright() as p:
     if os.environ.get('BEFORE'): run(p, FAIL4, 'before')
-    else: run(p, FAIL4, 'partial'); run(p, 'all', 'allfail')
+    else: run(p, 'all', 'allfail')
 print('RESULT', 'OK' if not fails else 'FAILED %d' % len(fails)); srv.shutdown()
 raise SystemExit(1 if fails else 0)

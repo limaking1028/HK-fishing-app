@@ -5620,20 +5620,34 @@ function renderWeatherCards(view, results) {
     + '<button class="map-subtab" data-tab="tide" onclick="switchMapTab(this.dataset.tab)">🌊 潮汐</button>'
     + '<button class="map-subtab active" data-tab="weather" onclick="switchMapTab(this.dataset.tab)">🌤️ 天氣</button>'
     + '</div>'
-    + (results.some(r => !r.data) ? '<div style="text-align:center;padding:12px 0 0;"><button class="btn btn-primary" id="weather-retry-btn" onclick="retryFailedWeather(this)">🔄 重新嘗試</button></div>' : '')   // v189
+    + (results.some(r => !r.data || r.savedAt) ? '<div style="text-align:center;padding:12px 0 0;"><button class="btn btn-primary" id="weather-retry-btn" onclick="retryFailedWeather(this)">🔄 重新嘗試</button></div>' : '')   // v189
+    + weatherSavedNote(results)   // v192
     + '<div class="weather-list"><div class="weather-list-grid">' + cards + '</div></div>';
   state.weatherResults = results; state.weatherView = view;
+}
+
+/** v192：天氣來源攞唔到、顯示緊手機存低嘅舊資料時，講明係幾時嘅資料（香港時間） */
+function weatherSavedNote(results) {
+  const at = Math.min(...results.filter(r => r.savedAt).map(r => r.savedAt));
+  if (!isFinite(at)) return '';
+  const old = Date.now() - at > 24 * 3600 * 1000;
+  const hk = new Date(at + 8 * 3600 * 1000), z = n => String(n).padStart(2, '0');   // 香港時間 UTC+8（冇夏令時間）
+  const t = (old ? (hk.getUTCMonth() + 1) + '月' + z(hk.getUTCDate()) + '日 ' : '') + z(hk.getUTCHours()) + ':' + z(hk.getUTCMinutes());
+  return '<div class="weather-saved-note" style="margin:10px 12px 0;padding:8px 10px;border-radius:8px;background:#fff7ed;color:#9a3412;font-size:12px;text-align:center;">⚠️ 暫時攞唔到最新天氣，顯示緊之前嘅資料（更新於 ' + t + (old ? '，資料已超過 24 小時' : '') + '）</div>';
 }
 
 /** v189：只重新攞失敗咗嘅站，成功嘅站保持不變 */
 function retryFailedWeather(btn) {
   const prev = state.weatherResults || [];
-  const failed = prev.filter(r => !r.data).map(r => r.station);
+  const failed = prev.filter(r => !r.data || r.savedAt).map(r => r.station);
   if (!failed.length || !window.weatherLib) return;
   btn.disabled = true; btn.textContent = '⏳ 重新攞緊…';
   window.weatherLib.fetchAllStationsWeather(failed).then(res => {
     if (!btn.isConnected) return;   // 已經轉咗頁
-    renderWeatherCards(state.weatherView, prev.map(r => r.data ? r : (res.find(x => x.station === r.station) || r)));
+    renderWeatherCards(state.weatherView, prev.map(r => {   // v192：今次都失敗就保留之前顯示緊嘅（舊資料／錯誤）
+      const n = res.find(x => x.station === r.station);
+      return (r.data && !r.savedAt) || !n || (!n.data && r.data) ? r : n;
+    }));
   });
 }
 
