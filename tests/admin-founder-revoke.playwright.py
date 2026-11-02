@@ -57,7 +57,16 @@ with sync_playwright() as p:
         if not pre: pg.screenshot(path=f'{shots}/admin-founder-revoke-confirm-390x844.png')
         pg.click('#dno'); pg.wait_for_timeout(300)
         check(not any(x[0] == 'admin_revoke_founder' for x in pg.evaluate('__calls')), tag + '取消唔會 call RPC')
-        pg.click('#founder-revoke'); pg.wait_for_timeout(300); pg.fill('#dnote', '作弊'); pg.click('#dyes'); pg.wait_for_timeout(900)
+        pg.click('#founder-revoke'); pg.wait_for_timeout(300)
+        dt = pg.inner_text('#dlg')
+        check('原因（必填）' in dt and '備註（可選）' not in dt and pg.get_attribute('#dnote', 'required') is not None, tag + '原因欄標籤「原因（必填）」+ required')
+        check('佢之後要再記合資格魚獲先會攞到新編號' in dt and '唔會再攞到新編號' not in dt, tag + '確認框新文字')
+        pg.fill('#dnote', '   '); pg.click('#dyes'); pg.wait_for_timeout(400)
+        check(pg.locator('#dlg').is_visible() and not any(x[0] == 'admin_revoke_founder' for x in pg.evaluate('__calls')), tag + '空白原因唔可以提交（唔會 call RPC）')
+        if not pre: pg.screenshot(path=f'{shots}/admin-founder-revoke-empty-reason-390x844.png')
+        pg.fill('#dnote', '作弊')
+        if not pre: pg.screenshot(path=f'{shots}/admin-founder-revoke-confirm-filled-390x844.png')
+        pg.click('#dyes'); pg.wait_for_timeout(900)
         calls = [x for x in pg.evaluate('__calls') if x[0] == 'admin_revoke_founder']
         check(calls == [['admin_revoke_founder', {'p_user': B, 'p_reason': '作弊'}]], tag + 'RPC 參數正確')
         if pre:

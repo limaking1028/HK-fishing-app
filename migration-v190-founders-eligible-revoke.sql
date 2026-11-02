@@ -6,8 +6,10 @@
 --   * 觸發：INSERT（原有 trg_founders_assign）＋ 新增 UPDATE 時 leaderboard_eligible 由 false/null 變 true。
 --     catches_eligibility 係 BEFORE INSERT OR UPDATE，所以 AFTER trigger 睇到嘅係最終判定。
 --   * 已有 founders 紀錄一律唔郁、唔重新編號；5e4fa205 永遠係 #1。
---   * admin_revoke_founder(p_user, p_reason)：刪 founders 紀錄（號碼留空，唔重排）、號碼寫入 founders_revoked（墓碑，防止再派同一個號）、
---     加入 founders_excluded（以後唔會再派，除非管理員手動移除）、admin_log('founder_revoke')。拒絕 5e4fa205。
+--   * admin_revoke_founder(p_user, p_reason)：原因必填；刪 founders 紀錄（號碼留空，唔重排）、號碼寫入 founders_revoked（墓碑，號碼永不再派、計入 100），
+--     admin_log('founder_revoke')。拒絕 5e4fa205。唔會加入 founders_excluded（主人：「被取消嘅人可以再拎過新編號」）。
+--   * 被取消／解除停用之後，只有喺「最後一次取消」同「最後一次解除停用」之後新建立（created_at）嘅合資格魚獲先會派新號；
+--     舊魚獲（包括之後先變合資格嘅 UPDATE）唔會派。解除停用唔會還返舊號。
 --   * admin_set_ban：停用時自動取消創始編號（其餘邏輯一字不改）。
 --   * founder_remaining()：已取消嘅號碼都計作已用（因為唔會再派）。
 -- 唔停用任何 trigger、唔改 catches 資料。
@@ -23,6 +25,7 @@ create table if not exists public.founders_revoked (
 );
 alter table public.founders_revoked enable row level security;
 revoke all on public.founders_revoked from anon, authenticated;
+create index if not exists founders_revoked_user_idx on public.founders_revoked (user_id);
 
 create or replace function public.founders_assign()
  returns trigger
@@ -30,7 +33,7 @@ create or replace function public.founders_assign()
  security definer
  set search_path to 'public'
 as $function$
-declare v_no int; i int := 0;
+declare v_no int; i int := 0; v_cut timestamptz;
 begin
   if new.user_id is null or coalesce(new.is_test, false) then return new; end if;
   if not coalesce(new.leaderboard_eligible, false) or coalesce(new.admin_excluded, false) then return new; end if;   -- v190
@@ -38,6 +41,12 @@ begin
   if exists (select 1 from public.founders_excluded where user_id = new.user_id) then return new; end if;   -- v174b
   if not exists (select 1 from public.users where id = new.user_id) then return new; end if;
   if exists (select 1 from auth.users where id = new.user_id and banned_until > now()) then return new; end if;   -- v190
+  -- v190：取消／解除停用之後，要喺嗰個時間之後新建立嘅魚獲先算；未來時間嘅 created_at 唔信
+  if new.created_at > now() + interval '5 minutes' then return new; end if;
+  select greatest((select max(revoked_at) from public.founders_revoked where user_id = new.user_id),
+                  (select max(created_at) from public.admin_audit where action = 'unban_user' and target_id = new.user_id::text))
+    into v_cut;
+  if v_cut is not null and (new.created_at is null or new.created_at <= v_cut) then return new; end if;
   loop
     i := i + 1;
     select greatest(coalesce((select max(no) from public.founders), 0),
@@ -88,12 +97,11 @@ declare v_no int;
 begin
   if not public.is_admin() then raise exception 'forbidden'; end if;
   if p_user = '5e4fa205-add7-42d0-9ac4-6a1fe8ab6985'::uuid then raise exception 'cannot revoke founding admin'; end if;
+  if nullif(btrim(coalesce(p_reason, '')), '') is null then raise exception 'reason required'; end if;
   delete from public.founders where user_id = p_user returning no into v_no;
   if v_no is null then return null; end if;
   insert into public.founders_revoked (no, user_id, reason, revoked_by)
     values (v_no, p_user, nullif(left(coalesce(p_reason,''), 200), ''), auth.uid());
-  insert into public.founders_excluded (user_id, note)
-    values (p_user, 'v190 取消創始編號 #' || v_no) on conflict (user_id) do nothing;
   perform public.admin_log('founder_revoke', 'user', p_user::text,
     jsonb_build_object('no', v_no, 'reason', nullif(left(coalesce(p_reason,''), 200), ''),
                        'name', (select display_name from public.users where id = p_user)));

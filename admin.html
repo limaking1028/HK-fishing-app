@@ -456,13 +456,13 @@ function ask(o){ // {title, body, ok, danger, note, confirm}
   return new Promise(res=>{
     const d=$('dlg');
     $('dlgBody').innerHTML='<h3>'+esc(o.title)+'</h3><p>'+esc(o.body||'')+'</p>'
-      +(o.note?'<label class="f" for="dnote">備註（可選）</label><input type="text" id="dnote" maxlength="200" autocomplete="off">':'')
+      +(o.note?'<label class="f" for="dnote">'+esc(o.noteLabel||'備註（可選）')+'</label><input type="text" id="dnote" maxlength="200" autocomplete="off"'+(o.noteRequired?' required aria-required="true"':'')+'>':'')
       +(o.confirm?'<label class="f" for="dconf">請輸入 DELETE 以確認</label><input type="text" id="dconf" autocomplete="off" aria-describedby="dconfh"><small id="dconfh" class="hint" style="color:var(--mu)">大寫英文字母，輸入正確後先會執行。</small>':'')
       +'<div class="row"><button type="button" class="btn" id="dno">取消</button><button type="button" class="btn '+(o.danger?'bad':'pri')+'" id="dyes">'+esc(o.ok||'確定')+'</button></div>';
     let val=null;
     const done=v=>{val=v;d.close();};
     $('dno').onclick=()=>done(null);
-    $('dyes').onclick=()=>done({note:o.note?($('dnote').value||'').trim():'',confirm:o.confirm?($('dconf').value||'').trim():''});
+    $('dyes').onclick=()=>{if(o.noteRequired&&!($('dnote').value||'').trim()){$('dnote').setAttribute('aria-invalid','true');$('dnote').focus();toast('要寫原因');return;}done({note:o.note?($('dnote').value||'').trim():'',confirm:o.confirm?($('dconf').value||'').trim():''});};
     d.onclose=()=>res(val);
     d.showModal(); (o.confirm?$('dconf'):o.note?$('dnote'):$('dno')).focus();
   });
@@ -1408,9 +1408,9 @@ async function adminDetail(){   // v189：設為／移除管理員
 }
 async function founderRevokeDetail(){   // v190：取消創始編號（號碼留空，唔會再派；用戶加入 founders_excluded）
   const pr=S.ud.profile,no=S.ud.fno;
-  const r=await ask({title:'取消創始編號 #'+no+'？',body:'「'+(pr.display_name||'（未命名）')+'」會失去「創始釣友 #'+no+'」。號碼會留空，唔會重新排號，亦唔會再派畀其他人；佢之後都唔會再攞到新編號。請寫低原因。',ok:'取消編號',danger:true,note:true});
+  const r=await ask({title:'取消創始編號 #'+no+'？',body:'「'+(pr.display_name||'（未命名）')+'」會失去「創始釣友 #'+no+'」。號碼會留空，唔會重新排號，亦唔會再派畀其他人；佢之後要再記合資格魚獲先會攞到新編號。請寫低原因。',ok:'取消編號',danger:true,note:true,noteLabel:'原因（必填）',noteRequired:true});
   if(!r)return;
-  const M={'cannot revoke founding admin':'釣港管理員嘅 #1 唔可以取消','forbidden':'冇權限'};
+  const M={'cannot revoke founding admin':'釣港管理員嘅 #1 唔可以取消','forbidden':'冇權限','reason required':'要寫原因'};
   try{await rpc('admin_revoke_founder',{p_user:pr.id,p_reason:r.note||null});toast('已取消創始編號');vUserDetail();}
   catch(e){toast(/admin_revoke_founder|schema cache|Could not find/i.test(e.message)?'請先執行 migration-v190-founders-eligible-revoke.sql':(M[e.message]||e.message));}
 }
