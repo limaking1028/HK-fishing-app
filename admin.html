@@ -1324,7 +1324,7 @@ async function annSave(ev){
   catch(e){toast(e.message);}
 }
 /* ---------- v139：操作記錄 ---------- */
-const AUDIT_ACT={exclude_catch:['排除魚獲','bad'],approve_lb_catch:['批准上榜','ok'],restore_catch:['恢復魚獲','ok'],ban_user:['停用帳戶','bad'],unban_user:['恢復帳戶','ok'],review_approved:['批准審核','ok'],review_rejected:['拒絕審核','bad'],review_pending:['撤銷審核',''],feedback_done:['意見已處理','ok'],feedback_new:['意見重開',''],exclude_user_catches:['排除用戶全部魚獲','bad'],restore_user_catches:['恢復用戶全部魚獲','ok'],delete_user_records:['永久刪除用戶紀錄','bad'],admin_add:['設為管理員','warn'],admin_remove:['移除管理員',''],announcement_on:['開啟公告','warn'],announcement_off:['關閉公告','']};
+const AUDIT_ACT={exclude_catch:['排除魚獲','bad'],approve_lb_catch:['批准上榜','ok'],restore_catch:['恢復魚獲','ok'],ban_user:['停用帳戶','bad'],unban_user:['恢復帳戶','ok'],review_approved:['批准審核','ok'],review_rejected:['拒絕審核','bad'],review_pending:['撤銷審核',''],feedback_done:['意見已處理','ok'],feedback_new:['意見重開',''],exclude_user_catches:['排除用戶全部魚獲','bad'],restore_user_catches:['恢復用戶全部魚獲','ok'],delete_user_records:['永久刪除用戶紀錄','bad'],admin_add:['設為管理員','warn'],admin_remove:['移除管理員',''],announcement_on:['開啟公告','warn'],announcement_off:['關閉公告',''],founder_revoke:['取消創始編號','bad']};
 async function vAudit(){
   let rows;
   try{rows=await rpc('admin_audit_list',{p_limit:200});}
@@ -1354,6 +1354,8 @@ async function vUserDetail(){
     S.detail=null;throw e;
   }
   S.ud=d;const pr=d.profile||{},t=d.totals||{};
+  let fno=null;try{fno=await rpc('admin_founder_no',{p_user:pr.id});}catch(e){try{const m=await rpc('lb_founder_nos',{p_ids:(d.catches||[]).map(c=>c.id).slice(0,200)});const v=Object.values(m||{})[0];fno=Number.isInteger(v)?v:null;}catch(_){}}   // v190：未執行 migration 就用 lb_founder_nos 揾號碼
+  S.ud.fno=Number.isInteger(fno)?fno:null;
   const k=(icn,l,v,sub)=>'<div class="kpi"><span class="l">'+ic(icn)+l+'</span><span class="v">'+esc(v)+'</span><span class="s">'+esc(sub||'')+'</span></div>';
   const prov={email:'電郵',google:'Google',phone:'手機'};
   let h='<div class="top"><button class="btn sm" onclick="closeUser()">'+ic('undo')+'<span>返回用戶</span></button><h1 style="margin-left:10px">'+esc(pr.display_name||'（未命名）')+'</h1><span class="sp"></span>'
@@ -1364,7 +1366,7 @@ async function vUserDetail(){
    +'<span class="pill '+(pr.has_password?'ok':'warn')+'">'+(pr.has_password?'已設密碼':'未設密碼')+'</span></div>'
    +'<div class="mu" style="color:var(--mu);font-size:13px;line-height:1.7">電郵：'+esc(pr.email||'—')+'<br>註冊：'+esc(fmt(pr.created_at))+' · 最後登入：'+esc(fmt(pr.last_sign_in_at))+'（'+esc(ago(pr.last_sign_in_at))+'）<br>用戶 ID：<code style="font-size:11px">'+esc(pr.id)+'</code></div>'
    +'<div class="act" style="justify-content:flex-start;margin-top:10px"><button class="btn sm" onclick="photoUser(\''+esc(pr.id)+'\',\''+esc(pr.display_name||'')+'\')">'+ic('image')+'相片牆</button>'
-   +(pr.is_admin?'':'<button class="btn sm '+(pr.banned?'':'ghost-bad')+'" onclick="banDetail()">'+(pr.banned?ic('undo')+'恢復帳戶':ic('ban')+'停用帳戶')+'</button>')+'<button class="btn sm" id="admin-toggle" onclick="adminDetail()">'+(pr.is_admin?'移除管理員':'設為管理員')+'</button></div></section>';
+   +(pr.is_admin?'':'<button class="btn sm '+(pr.banned?'':'ghost-bad')+'" onclick="banDetail()">'+(pr.banned?ic('undo')+'恢復帳戶':ic('ban')+'停用帳戶')+'</button>')+'<button class="btn sm" id="admin-toggle" onclick="adminDetail()">'+(pr.is_admin?'移除管理員':'設為管理員')+'</button>'+(S.ud.fno&&pr.id!=='5e4fa205-add7-42d0-9ac4-6a1fe8ab6985'?'<button class="btn sm ghost-bad" id="founder-revoke" onclick="founderRevokeDetail()">取消創始編號 #'+S.ud.fno+'</button>':'')+'</div></section>';
   h+='<div class="grid kpis">'
    +k('fish','魚獲',t.catches,'上榜 '+t.eligible+(t.excluded?' · 已排除 '+t.excluded:''))
    +k('image','有相片',t.with_photo,t.catches?Math.round(t.with_photo*100/t.catches)+'%':'')
@@ -1403,6 +1405,14 @@ async function adminDetail(){   // v189：設為／移除管理員
   const M={'cannot remove founding admin':'創始管理員唔可以移除','cannot remove last admin':'唔可以移除最後一個管理員','cannot remove yourself':'唔可以移除自己'};
   try{await rpc('admin_set_admin',{p_user:pr.id,p_on:to});toast('已更新');vUserDetail();}
   catch(e){toast(/admin_set_admin|schema cache|Could not find/i.test(e.message)?'請先執行 migration-v189-admin-manage-admins.sql':(M[e.message]||e.message));}
+}
+async function founderRevokeDetail(){   // v190：取消創始編號（號碼留空，唔會再派；用戶加入 founders_excluded）
+  const pr=S.ud.profile,no=S.ud.fno;
+  const r=await ask({title:'取消創始編號 #'+no+'？',body:'「'+(pr.display_name||'（未命名）')+'」會失去「創始釣友 #'+no+'」。號碼會留空，唔會重新排號，亦唔會再派畀其他人；佢之後都唔會再攞到新編號。請寫低原因。',ok:'取消編號',danger:true,note:true});
+  if(!r)return;
+  const M={'cannot revoke founding admin':'釣港管理員嘅 #1 唔可以取消','forbidden':'冇權限'};
+  try{await rpc('admin_revoke_founder',{p_user:pr.id,p_reason:r.note||null});toast('已取消創始編號');vUserDetail();}
+  catch(e){toast(/admin_revoke_founder|schema cache|Could not find/i.test(e.message)?'請先執行 migration-v190-founders-eligible-revoke.sql':(M[e.message]||e.message));}
 }
 window.addEventListener('hashchange',()=>{const h=(location.hash||'').replace('#','');if(TABS.some(t=>t[0]===h)&&h!==S.tab&&$('main'))go(h);});
 boot();
