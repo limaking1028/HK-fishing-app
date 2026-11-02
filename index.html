@@ -2344,6 +2344,8 @@ function selectSpeciesByName(name) {
     state.speciesPicking = false;   // v135：揀完自動收起魚種列表
     state.customSpecies = '';
     renderSpeciesSelector();  // 只更新魚種區，不重畫整個表單（避免清空已輸入的重量/備註/照片）
+    // 揀完魚種：列表收起後捲去「重量」欄（揀「其他」要先輸入名，唔捲；唔 focus、唔彈鍵盤）
+    if (!document.getElementById('custom-species')) { const w = document.getElementById('catch-weight'); if (w) w.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
     try { updateEligibilityHint(); } catch (e) {}
   }
 }
