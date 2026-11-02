@@ -1181,6 +1181,7 @@ button { touch-action: manipulation; }
 
   /* --- 頂欄 --- */
   #header { background: var(--ink-grad); padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px; letter-spacing: 0; box-shadow: 0 2px 14px rgba(7,56,74,.28); }
+  .guest-login-prompt .btn + .btn { margin-top: 10px; }  /* 訪客鎖定頁：「登入／註冊」同「睇潮汐」兩粒掣之間留位 */
   .header-title { font-size: 17px; font-weight: 800; letter-spacing: .3px; }
   .header-settings { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.18); padding: 6px 12px; border-radius: 999px; min-height: 36px; opacity: 1; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
   .header-settings:active { background: rgba(255,255,255,.24); }
