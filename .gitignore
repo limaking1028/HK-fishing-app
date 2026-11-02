@@ -22,3 +22,16 @@ test-results/
 # OS
 .DS_Store
 Thumbs.db
+# Capacitor iOS (generated)
+node_modules/
+www/
+ios/App/App/public/
+ios/App/App/capacitor.config.json
+ios/App/App/config.xml
+ios/App/Pods/
+ios/DerivedData/
+*.ipa
+*.p8
+*.p12
+*.mobileprovision
+*.cer

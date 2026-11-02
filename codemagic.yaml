@@ -1,0 +1,61 @@
+# 釣港 iOS — Codemagic (personal). No triggering: section => builds only start manually.
+# NO keys/certs in repo. Signing uses Codemagic "App Store Connect API key" integration
+# + automatic signing, all configured in the Codemagic UI (see docs/ios-setup.md).
+workflows:
+  ios-simulator-check:
+    name: iOS unsigned simulator build (no Apple account needed)
+    max_build_duration: 45
+    instance_type: mac_mini_m2
+    environment:
+      xcode: latest
+      cocoapods: default
+      node: 22
+    scripts:
+      - name: Install & sync
+        script: |
+          npm ci
+          npm run ios:sync
+      - name: Build for simulator (unsigned)
+        script: |
+          cd ios/App
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build
+
+  ios-testflight:
+    name: iOS release -> TestFlight (needs Apple approval first)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: HKFISHING_ASC_KEY   # name of the API key integration created in Codemagic UI
+    environment:
+      xcode: latest
+      cocoapods: default
+      node: 22
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: app.hkfishing.ios
+      vars:
+        BUNDLE_ID: app.hkfishing.ios
+        APP_STORE_APPLE_ID: "6829719028"   # App Store Connect > App Information > Apple ID
+    scripts:
+      - name: Install & sync
+        script: |
+          npm ci
+          npm run ios:sync
+      - name: Apply signing profiles
+        script: xcode-project use-profiles
+      - name: Build number
+        script: |
+          cd ios/App
+          agvtool new-version -all $(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0) + 1))
+      - name: Build IPA
+        script: |
+          xcode-project build-ipa --workspace ios/App/App.xcworkspace --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

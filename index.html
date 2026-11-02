@@ -1429,7 +1429,7 @@ if (SB_ENABLED) {
   try {
     if (window.supabase && typeof window.supabase.createClient === 'function') {
       sb = window.supabase.createClient(SB_URL, SB_KEY, {
-        auth: { persistSession: true, autoRefreshToken: true, storage: window.localStorage }
+        auth: { persistSession: true, autoRefreshToken: true, storage: window.localStorage, flowType: (window.authLib && authLib.authFlowType) ? authLib.authFlowType() : 'implicit' }
       });
     } else {
       console.warn('[init] window.supabase 未就緒，將在 init() 時重試');
@@ -6544,7 +6544,7 @@ async function init() {
       if (!sb && window.supabase && typeof window.supabase.createClient === 'function') {
         try {
           sb = window.supabase.createClient(SB_URL, SB_KEY, {
-            auth: { persistSession: true, autoRefreshToken: true, storage: window.localStorage }
+            auth: { persistSession: true, autoRefreshToken: true, storage: window.localStorage, flowType: (window.authLib && authLib.authFlowType) ? authLib.authFlowType() : 'implicit' }
           });
           console.log('[init] Supabase client 延遲初始化成功');
         } catch (e) {
