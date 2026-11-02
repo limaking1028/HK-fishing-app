@@ -7,6 +7,8 @@
     "ios:sync": "npm run ios:web && npx cap sync ios"
   },
   "devDependencies": {
+    "@capacitor/app": "^7.1.2",
+    "@capacitor/browser": "^7.0.5",
     "@capacitor/cli": "^7.4.0",
     "@capacitor/core": "^7.4.0",
     "@capacitor/ios": "^7.4.0"
