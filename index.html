@@ -1296,7 +1296,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v190</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v191</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -4101,11 +4101,11 @@ function getMyCatchRankings() {
   }
   return rankings;
 }
-// v174：創始釣友 — 號碼由 DB 派（頭 100 個記錄魚獲嘅帳戶），呢度只係顯示
+// v174：創始釣友 — 號碼由 DB 派（頭 100 個記錄合資格魚獲嘅帳戶），呢度只係顯示
 function founderBannerHtml() {
   const n = state.founderRemaining;
   if (!Number.isInteger(n) || n <= 0) return '';
-  return '<div class="founder-banner" role="note">🏅 釣港開幕：頭 100 個記錄魚獲嘅釣友永久成為創始釣友，仲剩 <b>' + n + '</b> 個名額</div>';
+  return '<div class="founder-banner" role="note">🏅 釣港開幕：頭 100 個記錄合資格魚獲嘅釣友永久成為創始釣友，仲剩 <b>' + n + '</b> 個名額</div>';
 }
 function paintFounderBanners() {
   document.querySelectorAll('.founder-banner-slot').forEach(el => { el.innerHTML = founderBannerHtml(); });
@@ -6050,7 +6050,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v190</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v191</span>';
   }
   renderView(name);
 }
