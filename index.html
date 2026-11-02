@@ -1281,7 +1281,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v185</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v187</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -4410,6 +4410,7 @@ function renderCatchCard(c, rankings) {
 }
 /* ===== 名稱管理 ===== */
 function openNameDialog() {
+  if (SB_ENABLED && !state.user) { renderLoginScreen(); return; }   // v187：訪客撳頭像 → 登入
   document.getElementById('name-input').value = getUserName();
   document.getElementById('pref-weight-unit').value = weightLib.getPref();
   document.getElementById('name-modal').classList.add('show');
@@ -5381,7 +5382,7 @@ function switchMapTab(tab) {
   state.mapTab = tab;
   // 銷毀舊地圖實例（重新 init）
   if (mapInstance) { try { mapInstance.remove(); } catch(e) {} mapInstance = null; }
-  renderMapView();
+  renderView('map');   // v187：經 renderView，訪客揀「地圖」會見到登入提示（已登入同以前一樣 → renderMapView）
 }
 
 function renderMapTideList(view) {
@@ -5858,8 +5859,8 @@ function showStationOnMap(code) {
   if (state.view !== 'map') {
     goToView('map');
   } else {
-    // 已喺地圖 view，強制 re-render map sub-tab
-    renderMapView();
+    // 已喺地圖 view，強制 re-render map sub-tab（v187：經 renderView，訪客會見登入提示）
+    renderView('map');
   }
 
   // 等 DOM 更新 + map init
@@ -6020,12 +6021,18 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v185</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v187</span>';
   }
   renderView(name);
 }
 function goToView(name) { switchView(name); }
 function renderView(name) {
+  // v187：未登入（訪客）只可以睇 地圖 tab 入面嘅 潮汐／天氣（本地數據 + Open-Meteo，唔使 Supabase）；其他一律叫佢登入
+  if (SB_ENABLED && !state.user) {
+    if (name === 'map' && (state.mapTab === 'tide' || state.mapTab === 'weather')) renderMapView();
+    else renderGuestLoginPrompt(name);
+    return;
+  }
   if (name==='record') renderRecordView();
   else if (name==='my') renderMyView();
   else if (name==='trips') {  // Route H
@@ -6038,6 +6045,29 @@ function renderView(name) {
   else if (name==='map') renderMapView();
 }
 function renderAll() { renderView(state.view); }
+/* v187：訪客模式 */
+function renderGuestLoginPrompt(name) {
+  const view = document.getElementById('view-' + name);
+  if (!view) return;
+  const tabs = name === 'map' ? '<div class="map-subtabs">'
+    + '<button class="map-subtab" data-tab="map" onclick="switchMapTab(this.dataset.tab)">🗺️ 地圖</button>'
+    + '<button class="map-subtab" data-tab="tide" onclick="switchMapTab(this.dataset.tab)">🌊 潮汐</button>'
+    + '<button class="map-subtab" data-tab="weather" onclick="switchMapTab(this.dataset.tab)">🌤️ 天氣</button></div>' : '';
+  view.innerHTML = tabs + '<div class="map-empty guest-login-prompt"><div class="map-empty-icon">🔒</div>'
+    + '<div style="font-size:16px;font-weight:700;color:var(--dark);margin-bottom:6px;">登入後先可以用呢個功能</div>'
+    + '<div style="font-size:13px;color:var(--gray-4);margin-bottom:16px;">未登入可以睇潮汐同天氣；記魚獲、行程、排行榜同地圖要先登入</div>'
+    + '<button class="btn btn-primary" onclick="renderLoginScreen()">登入／註冊</button>'
+    + ' <button class="btn btn-outline" onclick="state.mapTab=\'tide\';switchView(\'map\')">🌊 睇潮汐</button></div>';
+}
+function enterGuestMode() {
+  state.mapTab = 'tide';
+  setupGlobalHandlers();
+  showApp();
+  const u = document.getElementById('header-username'); if (u) u.textContent = '登入';
+  switchView('map');
+}
+window.enterGuestMode = enterGuestMode;
+
 function showToast(msg) {
   let t = document.getElementById('toast');
   if (!t) { t = document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t); }
@@ -6146,6 +6176,7 @@ function renderLoginScreen() {
 
         <div class="login-msg" id="auth-msg"></div>
         <div class="login-footer">電郵 + 密碼登入 · 亦可用電郵驗證碼</div>
+        ${SB_ENABLED && !state.user ? '<button type="button" class="login-link" style="width:100%;margin-top:10px" onclick="enterGuestMode()">🌊 唔登入，先睇潮汐同天氣 →</button>' : ''}
         ${SB_ENABLED && state.user ? '<button class="btn btn-outline" style="width:100%;margin-top:12px;color:var(--gray-5);border-color:var(--gray-3);" onclick="sbLogout()">🚪 登出</button>' : ''}
       </div>
     </div>
