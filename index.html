@@ -1295,7 +1295,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v188</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v189</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -5546,7 +5546,7 @@ function renderWeatherCards(view, results) {
           <span class="weather-card-area">${escapeHtml(r.station.area)}</span>
         </div>
         <div style="padding:20px;text-align:center;color:var(--gray-5);font-size:13px;">
-          ⚠️ 天氣數據取得失敗<br><span style="font-size:11px;">${escapeHtml(r.error || '')}</span>
+          ⚠️ 暫時攞唔到天氣資料，可能係天氣來源繁忙，稍後再試<br><span class="weather-err-code" style="font-size:11px;color:var(--gray-4);">錯誤碼：${escapeHtml(r.error || '')}</span>
         </div>
       </div>`;
     }
@@ -5619,7 +5619,21 @@ function renderWeatherCards(view, results) {
     + '<button class="map-subtab" data-tab="tide" onclick="switchMapTab(this.dataset.tab)">🌊 潮汐</button>'
     + '<button class="map-subtab active" data-tab="weather" onclick="switchMapTab(this.dataset.tab)">🌤️ 天氣</button>'
     + '</div>'
+    + (results.some(r => !r.data) ? '<div style="text-align:center;padding:12px 0 0;"><button class="btn btn-primary" id="weather-retry-btn" onclick="retryFailedWeather(this)">🔄 重新嘗試</button></div>' : '')   // v189
     + '<div class="weather-list"><div class="weather-list-grid">' + cards + '</div></div>';
+  state.weatherResults = results; state.weatherView = view;
+}
+
+/** v189：只重新攞失敗咗嘅站，成功嘅站保持不變 */
+function retryFailedWeather(btn) {
+  const prev = state.weatherResults || [];
+  const failed = prev.filter(r => !r.data).map(r => r.station);
+  if (!failed.length || !window.weatherLib) return;
+  btn.disabled = true; btn.textContent = '⏳ 重新攞緊…';
+  window.weatherLib.fetchAllStationsWeather(failed).then(res => {
+    if (!btn.isConnected) return;   // 已經轉咗頁
+    renderWeatherCards(state.weatherView, prev.map(r => r.data ? r : (res.find(x => x.station === r.station) || r)));
+  });
 }
 
 function setMapTilerKey() {
@@ -6035,7 +6049,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v188</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v189</span>';
   }
   renderView(name);
 }
