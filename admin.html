@@ -1108,6 +1108,8 @@ async function vUsers(){
   const rows=await rpc('admin_users',{p_limit:200,p_search:q.trim()||null});S.users=rows;
   let h=header('用戶');
   h+='<div class="card" style="margin-bottom:12px"><label class="f" for="us">搜尋電郵或顯示名稱</label><input type="search" id="us" value="'+esc(q)+'" placeholder="輸入後會自動搜尋" oninput="clearTimeout(sT);sT=setTimeout(usersSearch,350)"></div>';
+  let ads=null;try{ads=await rpc('admin_admins_list');}catch(e){}   // v189：未執行 migration 就唔顯示
+  if(ads)h+='<section class="card" id="admin-list" style="margin-bottom:12px"><h2>管理員（'+ads.length+'）</h2>'+ads.map(a=>'<div style="padding:6px 0;border-bottom:1px solid var(--bd);font-size:13px"><a href="#users" style="color:inherit" onclick="event.preventDefault();openUser(\''+esc(a.user_id)+'\')"><b>'+esc(a.display_name||'（未命名）')+'</b></a> '+(a.protected?'<span class="pill brand">創始管理員</span> ':'')+(a.is_me?'<span class="pill">你</span> ':'')+'<small>'+esc(fmt(a.created_at))+'</small></div>').join('')+'</section>';
   h+='<div class="mu" style="color:var(--mu);font-size:13px;margin:0 2px 8px">共 '+rows.length+' 位（最多顯示 200）</div>';
   if(!rows.length)h+='<div class="card">'+empty('users','搵唔到用戶','試下其他關鍵字')+'</div>';
   else h+='<div class="tw"><table class="t"><thead><tr><th>用戶</th><th>註冊</th><th>最後登入</th><th>魚獲</th><th>上榜</th><th>行程</th><th></th></tr></thead><tbody>'
@@ -1322,7 +1324,7 @@ async function annSave(ev){
   catch(e){toast(e.message);}
 }
 /* ---------- v139：操作記錄 ---------- */
-const AUDIT_ACT={exclude_catch:['排除魚獲','bad'],approve_lb_catch:['批准上榜','ok'],restore_catch:['恢復魚獲','ok'],ban_user:['停用帳戶','bad'],unban_user:['恢復帳戶','ok'],review_approved:['批准審核','ok'],review_rejected:['拒絕審核','bad'],review_pending:['撤銷審核',''],feedback_done:['意見已處理','ok'],feedback_new:['意見重開',''],exclude_user_catches:['排除用戶全部魚獲','bad'],restore_user_catches:['恢復用戶全部魚獲','ok'],delete_user_records:['永久刪除用戶紀錄','bad'],announcement_on:['開啟公告','warn'],announcement_off:['關閉公告','']};
+const AUDIT_ACT={exclude_catch:['排除魚獲','bad'],approve_lb_catch:['批准上榜','ok'],restore_catch:['恢復魚獲','ok'],ban_user:['停用帳戶','bad'],unban_user:['恢復帳戶','ok'],review_approved:['批准審核','ok'],review_rejected:['拒絕審核','bad'],review_pending:['撤銷審核',''],feedback_done:['意見已處理','ok'],feedback_new:['意見重開',''],exclude_user_catches:['排除用戶全部魚獲','bad'],restore_user_catches:['恢復用戶全部魚獲','ok'],delete_user_records:['永久刪除用戶紀錄','bad'],admin_add:['設為管理員','warn'],admin_remove:['移除管理員',''],announcement_on:['開啟公告','warn'],announcement_off:['關閉公告','']};
 async function vAudit(){
   let rows;
   try{rows=await rpc('admin_audit_list',{p_limit:200});}
@@ -1362,7 +1364,7 @@ async function vUserDetail(){
    +'<span class="pill '+(pr.has_password?'ok':'warn')+'">'+(pr.has_password?'已設密碼':'未設密碼')+'</span></div>'
    +'<div class="mu" style="color:var(--mu);font-size:13px;line-height:1.7">電郵：'+esc(pr.email||'—')+'<br>註冊：'+esc(fmt(pr.created_at))+' · 最後登入：'+esc(fmt(pr.last_sign_in_at))+'（'+esc(ago(pr.last_sign_in_at))+'）<br>用戶 ID：<code style="font-size:11px">'+esc(pr.id)+'</code></div>'
    +'<div class="act" style="justify-content:flex-start;margin-top:10px"><button class="btn sm" onclick="photoUser(\''+esc(pr.id)+'\',\''+esc(pr.display_name||'')+'\')">'+ic('image')+'相片牆</button>'
-   +(pr.is_admin?'':'<button class="btn sm '+(pr.banned?'':'ghost-bad')+'" onclick="banDetail()">'+(pr.banned?ic('undo')+'恢復帳戶':ic('ban')+'停用帳戶')+'</button>')+'</div></section>';
+   +(pr.is_admin?'':'<button class="btn sm '+(pr.banned?'':'ghost-bad')+'" onclick="banDetail()">'+(pr.banned?ic('undo')+'恢復帳戶':ic('ban')+'停用帳戶')+'</button>')+'<button class="btn sm" id="admin-toggle" onclick="adminDetail()">'+(pr.is_admin?'移除管理員':'設為管理員')+'</button></div></section>';
   h+='<div class="grid kpis">'
    +k('fish','魚獲',t.catches,'上榜 '+t.eligible+(t.excluded?' · 已排除 '+t.excluded:''))
    +k('image','有相片',t.with_photo,t.catches?Math.round(t.with_photo*100/t.catches)+'%':'')
@@ -1393,6 +1395,14 @@ async function banDetail(){
   const r=await ask({title:(to?'停用':'恢復')+'帳戶？',body:'「'+(pr.display_name||pr.email)+'」'+(to?'：停用後無法登入，亦唔會再出現喺排行榜，已有記錄會保留。':'：恢復後可以重新登入同上榜。'),ok:to?'停用':'恢復',danger:to,note:true});
   if(!r)return;
   try{await rpcR('admin_set_ban',{p_user:pr.id,p_banned:to},r.note);toast('已更新');vUserDetail();}catch(e){toast(e.message);}
+}
+async function adminDetail(){   // v189：設為／移除管理員
+  const pr=S.ud.profile,to=!pr.is_admin;
+  const r=await ask({title:(to?'設為':'移除')+'管理員？',body:'「'+(pr.display_name||'（未命名）')+'」'+(to?'：可以用後台全部功能；佢嘅數據唔會計入 KPI、排行榜同創始釣友。':'：之後唔可以再用後台。數據照舊唔計入統計。'),ok:to?'設為管理員':'移除',danger:!to});
+  if(!r)return;
+  const M={'cannot remove founding admin':'創始管理員唔可以移除','cannot remove last admin':'唔可以移除最後一個管理員','cannot remove yourself':'唔可以移除自己'};
+  try{await rpc('admin_set_admin',{p_user:pr.id,p_on:to});toast('已更新');vUserDetail();}
+  catch(e){toast(/admin_set_admin|schema cache|Could not find/i.test(e.message)?'請先執行 migration-v189-admin-manage-admins.sql':(M[e.message]||e.message));}
 }
 window.addEventListener('hashchange',()=>{const h=(location.hash||'').replace('#','');if(TABS.some(t=>t[0]===h)&&h!==S.tab&&$('main'))go(h);});
 boot();
