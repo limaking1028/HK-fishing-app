@@ -161,6 +161,18 @@ button { touch-action: manipulation; }
 .login-link:disabled { opacity: 0.5; cursor: not-allowed; }
 .login-link-wrap { text-align: center; margin-top: 12px; }
 .login-link-wrap .login-link { width: auto; display: inline-block; }
+/* v188 方案 A：精簡登入頁。iOS 嘅 Apple 掣用 order 排第一；電郵表格預設收埋，撳「用電郵登入／註冊」先展開 */
+#auth-step-pw.active { display: flex; flex-direction: column; }
+#auth-step-pw .apple-btn { order: -1; margin-top: 4px; margin-bottom: 4px; }
+#auth-step-pw > .login-or { display: none; order: 1; }
+#auth-step-pw.email-open > .login-or { display: flex; }
+#auth-step-pw.email-open > .login-email-toggle { display: none; }
+.auth-email-form { display: none; order: 2; }
+#auth-step-pw.email-open > .auth-email-form { display: block; }
+.login-email-toggle { font-size: 12px; color: var(--gray-5); margin-top: 14px; }
+.auth-tabs { display: flex; gap: 6px; background: var(--gray-1, #f1f3f4); border-radius: 10px; padding: 4px; margin: 6px 0 10px; }
+.auth-tab { flex: 1; padding: 8px; border: none; border-radius: 8px; background: transparent; color: var(--gray-5); font-size: 14px; font-weight: 600; cursor: pointer; }
+.auth-tab.active { background: #fff; color: var(--teal-dark); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
 #auth-phone-display { color: var(--teal-dark); font-weight: 700; }
 /* Magic Link 成功步驟樣式 */
 .auth-success-icon { font-size: 56px; text-align: center; margin: 8px 0 16px; animation: bounce 0.5s ease; }
@@ -174,6 +186,8 @@ button { touch-action: manipulation; }
 .google-btn { width: 100%; min-height: 46px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fff; color: #3c4043; border: 1px solid #dadce0; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 4px; transition: background .2s, box-shadow .2s; }
 .google-btn:hover { background: #f8f9fa; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
 .google-btn:disabled { opacity: .5; cursor: not-allowed; }
+.apple-btn { width: 100%; min-height: 46px; align-items: center; justify-content: center; gap: 8px; background: #000; color: #fff; border: 1px solid #000; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+.apple-btn:disabled { opacity: .5; cursor: not-allowed; }
 .login-or { display: flex; align-items: center; gap: 10px; color: var(--gray-4); font-size: 12px; margin: 14px 0 6px; }
 .login-or::before, .login-or::after { content: ''; flex: 1; height: 1px; background: var(--gray-3, #ddd); }
 
@@ -1281,7 +1295,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v187</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v188</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -6021,7 +6035,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v187</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v188</span>';
   }
   renderView(name);
 }
@@ -6081,7 +6095,7 @@ function showToast(msg) {
 /**
  * Email Magic Link 登入流程
  *
- * 步驟 1: 輸入 email → 按「發送登入連結」→ Supabase 發 magic link email
+ * 步驟 1: 輸入 email → 按「發送驗證碼」→ Supabase 寄驗證碼 email
  * 步驟 2: 顯示「已 send 連結到 xxx@xxx.com」,等用戶撳 email link
  * 步驟 3: 用戶撳 email 入面嘅連結 → 自動打開 + 自動偵測 SIGNED_IN → 自動登入
  *
@@ -6111,12 +6125,24 @@ function renderLoginScreen() {
         <div class="founder-banner-slot" style="margin-top:12px">${founderBannerHtml()}</div>
 
         <!-- 密碼登入 / 註冊(預設) -->
+        <!-- v188 方案 A：Google 掣（iOS 有 Apple 掣，CSS 排第一）→ 訪客入口 → 最底「用電郵登入／註冊」。Apple 掣同 handler 同 #44 一字不差，合併 #44 唔會撞 -->
         <div id="auth-step-pw" class="auth-step active">
           <button type="button" class="google-btn" id="auth-google-btn" onclick="handleAuthGoogle()">
             <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
             使用 Google 登入
           </button>
+          <button type="button" class="apple-btn" id="auth-apple-btn" onclick="handleAuthApple()" style="display:${(window.authLib && authLib.isNativeIOS && authLib.isNativeIOS()) ? 'flex' : 'none'}">
+            <svg width="17" height="20" viewBox="0 0 17 20" aria-hidden="true"><path fill="#fff" d="M14.06 10.62c-.02-2.2 1.8-3.26 1.88-3.31-1.03-1.5-2.62-1.7-3.18-1.73-1.35-.14-2.64.8-3.33.8-.69 0-1.74-.78-2.87-.76-1.47.02-2.83.86-3.59 2.18-1.53 2.66-.39 6.6 1.1 8.75.73 1.05 1.6 2.24 2.73 2.2 1.1-.05 1.51-.71 2.84-.71 1.32 0 1.7.71 2.86.69 1.18-.02 1.93-1.07 2.65-2.13.84-1.22 1.18-2.4 1.2-2.46-.03-.01-2.28-.88-2.3-3.48zM11.9 4.16c.6-.73 1.01-1.75.9-2.76-.87.04-1.92.58-2.54 1.31-.56.64-1.05 1.68-.92 2.67.97.08 1.96-.49 2.56-1.22z"/></svg>
+            透過 Apple 登入
+          </button>
           <div class="login-or">或用電郵登入</div>
+          ${SB_ENABLED && !state.user ? '<button type="button" class="login-link" style="margin-top:10px" onclick="enterGuestMode()">🌊 唔登入，先睇潮汐同天氣 →</button>' : ''}
+          <button type="button" class="login-link login-email-toggle" id="auth-email-toggle" onclick="showAuthEmailForm()">用電郵登入／註冊 ›</button>
+          <div class="auth-email-form" id="auth-email-form">
+          <div class="auth-tabs" role="tablist">
+            <button type="button" class="auth-tab active" id="auth-tab-login" role="tab" onclick="setAuthMode('login')">登入</button>
+            <button type="button" class="auth-tab" id="auth-tab-register" role="tab" onclick="setAuthMode('register')">註冊</button>
+          </div>
           <div class="login-field">
             <label>📧 電郵地址</label>
             <input type="email" class="login-input" id="auth-pw-email" placeholder="you@example.com" inputmode="email" autocomplete="email">
@@ -6127,9 +6153,8 @@ function renderLoginScreen() {
               onkeydown="if(event.key==='Enter')handleAuthPassword()">
           </div>
           <button class="login-btn" id="auth-pw-btn" onclick="handleAuthPassword()">🔓 登入</button>
-          <button class="login-link" id="auth-mode-btn" onclick="toggleAuthMode()">還未有帳號？註冊新帳號</button>
-          <button class="login-link" id="auth-forgot-btn" onclick="handleAuthForgot()">忘記密碼？</button>
-          <button class="login-link" onclick="showAuthEmailStep()">改用電郵驗證碼登入</button>
+          <button class="login-link" id="auth-forgot-btn" onclick="showAuthEmailStep()">忘記密碼／用驗證碼登入</button>
+          </div>
         </div>
 
         <!-- 步驟 1:輸入 email（驗證碼登入） -->
@@ -6139,11 +6164,12 @@ function renderLoginScreen() {
             <input type="email" class="login-input" id="auth-email"
               placeholder="you@example.com"
               inputmode="email" autocomplete="email">
-            <div class="login-hint">將會發送登入連結到呢個 email</div>
+            <div class="login-hint">會寄驗證碼到呢個 email，輸入驗證碼就可以登入（唔使密碼）</div>
           </div>
           <button class="login-btn" id="auth-send-btn" onclick="handleAuthSendMagicLink()">
-            🟢 發送登入連結
+            🟢 發送驗證碼
           </button>
+          <button class="login-link" id="auth-reset-btn" onclick="document.getElementById('auth-pw-email').value=document.getElementById('auth-email').value;handleAuthForgot()">想改密碼？寄重設密碼連結</button>
           <button class="login-link" onclick="showAuthPwStep()">← 返回密碼登入</button>
         </div>
 
@@ -6151,7 +6177,7 @@ function renderLoginScreen() {
         <div id="auth-step-sent" class="auth-step">
           <div class="auth-success-icon">✅</div>
           <div class="login-field">
-            <label>登入連結已發送至</label>
+            <label>驗證碼已發送至</label>
             <div class="auth-email-display" id="auth-email-display"></div>
           </div>
           <div class="login-hint" style="text-align:left;line-height:1.6">
@@ -6164,7 +6190,7 @@ function renderLoginScreen() {
           </div>
           <button class="login-btn" id="auth-verify-btn" onclick="handleAuthVerifyCode()">✅ 驗證並登入</button>
           <button class="login-btn login-btn-secondary" id="auth-resend-btn" onclick="handleAuthResend()" style="display:none">
-            🔄 重新發送連結(<span id="auth-cooldown">60</span>s)
+            🔄 重新發送驗證碼(<span id="auth-cooldown">60</span>s)
           </button>
           <button class="login-link" onclick="handleAuthBack()">
             ← 換 email
@@ -6175,17 +6201,23 @@ function renderLoginScreen() {
         </div>
 
         <div class="login-msg" id="auth-msg"></div>
-        <div class="login-footer">電郵 + 密碼登入 · 亦可用電郵驗證碼</div>
-        ${SB_ENABLED && !state.user ? '<button type="button" class="login-link" style="width:100%;margin-top:10px" onclick="enterGuestMode()">🌊 唔登入，先睇潮汐同天氣 →</button>' : ''}
         ${SB_ENABLED && state.user ? '<button class="btn btn-outline" style="width:100%;margin-top:12px;color:var(--gray-5);border-color:var(--gray-3);" onclick="sbLogout()">🚪 登出</button>' : ''}
       </div>
     </div>
   `;
+  // v188：未有 authLib.signInWithApple（#44 未合併）就收埋 Apple 掣，免得撳咗出錯
+  if (!(window.authLib && authLib.signInWithApple)) { const ab = document.getElementById('auth-apple-btn'); if (ab) ab.style.display = 'none'; }
   screen.style.display = 'block';
   document.getElementById('header').style.display = 'none';
   document.getElementById('bottom-nav').style.display = 'none';
   document.getElementById('main').style.display = 'none';
 }
+
+/** v188：展開電郵登入／註冊表格 */
+window.showAuthEmailForm = function() {
+  const pw = document.getElementById('auth-step-pw'); if (pw) pw.classList.add('email-open');
+  setTimeout(() => { const el = document.getElementById('auth-pw-email'); if (el) el.focus(); }, 50);
+};
 
 /** 切換到步驟 2(已 send) */
 function showAuthSentStep(email) {
@@ -6230,11 +6262,15 @@ function setAuthMode(mode) {
   const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
   set('auth-pw-btn', reg ? '📝 註冊' : '🔓 登入');
   set('auth-mode-btn', reg ? '已有帳號？返回登入' : '還未有帳號？註冊新帳號');
+  const tl = document.getElementById('auth-tab-login'), tr = document.getElementById('auth-tab-register');
+  if (tl) { tl.classList.toggle('active', !reg); tl.setAttribute('aria-selected', String(!reg)); }
+  if (tr) { tr.classList.toggle('active', reg); tr.setAttribute('aria-selected', String(reg)); }
   const forgot = document.getElementById('auth-forgot-btn'); if (forgot) forgot.style.display = reg ? 'none' : '';
   const pass = document.getElementById('auth-pw-pass');
   if (pass) pass.setAttribute('autocomplete', reg ? 'new-password' : 'current-password');
   const msg = document.getElementById('auth-msg'); if (msg) msg.textContent = '';
 }
+window.setAuthMode = setAuthMode;
 window.toggleAuthMode = function() { setAuthMode(authMode === 'register' ? 'login' : 'register'); };
 
 /** 60 秒發送冷卻倒計時 */
@@ -6295,7 +6331,7 @@ window.handleAuthResend = async function() {
     await authLib.sendMagicLink(authEmail);
     authLib.setCooldown(authEmail);
     startAuthCooldown();
-    msgEl.textContent = '✅ 已重新發送連結';
+    msgEl.textContent = '✅ 已重新發送驗證碼';
   } catch (e) {
     msgEl.textContent = '❌ ' + (e.message || '發送失敗');
   } finally {
@@ -6351,6 +6387,16 @@ window.handleAuthGoogle = async function() {
   if (msgEl) { msgEl.style.color = ''; msgEl.textContent = '正在前往 Google...'; }
   try { await authLib.signInWithGoogle(); }
   catch (e) { if (msgEl) msgEl.textContent = '❌ ' + (e.message || 'Google 登入失敗'); if (btn) btn.disabled = false; }
+};
+
+/** Apple 登入（只喺 iOS App 見到）：開系統瀏覽器，返嚟由 appUrlOpen → SIGNED_IN 完成 */
+window.handleAuthApple = async function() {
+  const btn = document.getElementById('auth-apple-btn');
+  const msgEl = document.getElementById('auth-msg');
+  if (btn) btn.disabled = true;
+  if (msgEl) { msgEl.style.color = ''; msgEl.textContent = '正在前往 Apple...'; }
+  try { await authLib.signInWithApple(); if (btn) btn.disabled = false; }
+  catch (e) { if (msgEl) msgEl.textContent = '❌ ' + (e.message || 'Apple 登入失敗'); if (btn) btn.disabled = false; }
 };
 
 /** 忘記密碼：寄重設連結 */
