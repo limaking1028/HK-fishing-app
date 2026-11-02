@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <script>(function(){var C=window.Capacitor;if(C&&C.isNativePlatform&&C.isNativePlatform()&&C.getPlatform&&C.getPlatform()==='ios')document.documentElement.classList.add('ios-native');})();</script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0a6e7a">
@@ -1181,6 +1182,9 @@ button { touch-action: manipulation; }
 
   /* --- 頂欄 --- */
   #header { background: var(--ink-grad); padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px; letter-spacing: 0; box-shadow: 0 2px 14px rgba(7,56,74,.28); }
+  /* iOS App 專用：如 WKWebView 未提供 safe-area-inset-top，最少留 47px 畀狀態列（web/Android 冇 .ios-native，唔受影響） */
+  html.ios-native #header { padding-top: calc(12px + max(env(safe-area-inset-top, 0px), 47px)); }
+  .guest-login-prompt .btn + .btn { margin-top: 10px; }  /* 訪客鎖定頁：「登入／註冊」同「睇潮汐」兩粒掣之間留位 */
   .header-title { font-size: 17px; font-weight: 800; letter-spacing: .3px; }
   .header-settings { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.18); padding: 6px 12px; border-radius: 999px; min-height: 36px; opacity: 1; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
   .header-settings:active { background: rgba(255,255,255,.24); }
