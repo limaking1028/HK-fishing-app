@@ -1406,9 +1406,9 @@ async function adminDetail(){   // v189：設為／移除管理員
   try{await rpc('admin_set_admin',{p_user:pr.id,p_on:to});toast('已更新');vUserDetail();}
   catch(e){toast(/admin_set_admin|schema cache|Could not find/i.test(e.message)?'請先執行 migration-v189-admin-manage-admins.sql':(M[e.message]||e.message));}
 }
-async function founderRevokeDetail(){   // v190：取消創始編號（號碼留空，唔會再派；用戶加入 founders_excluded）
+async function founderRevokeDetail(){   // v190：取消創始編號（號碼留空，唔會再派；用戶之後記新合資格魚獲可以拎新編號）
   const pr=S.ud.profile,no=S.ud.fno;
-  const r=await ask({title:'取消創始編號 #'+no+'？',body:'「'+(pr.display_name||'（未命名）')+'」會失去「創始釣友 #'+no+'」。號碼會留空，唔會重新排號，亦唔會再派畀其他人；佢之後要再記合資格魚獲先會攞到新編號。請寫低原因。',ok:'取消編號',danger:true,note:true,noteLabel:'原因（必填）',noteRequired:true});
+  const r=await ask({title:'取消創始編號 #'+no+'？',body:'「'+(pr.display_name||'（未命名）')+'」會失去「創始釣友 #'+no+'」。號碼會留空，唔會重新排號，亦唔會再派畀其他人；佢之後要再記合資格魚獲先會拎到新編號。請寫低原因。',ok:'取消編號',danger:true,note:true,noteLabel:'原因（必填）',noteRequired:true});
   if(!r)return;
   const M={'cannot revoke founding admin':'釣港管理員嘅 #1 唔可以取消','forbidden':'冇權限','reason required':'要寫原因'};
   try{await rpc('admin_revoke_founder',{p_user:pr.id,p_reason:r.note||null});toast('已取消創始編號');vUserDetail();}

@@ -60,7 +60,7 @@ with sync_playwright() as p:
         pg.click('#founder-revoke'); pg.wait_for_timeout(300)
         dt = pg.inner_text('#dlg')
         check('原因（必填）' in dt and '備註（可選）' not in dt and pg.get_attribute('#dnote', 'required') is not None, tag + '原因欄標籤「原因（必填）」+ required')
-        check('佢之後要再記合資格魚獲先會攞到新編號' in dt and '唔會再攞到新編號' not in dt, tag + '確認框新文字')
+        check('佢之後要再記合資格魚獲先會拎到新編號' in dt and '唔會再攞到新編號' not in dt, tag + '確認框新文字')
         pg.fill('#dnote', '   '); pg.click('#dyes'); pg.wait_for_timeout(400)
         check(pg.locator('#dlg').is_visible() and not any(x[0] == 'admin_revoke_founder' for x in pg.evaluate('__calls')), tag + '空白原因唔可以提交（唔會 call RPC）')
         if not pre: pg.screenshot(path=f'{shots}/admin-founder-revoke-empty-reason-390x844.png')

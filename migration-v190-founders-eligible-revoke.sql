@@ -12,6 +12,8 @@
 --     舊魚獲（包括之後先變合資格嘅 UPDATE）唔會派。解除停用唔會還返舊號。
 --   * admin_set_ban：停用時自動取消創始編號（其餘邏輯一字不改）。
 --   * founder_remaining()：已取消嘅號碼都計作已用（因為唔會再派）。
+--   * catches.created_at 鎖定：普通用戶（auth.uid() 有值、唔係管理員）INSERT 時一律用 now()，UPDATE 時保留舊值。
+--     App 從來唔送 created_at（魚獲時間用 date／time 欄），所以唔影響離線補傳、編輯同排行榜；service role／SQL Editor 唔受影響。
 -- 唔停用任何 trigger、唔改 catches 資料。
 begin;
 
@@ -26,6 +28,22 @@ create table if not exists public.founders_revoked (
 alter table public.founders_revoked enable row level security;
 revoke all on public.founders_revoked from anon, authenticated;
 create index if not exists founders_revoked_user_idx on public.founders_revoked (user_id);
+
+-- v190：created_at 由伺服器寫，普通用戶改唔到（防止改時間避過取消／解封後嘅截止時間）
+create or replace function public.catches_lock_created_at()
+ returns trigger language plpgsql security definer set search_path to 'public' as $$
+begin
+  if auth.uid() is not null and not public.is_admin() then
+    if TG_OP = 'INSERT' then new.created_at := now();
+    else new.created_at := old.created_at; end if;
+  end if;
+  return new;
+end $$;
+revoke all on function public.catches_lock_created_at() from public, anon, authenticated;
+drop trigger if exists catches_a_lock_created_at on public.catches;
+-- 名以 catches_a 開頭：BEFORE trigger 按名排序，喺 catches_eligibility 之前行
+create trigger catches_a_lock_created_at before insert or update on public.catches
+  for each row execute function public.catches_lock_created_at();
 
 create or replace function public.founders_assign()
  returns trigger

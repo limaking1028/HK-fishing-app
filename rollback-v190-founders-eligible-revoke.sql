@@ -3,6 +3,8 @@
 -- 注意：還原後派號會用返 max(no)+1，如果最大嗰個號曾經被取消，會再派出同一個號。
 begin;
 drop trigger if exists trg_founders_assign_upd on public.catches;
+drop trigger if exists catches_a_lock_created_at on public.catches;
+drop function if exists public.catches_lock_created_at();
 drop function if exists public.admin_revoke_founder(uuid, text);
 drop function if exists public.admin_founder_no(uuid);
 
