@@ -1281,7 +1281,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v184</span></div>
+    <div class="header-title" id="header-title">🎣 釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v185</span></div>
     <div class="header-settings" onclick="openNameDialog()">👤 <span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">✏️</span></div>
   </header>
   <main id="main">
@@ -1331,6 +1331,7 @@ button { touch-action: manipulation; }
       </div>
       <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
         <button class="btn btn-outline" style="width:100%;" onclick="openFeedback()">💬 回報問題／意見</button>
+        <button class="btn btn-outline" style="width:100%;margin-top:8px;" onclick="openBlockList()">🚫 封鎖名單</button>
       </div>
       <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
         <div style="font-size:13px;color:var(--gray-5);margin-bottom:8px;font-weight:600;">🔑 設定 / 更改密碼</div>
@@ -4894,7 +4895,8 @@ async function fetchLbRows(type, period) {
   if (type === 'biggest') res = await sb.rpc('lb_biggest', { p_period: period });
   else res = await sb.rpc('lb_stats', { p_period: period, p_sort: type });
   if (res.error) throw res.error;
-  const rows = res.data || [];
+  let rows = res.data || [];
+  rows = await lbFilterBlocked(type, rows);   // v185：隱藏我封鎖咗嘅用戶
   state.lbCache[type + '|' + period] = { at: Date.now(), rows };
   loadLbFounders(rows);   // v174
   return rows;
@@ -4990,6 +4992,91 @@ function lbItemsLocal(type, period) {
   if (type === 'quantity') return [{ user: me, isMine: true, count: f.length, spotCount: spots.size, speciesCount: species.size }];
   return [{ user: me, isMine: true, speciesCount: species.size, spotCount: spots.size, biggestWeight: Math.max(...f.map(c => c.weight)) }];
 }
+/* ===== v185：檢舉／封鎖（Apple 1.2；所有平台共用）===== */
+function lbKeyOf(type, item) { return type === 'biggest' ? item.id : item.likeKey; }
+function lbRowKey(type, r) { return type === 'biggest' ? r.catch_id : r.entry_id; }
+async function lbFilterBlocked(type, rows) {
+  const keys = rows.filter(r => !r.is_mine).map(r => lbRowKey(type, r)).filter(Boolean);
+  if (!keys.length) return rows;
+  try {
+    const board = type === 'biggest' ? 'biggest' : (type === 'species' ? 'species' : 'quantity');
+    const { data, error } = await sb.rpc('lb_blocked_keys', { p_board: board, p_keys: keys });
+    if (error || !Array.isArray(data) || !data.length) return rows;   // 未套用 migration／出錯：照舊顯示
+    const bl = new Set(data);
+    return rows.filter(r => !bl.has(lbRowKey(type, r)));
+  } catch (e) { return rows; }
+}
+function lbMoreHtml(item) {
+  const key = lbKeyOf(state.lbType, item);
+  if (item.isMine || !key) return '';
+  return '<button type="button" class="lb-more" aria-label="檢舉或封鎖" title="檢舉或封鎖" data-type="' + escapeHtml(state.lbType) + '" data-key="' + escapeHtml(key) + '" data-name="' + escapeHtml(String(item.user || '')) + '" onclick="openReport(this.dataset.type,this.dataset.key,this.dataset.name)" style="background:none;border:0;color:var(--gray-4);font-size:18px;padding:2px 6px;cursor:pointer;">⋯</button>';
+}
+let _rp = null;
+const REPORT_REASONS = [['spam','垃圾／廣告'],['offensive','冒犯或騷擾'],['fake','虛假魚獲'],['photo','不當相片'],['name','不當名稱'],['other','其他']];
+function openReport(type, key, name) {
+  if (!state.user) { toast('請先登入'); return; }
+  _rp = { board: type === 'biggest' ? 'biggest' : (type === 'species' ? 'species' : 'quantity'), key: key, kind: 'content', reason: 'offensive' };
+  let ov = document.getElementById('report-modal');
+  if (!ov) { ov = document.createElement('div'); ov.className = 'modal-overlay'; ov.id = 'report-modal'; document.body.appendChild(ov); ov.addEventListener('click', e => { if (e.target === ov) closeReport(); }); }
+  ov.innerHTML = '<div class="modal-sheet" style="position:relative;" role="dialog" aria-label="檢舉或封鎖">'
+    + '<span class="modal-close" role="button" aria-label="關閉" onclick="closeReport()">✕</span>'
+    + '<div class="modal-title">🚩 檢舉／封鎖「' + escapeHtml(name || '釣友') + '」</div>'
+    + '<div class="fb-cats" id="rp-kinds"><button type="button" class="fb-cat on" data-k="content" onclick="rpKind(this)">檢舉呢個內容</button><button type="button" class="fb-cat" data-k="user" onclick="rpKind(this)">檢舉呢個用戶</button></div>'
+    + '<div class="fb-cats" id="rp-reasons" style="flex-wrap:wrap;">' + REPORT_REASONS.map(r => '<button type="button" class="fb-cat' + (r[0] === 'offensive' ? ' on' : '') + '" data-r="' + r[0] + '" onclick="rpReason(this)">' + r[1] + '</button>').join('') + '</div>'
+    + '<textarea id="rp-text" class="modal-input" rows="3" maxlength="500" placeholder="補充（可選，最多 500 字）" style="resize:vertical;"></textarea>'
+    + '<button type="button" class="btn btn-primary" id="rp-send" style="width:100%;margin-top:8px;" onclick="sendReport()">送出檢舉</button>'
+    + '<button type="button" class="btn btn-outline" id="rp-block" style="width:100%;margin-top:8px;" onclick="blockFromReport()">🚫 封鎖呢個用戶（你唔會再見到佢嘅內容）</button>'
+    + '<div style="font-size:11px;color:var(--gray-4);margin-top:8px;">管理員會盡快處理檢舉；對方唔會知道係你檢舉或封鎖。封鎖可以喺「👤 設定 › 封鎖名單」解除。</div>'
+    + '<div id="rp-msg" role="status" aria-live="polite" style="font-size:13px;margin-top:8px;min-height:18px;font-weight:600;text-align:center;"></div></div>';
+  ov.classList.add('show');
+}
+function rpKind(b) { _rp.kind = b.dataset.k; document.querySelectorAll('#rp-kinds .fb-cat').forEach(x => x.classList.toggle('on', x === b)); }
+function rpReason(b) { _rp.reason = b.dataset.r; document.querySelectorAll('#rp-reasons .fb-cat').forEach(x => x.classList.toggle('on', x === b)); }
+function closeReport() { const ov = document.getElementById('report-modal'); if (ov) ov.classList.remove('show'); }
+async function sendReport() {
+  const msg = document.getElementById('rp-msg'), btn = document.getElementById('rp-send');
+  btn.disabled = true; msg.style.color = 'var(--gray-5)'; msg.textContent = '送出中…';
+  try {
+    const { error } = await sb.rpc('report_lb_entry', { p_board: _rp.board, p_key: _rp.key, p_kind: _rp.kind, p_reason: _rp.reason, p_details: (document.getElementById('rp-text').value || '').trim().slice(0, 500) || null });
+    if (error) throw error;
+    msg.style.color = '#16a34a'; msg.textContent = '✅ 已收到檢舉，多謝你！';
+    setTimeout(closeReport, 1500);
+  } catch (e) {
+    msg.style.color = '#dc2626'; msg.textContent = /rate limit/.test(String(e && e.message)) ? '今日檢舉次數太多，請聽日再試' : '送出失敗，請檢查網絡後再試';
+  }
+  btn.disabled = false;
+}
+async function blockFromReport() {
+  const msg = document.getElementById('rp-msg'), btn = document.getElementById('rp-block');
+  if (!confirm('確定封鎖？之後喺排行榜唔會再見到呢個用戶。')) return;
+  btn.disabled = true;
+  try {
+    const { error } = await sb.rpc('block_lb_entry', { p_board: _rp.board, p_key: _rp.key });
+    if (error) throw error;
+    state.lbCache = {};
+    msg.style.color = '#16a34a'; msg.textContent = '✅ 已封鎖';
+    setTimeout(() => { closeReport(); if (state.view === 'leaderboard') renderLeaderboardView(); }, 900);
+  } catch (e) { msg.style.color = '#dc2626'; msg.textContent = '封鎖失敗，請檢查網絡後再試'; btn.disabled = false; }
+}
+async function openBlockList() {
+  if (!state.user) { toast('請先登入'); return; }
+  let ov = document.getElementById('blocks-modal');
+  if (!ov) { ov = document.createElement('div'); ov.className = 'modal-overlay'; ov.id = 'blocks-modal'; document.body.appendChild(ov); ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('show'); }); }
+  ov.innerHTML = '<div class="modal-sheet" style="position:relative;" role="dialog" aria-label="封鎖名單"><span class="modal-close" role="button" aria-label="關閉" onclick="document.getElementById(\'blocks-modal\').classList.remove(\'show\')">✕</span><div class="modal-title">🚫 封鎖名單</div><div id="blocks-list" style="font-size:14px;">載入中…</div></div>';
+  ov.classList.add('show');
+  const el = document.getElementById('blocks-list');
+  try {
+    const { data, error } = await sb.rpc('my_blocks');
+    if (error) throw error;
+    el.innerHTML = (data && data.length) ? data.map(b => '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-2);"><span>' + escapeHtml(b.display_name) + '</span><button type="button" class="btn btn-outline" style="padding:4px 10px;font-size:13px;" data-pid="' + escapeHtml(b.public_id) + '" onclick="unblockUser(this.dataset.pid)">解除封鎖</button></div>').join('') : '你未封鎖任何人';
+  } catch (e) { el.textContent = '載入失敗，請稍後再試'; }
+}
+async function unblockUser(pid) {
+  try { const { error } = await sb.rpc('unblock_user', { p_public_id: pid }); if (error) throw error; state.lbCache = {}; toast('已解除封鎖'); openBlockList(); }
+  catch (e) { toast('解除失敗，請稍後再試'); }
+}
+window.openReport = openReport; window.closeReport = closeReport; window.rpKind = rpKind; window.rpReason = rpReason;
+window.sendReport = sendReport; window.blockFromReport = blockFromReport; window.openBlockList = openBlockList; window.unblockUser = unblockUser;
 function renderLeaderboardView() {
   const view = document.getElementById('view-leaderboard');
   let lbData = [], loading = false, offlineNote = '';
@@ -5041,14 +5128,14 @@ function renderLeaderboardView() {
             +'<div class="lb-champion-badge">👑 '+championTitle+' 👑</div>'
             +'<div class="lb-detail">'+detail+'</div>'
           +'</div>'
-          +'<div class="lb-value">'+value+(useServer ? lbLikeHtml(item) : '')+'</div>'
+          +'<div class="lb-value">'+value+(useServer ? lbLikeHtml(item) : '')+(useServer ? lbMoreHtml(item) : '')+'</div>'
           +'</div>';
       } else {
         listHtml += '<div class="lb-item'+(item.isMine?' mine':'')+'">'
           +'<div class="lb-rank '+rankClass+'">'+rank+'</div>'
           +(useServer ? lbThumbHtml(item) : '')
           +'<div class="lb-user"><div class="lb-username">'+escapeHtml(item.user)+fTag+meTag+'<div class="lb-detail">'+detail+'</div></div></div>'
-          +'<div class="lb-value">'+value+(useServer ? lbLikeHtml(item) : '')+'</div>'
+          +'<div class="lb-value">'+value+(useServer ? lbLikeHtml(item) : '')+(useServer ? lbMoreHtml(item) : '')+'</div>'
           +'</div>';
       }
     });
@@ -5933,7 +6020,7 @@ function switchView(name) {
   const titles = { record:'🎣 記錄魚獲', my:'📋 我的魚獲', trips:'⏱️ 釣魚行程', leaderboard:'🏆 排行榜', map:'🗺️ 釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v184</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v185</span>';
   }
   renderView(name);
 }

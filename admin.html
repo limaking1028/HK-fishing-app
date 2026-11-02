@@ -449,7 +449,7 @@ const rt=c=>(window.lbLib&&lbLib.reasonText)?lbLib.reasonText(c):(c||'');
 const toast=(m)=>{const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('show'),2600);};
 async function rpc(name,args){const {data,error}=await sb.rpc(name,args||{});if(error)throw new Error(error.message||'發生錯誤');return data;}
 const S={tab:'overview',detail:null,pending:0,fbNew:0,fbFilter:'new',photos:[],photoUser:null,photoUserName:'',photoFilter:'all',photoDone:false,fbCat:'all',users:[],queue:[],updated:null,email:''};
-const TABS=[['overview','總覽','home'],['review','審核中心','shield'],['feedback','意見箱','chat'],['photos','相片牆','photos'],['promo','推廣追蹤','spark'],['usage','使用分析','chart'],['insights','付費準備','coins'],['users','用戶','users'],['cleanup','測試清理','alert'],['todo','上架待辦','check'],['tester','測試進度','users'],['monitor','系統監察','pulse'],['names','改名紀錄','users'],['audit','操作記錄','log']];
+const TABS=[['overview','總覽','home'],['review','審核中心','shield'],['feedback','意見箱','chat'],['photos','相片牆','photos'],['promo','推廣追蹤','spark'],['usage','使用分析','chart'],['insights','付費準備','coins'],['users','用戶','users'],['cleanup','測試清理','alert'],['todo','上架待辦','check'],['tester','測試進度','users'],['monitor','系統監察','pulse'],['names','改名紀錄','users'],['reports','檢舉','shield'],['audit','操作記錄','log']];
 
 /* ---------- Dialog ---------- */
 function ask(o){ // {title, body, ok, danger, note, confirm}
@@ -530,7 +530,7 @@ function navItem(t){
   return '<a href="#'+t[0]+'" data-tab="'+t[0]+'" '+(S.tab===t[0]?'aria-current="page"':'')+' onclick="event.preventDefault();navGo(\''+t[0]+'\')">'
     +ic(t[2])+'<span class="lbl">'+t[1]+'</span>'+navBadge(t[0])+'</a>';
 }
-const NAV_GROUPS=[['主要',['overview','users']],['增長',['promo','usage','insights']],['管理',['review','feedback','photos','monitor','names','audit']],['工具',['cleanup','todo','tester'],1]];
+const NAV_GROUPS=[['主要',['overview','users']],['增長',['promo','usage','insights']],['管理',['review','reports','feedback','photos','monitor','names','audit']],['工具',['cleanup','todo','tester'],1]];
 function navHtml(kind){
   if(kind!=='tab'){const T=k=>TABS.find(t=>t[0]===k);let tOpen;try{tOpen=localStorage.getItem('adm_tools')==='1';}catch(e){}
     return NAV_GROUPS.map(g=>{const items=g[1].map(k=>navItem(T(k))).join('');
@@ -590,14 +590,14 @@ function header(title,extra){
 function loading(tab){ // 骨架形狀跟返每頁實際版面
   const sk=(c,n)=>('<div class="sk '+c+'"></div>').repeat(n||1),kp=n=>'<div class="grid kpis">'+sk('kpi-s',n)+'</div>',two='<div class="grid two" style="margin-top:12px">'+sk('panel',2)+'</div>';
   const map={overview:sk('bar')+kp(8)+two,review:sk('panel tall',2),feedback:sk('chips-s')+sk('panel',3),photos:sk('chips-s')+'<div class="photos">'+sk('sq',10)+'</div>',
-    usage:kp(4)+two,promo:kp(4)+two,insights:kp(3)+two,users:sk('bar')+'<div class="sk-rows">'+sk('row',7)+'</div>',audit:'<div class="sk-rows">'+sk('row',8)+'</div>',cleanup:'<div class="sk-rows">'+sk('row',6)+'</div>',todo:'<div class="sk-rows">'+sk('row',6)+'</div>',tester:'<div class="sk-rows">'+sk('row',6)+'</div>',monitor:'<div class="sk-rows">'+sk('row',6)+'</div>',names:'<div class="sk-rows">'+sk('row',6)+'</div>'};
+    usage:kp(4)+two,promo:kp(4)+two,insights:kp(3)+two,users:sk('bar')+'<div class="sk-rows">'+sk('row',7)+'</div>',audit:'<div class="sk-rows">'+sk('row',8)+'</div>',cleanup:'<div class="sk-rows">'+sk('row',6)+'</div>',todo:'<div class="sk-rows">'+sk('row',6)+'</div>',tester:'<div class="sk-rows">'+sk('row',6)+'</div>',monitor:'<div class="sk-rows">'+sk('row',6)+'</div>',names:'<div class="sk-rows">'+sk('row',6)+'</div>',reports:'<div class="sk-rows">'+sk('row',6)+'</div>'};
   return '<div aria-busy="true" aria-label="載入中">'+(map[tab]||map.overview)+'</div>';
 }
 async function go(tab,keep){
   if(keep!=='keep')S.detail=null;
   S.tab=tab;history.replaceState(null,'','#'+tab);renderNav();
   const m=$('main');m.classList.add('enter');clearTimeout(S.enterT);m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+loading(tab);
-  try{await ({overview:vOverview,review:vReview,feedback:vFeedback,photos:vPhotos,usage:vUsage,promo:vPromo,insights:vInsights,users:()=>S.detail?vUserDetail():vUsers(),audit:vAudit,cleanup:vCleanup,todo:vTodo,tester:vTester,monitor:vMonitor,names:vNames})[tab]();S.updated=new Date().toLocaleTimeString('zh-HK',{hour12:false,hour:'2-digit',minute:'2-digit'});}
+  try{await ({overview:vOverview,review:vReview,feedback:vFeedback,photos:vPhotos,usage:vUsage,promo:vPromo,insights:vInsights,users:()=>S.detail?vUserDetail():vUsers(),audit:vAudit,cleanup:vCleanup,todo:vTodo,tester:vTester,monitor:vMonitor,names:vNames,reports:vReports})[tab]();S.updated=new Date().toLocaleTimeString('zh-HK',{hour12:false,hour:'2-digit',minute:'2-digit'});}
   catch(e){m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+'<div class="card err" role="alert"><h2>載入失敗</h2><p class="hint" style="color:inherit">'+esc(e.message)+'</p><button class="btn" onclick="go(S.tab)">'+ic('refresh')+'再試一次</button></div>';}
   window.scrollTo({top:0,behavior:'instant'});
   S.enterT=setTimeout(()=>{const mm=$('main');if(mm)mm.classList.remove('enter');},900);
@@ -988,6 +988,39 @@ async function vPromo(){
   $('main').innerHTML=h;
   growthCard();   // v173：14 日明細表（原本喺使用分析頁）
 }
+
+/* ---------- v185：檢舉（content_reports；Apple 1.2） ---------- */
+const RP_REASON={spam:'垃圾／廣告',offensive:'冒犯或騷擾',fake:'虛假魚獲',photo:'不當相片',name:'不當名稱',other:'其他'};
+const RP_STATUS={open:'未處理',resolved:'已處理',dismissed:'已駁回'};
+async function vReports(){
+  if(!S.rpFilter)S.rpFilter='open';
+  let rows;
+  try{rows=await rpc('admin_reports_list',{p_status:S.rpFilter==='all'?null:S.rpFilter,p_limit:300});}
+  catch(e){if(/admin_reports_list|schema cache|function/i.test(e.message)){$('main').innerHTML=header('檢舉')+'<div class="card">'+empty('alert','未啟用檢舉功能','要先套用 v185 migration')+'</div>';return;}throw e;}
+  S.rpRows=rows=rows||[];
+  const f=['open','resolved','dismissed','all'].map(k=>'<button type="button" class="btn'+(S.rpFilter===k?' pri':'')+'" onclick="S.rpFilter=\''+k+'\';vReports()">'+(k==='all'?'全部':RP_STATUS[k])+'</button>').join(' ');
+  $('main').innerHTML=header('檢舉')+'<p class="hint page-intro">用戶喺排行榜檢舉嘅內容同用戶（香港時間）。可以標為已處理／駁回、隱藏魚獲（唔計排行榜）或者停用用戶。被檢舉人唔會知道係邊個檢舉。</p>'
+   +'<div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:6px">'+f+'</div>'
+   +'<section class="card">'+(rows.length?'<div class="tw" style="box-shadow:none"><table class="t"><thead><tr><th>時間</th><th>類型</th><th>原因</th><th>被檢舉</th><th>內容</th><th>檢舉人</th><th>狀態</th><th>處理</th></tr></thead><tbody>'
+   +rows.map((r,i)=>'<tr><td class="first" data-l="時間">'+esc(fmt(r.created_at))+'</td><td data-l="類型">'+(r.kind==='user'?'用戶':'內容')+'</td><td data-l="原因">'+esc(RP_REASON[r.reason]||r.reason)+(r.details?'<br><small class="hint">'+esc(r.details)+'</small>':'')+'</td>'
+     +'<td data-l="被檢舉"><b>'+esc(r.target_name||'—')+'</b>'+(r.open_against_user>1?' <small class="hint">（'+esc(r.open_against_user)+' 單未處理）</small>':'')+'</td>'
+     +'<td data-l="內容">'+(r.catch_id?esc(r.species||'')+(r.weight_kg!=null?' '+esc(r.weight_kg)+'kg':'')+(safeImg(r.photo_url)?' <button type="button" class="btn" onclick="zoom(S.rpRows['+i+'].photo_url,\'被檢舉相片\')">睇相</button>':'')+(r.catch_excluded?' <small class="hint">（已隱藏）</small>':''):'—')+'</td>'
+     +'<td data-l="檢舉人">'+esc(r.reporter_name||'—')+'</td><td data-l="狀態">'+esc(RP_STATUS[r.status]||r.status)+(r.admin_note?'<br><small class="hint">'+esc(r.admin_note)+'</small>':'')+'</td>'
+     +'<td data-l="處理"><div class="row" style="flex-wrap:wrap;gap:4px">'
+       +(r.status!=='resolved'?'<button type="button" class="btn pri" onclick="rpSet('+i+',\'resolved\')">已處理</button>':'')
+       +(r.status!=='dismissed'?'<button type="button" class="btn" onclick="rpSet('+i+',\'dismissed\')">駁回</button>':'')
+       +(r.status!=='open'?'<button type="button" class="btn" onclick="rpSet('+i+',\'open\')">重開</button>':'')
+       +(r.catch_id&&!r.catch_excluded?'<button type="button" class="btn bad" onclick="rpHide('+i+')">隱藏魚獲</button>':'')
+       +(r.target_user_id?'<button type="button" class="btn bad" onclick="rpBan('+i+')">停用用戶</button>':'')
+     +'</div></td></tr>').join('')
+   +'</tbody></table></div>':empty('shield',S.rpFilter==='open'?'冇未處理嘅檢舉':'暫時冇檢舉','用戶喺排行榜撳「⋯」檢舉後會顯示喺呢度'))+'</section>';
+}
+async function rpSet(i,st){const r=S.rpRows[i];const a=await ask({title:'標為「'+RP_STATUS[st]+'」？',body:(r.target_name||'')+'：'+(RP_REASON[r.reason]||r.reason),note:true});if(!a)return;
+  try{await rpc('admin_report_set',{p_id:r.id,p_status:st,p_note:a.note||null});toast('已更新');vReports();}catch(e){toast(e.message);}}
+async function rpHide(i){const r=S.rpRows[i];const a=await ask({title:'隱藏呢條魚獲？',body:'會唔計排行榜（同審核中心「唔計排行榜」一樣），檢舉會標為已處理。',danger:true,ok:'隱藏',note:true});if(!a)return;
+  try{await rpcR('admin_set_excluded',{p_catch:r.catch_id,p_excluded:true},a.note||'檢舉');await rpc('admin_report_set',{p_id:r.id,p_status:'resolved',p_note:a.note||'已隱藏魚獲'});toast('已隱藏');vReports();}catch(e){toast(e.message);}}
+async function rpBan(i){const r=S.rpRows[i];const a=await ask({title:'停用「'+(r.target_name||'')+'」？',body:'同用戶頁「停用」一樣；檢舉會標為已處理。',danger:true,ok:'停用',note:true});if(!a)return;
+  try{await rpcR('admin_set_ban',{p_user:r.target_user_id,p_banned:true},a.note||'檢舉');await rpc('admin_report_set',{p_id:r.id,p_status:'resolved',p_note:a.note||'已停用用戶'});toast('已停用');vReports();}catch(e){toast(e.message);}}
 
 /* ---------- v184：改名紀錄（admin_name_changes，只限管理員） ---------- */
 async function vNames(){
