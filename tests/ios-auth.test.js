@@ -60,3 +60,25 @@ test('iOS native: custom scheme, pkce, Browser.open, appUrlOpen -> exchange + cl
   assert.strictEqual(await lib.handleNativeAuthUrl('https://evil.example/?code=x'), false);
   assert.strictEqual(calls.length, 0);
 });
+
+test('Apple: iOS opens system browser via custom scheme; web keeps plain redirect; disabled provider -> friendly error', async () => {
+  const R = 'app.hkfishing.ios://auth-callback';
+  let { lib, calls } = load(cap(true, 'ios'));
+  await lib.signInWithApple();
+  same(calls[0][1], { provider: 'apple', options: { redirectTo: R, skipBrowserRedirect: true } });
+  assert.strictEqual(calls[1][0], 'browser.open');
+  ({ lib, calls } = load(undefined));
+  await lib.signInWithApple();
+  same(calls[0][1], { provider: 'apple', options: { redirectTo: WEB } });
+  assert.ok(!calls.some(x => x[0].startsWith('browser')));
+});
+test('Apple: provider not enabled -> friendly Cantonese error, no browser opened', async () => {
+  const SRC2 = SRC;
+  const calls = [];
+  const sb = { auth: { signInWithOAuth: async () => ({ data: null, error: { message: 'Unsupported provider: provider is not enabled' } }) } };
+  const C = cap(true, 'ios'); C.Plugins = { App: { addListener() {} }, Browser: { open: async () => calls.push('open') } };
+  const window = { location: { origin: 'https://limaking1028.github.io', pathname: '/HK-fishing-app/' }, sb, localStorage: {}, Capacitor: C, console };
+  vm.runInContext(SRC2, vm.createContext({ window, console, URL, setTimeout, clearTimeout, localStorage: {} }));
+  await assert.rejects(window.authLib.signInWithApple(), /Apple 登入暫未開通/);
+  assert.strictEqual(calls.length, 0);
+});
