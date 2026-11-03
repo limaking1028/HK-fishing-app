@@ -4595,6 +4595,8 @@ function shareRankText(ranks) {
 // v163：分享連結一律用正式網址（唔用 location，避免 localhost／index.html／APK 殼網址出現喺卡同連結）
 const APP_PUBLIC_URL = 'https://limaking1028.github.io/HK-fishing-app/';
 function appBaseUrl() { return APP_PUBLIC_URL; }
+// 分享釣點連結：http(s) 網頁版照舊用當前網址；capacitor:// 等 App 殼網址就用正式網址
+function pageShareUrl() { return /^https?:$/.test(location.protocol) ? location.origin + location.pathname : APP_PUBLIC_URL; }
 // v164：分享連結基底。空 = 用 APP_PUBLIC_URL?c=<token>；設做 Cloudflare Worker 網址（例如 https://fishport-share.xxx.workers.dev）就變 <worker>/c/<token>
 const SHARE_BASE_URL = 'https://fishport-share.fishport1028.workers.dev';
 function shareUrlFor(token) {
@@ -5280,7 +5282,7 @@ async function doSpotShare() {
   if (!picked.length) { toast('請先揀至少一個釣點'); return; }
   const text = '🎣 ' + getUserName() + ' 喺【釣港】分享咗釣點：\n\n'
     + picked.map(x => '📍 ' + x.name).join('\n')   // v162：預設唔出 GPS 座標（保留座標＋警告要等主人決定）
-    + '\n\n' + location.origin + location.pathname;
+    + '\n\n' + pageShareUrl();
   try {
     if (navigator.share) { await navigator.share({ text }); closeSpotShare(); return; }
   } catch (e) { if (e && e.name === 'AbortError') return; }
