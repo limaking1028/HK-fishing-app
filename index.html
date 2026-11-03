@@ -4008,7 +4008,7 @@ function renderTripDetailView(id) {
   } else {
     tags.push('<span class="trip-tag" style="background:var(--orange-light);color:var(--orange);">📍 未啟用 GPS</span>');
   }
-  if (tags.length) html += '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;">' + tags.join('') + '</div>';
+  if (tags.length) html += '<div style="margin-top:10px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:6px;">' + tags.join('') + '</div>';
   html += '<div class="trip-stats-grid">'
       + '<div class="trip-stat-box"><div class="trip-stat-num">' + window.tripsLib.formatDuration(durationSec) + '</div><div class="trip-stat-label">總時長</div></div>'
       + '<div class="trip-stat-box"><div class="trip-stat-num">' + (summary.count + tallyTotal(trip.id)) + '</div><div class="trip-stat-label">總魚獲</div></div>'
@@ -4050,7 +4050,7 @@ function renderTripDetailView(id) {
         + '<div class="trip-catch-mini-weight">' + tcWd.value + ' ' + tcWd.unit + '</div>'
       + '</div>';
     });
-  } else {
+  } else if (!(justEnded && tallyTotal(trip.id))) {
     html += '<div style="text-align:center;color:var(--gray-4);font-size:13px;padding:24px 0;">這次行程還沒有魚獲</div>';
   }
   if (justEnded) html += '<div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">'

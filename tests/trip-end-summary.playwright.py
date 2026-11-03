@@ -60,7 +60,7 @@ def run(p, entry, withCatch, withTally=False):
         check('黑鱲' in txt and '連尖' in txt and '魚獲清單' in txt, name + ': 魚獲清單有黑鱲、連尖')
         check('共 2 個魚種' in txt, name + ': 2 個魚種')
     else:
-        check('這次行程還沒有魚獲' in txt, name + ': 0 條魚顯示「這次行程還沒有魚獲」')
+        check(('這次行程還沒有魚獲' in txt) != withTally, name + ': 「這次行程還沒有魚獲」' + ('有計數時唔顯示' if withTally else '0 條魚冇計數時顯示'))
         check('共 0 個魚種' not in txt, name + ': 冇「共 0 個魚種」')
     check(not pg.evaluate("(()=>{const t=document.getElementById('toast');return !!(t&&t.classList.contains('show')&&/行程已結束/.test(t.textContent))})()"), name + ': 轉去總結頁冇「行程已結束」toast')
     btns = pg.evaluate(VIS)
@@ -74,6 +74,11 @@ def run(p, entry, withCatch, withTally=False):
     check(not any('記錄下一條' in t for t in btns), name + ': 冇「記錄下一條」')
     check(pg.evaluate('state.formSuccess') is False, name + ': formSuccess 已清')
     pg.click('#view-trips button:has-text("查看我的魚獲")'); pg.wait_for_timeout(600)
+    if withTally:   # 非剛結束嘅行程詳情維持原樣：仍顯示句子同計數掣
+        pg.evaluate("switchView('trips'); openTripDetail('t-test')"); pg.wait_for_timeout(500)
+        t2 = pg.inner_text('#view-trips')
+        check('這次行程還沒有魚獲' in t2 and '修改計數' in t2 and '行程已結束' not in t2, name + ': 普通行程詳情不變')
+        pg.evaluate("closeTripDetail(); switchView('my')"); pg.wait_for_timeout(400)
     check(pg.evaluate("[state.view, state.justEndedTripId, state.tripDetailId]") == ['my', None, None], name + ': 離開後清 justEndedTripId')
     pg.evaluate("switchView('record')"); pg.wait_for_timeout(600)
     check('魚獲已記錄' not in pg.inner_text('#view-record'), name + ': 返記錄頁冇舊成功頁')
