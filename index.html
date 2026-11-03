@@ -3816,7 +3816,6 @@ async function endTrip(skipConfirm) {
   state.formSuccess = false;
   state.justEndedTripId = endedId; state.tripDetailId = endedId;
   switchView('trips');
-  toast('✅ 行程已結束');
 }
 
 async function addCatchInTrip() {
@@ -4015,7 +4014,7 @@ function renderTripDetailView(id) {
       + '<div class="trip-stat-box"><div class="trip-stat-num">' + (summary.count + tallyTotal(trip.id)) + '</div><div class="trip-stat-label">總魚獲</div></div>'
       + '<div class="trip-stat-box"><div class="trip-stat-num">' + weightDisplay({weight: summary.totalWeight}).value + '</div><div class="trip-stat-label">總重量（' + weightDisplay({weight: 0}).unit + '）</div></div>'
     + '</div>'
-    + '<div style="font-size:12px;color:var(--gray-5);margin-top:10px;text-align:center;">共 ' + summary.speciesCount + ' 個魚種</div>'
+    + (summary.speciesCount ? '<div style="font-size:12px;color:var(--gray-5);margin-top:10px;text-align:center;">共 ' + summary.speciesCount + ' 個魚種</div>' : '')
   + '</div>';
   if (isActive) {
     html += '<div class="trip-actions">'
