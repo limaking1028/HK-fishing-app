@@ -4595,6 +4595,8 @@ function shareRankText(ranks) {
 // v163：分享連結一律用正式網址（唔用 location，避免 localhost／index.html／APK 殼網址出現喺卡同連結）
 const APP_PUBLIC_URL = 'https://limaking1028.github.io/HK-fishing-app/';
 function appBaseUrl() { return APP_PUBLIC_URL; }
+// 分享釣點連結：http(s) 網頁版照舊用當前網址；capacitor:// 等 App 殼網址就用正式網址
+function pageShareUrl() { return /^https?:$/.test(location.protocol) ? location.origin + location.pathname : APP_PUBLIC_URL; }
 // v164：分享連結基底。空 = 用 APP_PUBLIC_URL?c=<token>；設做 Cloudflare Worker 網址（例如 https://fishport-share.xxx.workers.dev）就變 <worker>/c/<token>
 const SHARE_BASE_URL = 'https://fishport-share.fishport1028.workers.dev';
 function shareUrlFor(token) {
@@ -5259,6 +5261,10 @@ function mySpotGroups() {
   });
   return Object.values(g).map(x => ({ name: x.name, n: x.n, lat: x.lat / x.n, lng: x.lng / x.n })).sort((a, b) => b.n - a.n);
 }
+const SPOT_SHARE_NOTE_OFF = '揀你想分享嘅釣點。對方只會見到<b>釣點名稱</b>（唔包括 GPS 位置）；冇揀嘅釣點唔會分享。';
+const SPOT_SHARE_NOTE_ON = '揀你想分享嘅釣點。對方會見到<b>釣點名稱同 Google 地圖位置</b>；冇揀嘅釣點唔會分享。';
+function spotShareLocToggle(on) { const n = document.getElementById('spot-share-note'); if (n) n.innerHTML = on ? SPOT_SHARE_NOTE_ON : SPOT_SHARE_NOTE_OFF; }
+function spotMapLink(x) { return (Number.isFinite(x.lat) && Number.isFinite(x.lng)) ? '\nhttps://www.google.com/maps/search/?api=1&query=' + x.lat.toFixed(5) + ',' + x.lng.toFixed(5) : ''; }
 function openSpotShare(preselect) {
   _shareSpots = mySpotGroups();
   if (!_shareSpots.length) { toast('未有帶 GPS 嘅釣點可分享'); return; }
@@ -5268,26 +5274,28 @@ function openSpotShare(preselect) {
   ov.innerHTML = '<div class="modal-sheet" style="position:relative;" role="dialog" aria-label="分享釣點">'
     + '<span class="modal-close" role="button" aria-label="關閉" onclick="closeSpotShare()">✕</span>'
     + '<div class="modal-title">📤 分享釣點</div>'
-    + '<div style="font-size:13px;color:var(--gray-4);margin-bottom:8px;text-align:center;">揀你想分享嘅釣點。對方只會見到<b>釣點名稱</b>（唔包括 GPS 位置）；冇揀嘅釣點唔會分享。</div>'
+    + '<div id="spot-share-note" style="font-size:13px;color:var(--gray-4);margin-bottom:8px;text-align:center;">' + SPOT_SHARE_NOTE_OFF + '</div>'
     + rows
-    + '<button type="button" class="btn btn-primary" style="width:100%;margin-top:14px;" onclick="doSpotShare()">分享已揀釣點</button></div>';
+    + '<label class="spot-share-row" style="border-bottom:none;margin-top:6px;"><input type="checkbox" id="spot-share-loc" onchange="spotShareLocToggle(this.checked)"><b>📍 附上位置（Google 地圖連結）</b></label>'   // 預設關，每次開框都重設
+    + '<button type="button" class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="doSpotShare()">分享已揀釣點</button></div>';
   ov.classList.add('show');
 }
 function closeSpotShare() { const ov = document.getElementById('spot-share-modal'); if (ov) ov.classList.remove('show'); }
 async function doSpotShare() {
   const ov = document.getElementById('spot-share-modal');
-  const picked = [...ov.querySelectorAll('input[type=checkbox]:checked')].map(cb => _shareSpots[+cb.dataset.i]).filter(Boolean);
+  const picked = [...ov.querySelectorAll('input[data-i]:checked')].map(cb => _shareSpots[+cb.dataset.i]).filter(Boolean);
   if (!picked.length) { toast('請先揀至少一個釣點'); return; }
+  const loc = !!(ov.querySelector('#spot-share-loc') || {}).checked;   // 開咗開關先加 Google 地圖連結
   const text = '🎣 ' + getUserName() + ' 喺【釣港】分享咗釣點：\n\n'
-    + picked.map(x => '📍 ' + x.name).join('\n')   // v162：預設唔出 GPS 座標（保留座標＋警告要等主人決定）
-    + '\n\n' + location.origin + location.pathname;
+    + picked.map(x => '📍 ' + x.name + (loc ? spotMapLink(x) : '')).join('\n')   // v162：預設唔出 GPS 座標（保留座標＋警告要等主人決定）
+    + '\n\n' + pageShareUrl();
   try {
     if (navigator.share) { await navigator.share({ text }); closeSpotShare(); return; }
   } catch (e) { if (e && e.name === 'AbortError') return; }
   try { await navigator.clipboard.writeText(text); toast('✅ 已複製，可貼上傳俾朋友'); closeSpotShare(); }
   catch (e) { prompt('複製以下文字分享：', text); }
 }
-window.openSpotShare = openSpotShare; window.closeSpotShare = closeSpotShare; window.doSpotShare = doSpotShare;
+window.openSpotShare = openSpotShare; window.closeSpotShare = closeSpotShare; window.doSpotShare = doSpotShare; window.spotShareLocToggle = spotShareLocToggle;
 
 /* ============================================================
  * Route J: GPS 自動偵測最近站
