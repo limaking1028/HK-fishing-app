@@ -4830,7 +4830,7 @@ async function showServerSharedCatch(token, loggedOut) {
       + '<div class="founder-banner-slot">' + founderBannerHtml() + '</div>'   // v174
       + (loggedOut
         ? '<button class="btn btn-primary" style="width:100%;" onclick="closeImportModal();">🎣 登入／註冊，記低你自己條魚</button>'
-          + '<div style="text-align:center;font-size:12px;color:var(--gray-4);margin-top:8px;">唔使安裝，手機瀏覽器直接用</div>'
+          + ((window.authLib && authLib.isNativeIOS && authLib.isNativeIOS()) ? '' : '<div style="text-align:center;font-size:12px;color:var(--gray-4);margin-top:8px;">唔使安裝，手機瀏覽器直接用</div>')
         : '<button class="btn btn-primary" style="width:100%;" onclick="clearShareParam();closeImportModal();">打開 App</button>')
     : '<div style="text-align:center;padding:16px 0;color:var(--gray-5);">搵唔到呢條分享（可能已刪除）。</div>'
       + '<button class="btn btn-outline" style="width:100%;" onclick="clearShareParam();closeImportModal();">' + (loggedOut ? '登入／註冊' : '打開 App') + '</button>';
@@ -6171,7 +6171,7 @@ function renderLoginScreen() {
       <div class="login-card">
         <div class="login-logo"><img src="icon-192.png?v=125" alt="釣港" width="72" height="72"></div>
         <div class="login-title">釣港</div>
-        <div class="login-subtitle">記低每條魚獲、同釣友鬥排行榜<br><span style="font-size:12px;opacity:.85">唔使安裝，手機瀏覽器直接用</span></div>
+        <div class="login-subtitle">記低每條魚獲、同釣友鬥排行榜${(window.authLib && authLib.isNativeIOS && authLib.isNativeIOS()) ? '' : '<br><span id="login-web-hint" style="font-size:12px;opacity:.85">唔使安裝，手機瀏覽器直接用</span>'}</div>
         <div class="founder-banner-slot" style="margin-top:12px">${founderBannerHtml()}</div>
 
         <!-- 密碼登入 / 註冊(預設) -->
