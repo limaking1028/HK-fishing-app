@@ -43,6 +43,10 @@ with sync_playwright() as p:
     b, pg, errs, reqs, txt = run(p, 'new'); t = '[暴雨] '
     check(len(reqs) == 1 and 'hourly=' in reqs[0] and 'precipitation' in reqs[0].split('hourly=')[1].split('&')[0] and 'timezone=Asia/Hong_Kong' in reqs[0], t + '仍然只有 1 個合併請求，帶 hourly precipitation 同 timezone=Asia/Hong_Kong')
     check('暴雨' in txt[0] and '大雨' not in txt[0], t + '第 1 站（嗰個鐘 35mm）顯示暴雨、唔疊大雨')
+    check('35.0 mm/小時' in txt[0] and '9.0 mm' not in txt[0], t + '暴雨卡雨量格顯示小時雨量 35.0 mm/小時（唔再顯示 9.0 mm）')
+    rs = pg.evaluate("(() => { const s = window.weatherLib.getFishingWeatherScore({time:0,temp:24,precip:9,precipHour:35,weatherCode:65,windSpeed:18,pressure:1008}); return s.reasons.map(r => r.text); })()")
+    check('暴雨（過去一小時 35.0 mm，達黃雨標準），不建議出釣' in rs and not any(('嗰個鐘' in r or '唔好' in r) for r in rs), t + '暴雨理由書面語 ' + str([r for r in rs if r.startswith('暴雨')]))
+    check('4.0 mm' in txt[1] and '/小時' not in txt[1] and '4.0 mm' in txt[2] and '/小時' not in txt[2], t + '非暴雨卡照舊顯示 15 分鐘 mm')
     check('大雨' in txt[1] and '暴雨' not in txt[1], t + '第 2 站（29.9mm）係大雨')
     check('大雨' in txt[2] and '暴雨' not in txt[2], t + '第 3 站冇 hourly → 照 15 分鐘雨量（大雨）')
     check(not errs, t + 'no page errors ' + str(errs)); check('免費' not in pg.inner_text('body'), t + '冇「免費」')

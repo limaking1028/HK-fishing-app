@@ -49,6 +49,9 @@ test('暴雨：hourly 29.9 vs 30（揀返 11:00 嗰格），唔同大雨疊加',
   assert.strictEqual(L.rainInfo(a.precip, a.precipHour).short, '大雨'); assert.strictEqual(L.rainInfo(b.precip, b.precipHour).short, '暴雨');
   assert.strictEqual(sa.score - sb.score, 10);   // −15 → −25
   assert.ok(sb.reasons.some(r => r.text.startsWith('暴雨')) && !sb.reasons.some(r => r.text.startsWith('大雨')));
+  assert.ok(sb.reasons.some(r => r.text === '暴雨（過去一小時 30.0 mm，達黃雨標準），不建議出釣'));
+  assert.strictEqual(L.rainInfo(9, 35).text, '暴雨（過去一小時 35.0 mm，達黃雨標準），不建議出釣');
+  assert.ok(!/嗰個鐘|唔好/.test(L.rainInfo(9, 35).text));
 });
 test('冇 hourly／舊 cache（冇 precipHour）：照 15 分鐘雨量分級，唔出錯', () => {
   const n = L.parseWeather(raw(8)).now; assert.strictEqual(n.precipHour, null);
