@@ -5600,7 +5600,7 @@ function renderWeatherCards(view, results) {
         <div class="weather-metric">
           <span class="weather-metric-icon">🌧️</span>
           <span class="weather-metric-val">${w.precip.toFixed(1)} <span class="weather-metric-unit">mm</span></span>
-          <span class="weather-metric-sub">${window.weatherLib.rainInfo(w.precip).short}</span>
+          <span class="weather-metric-sub">${window.weatherLib.rainInfo(w.precip, w.precipHour).short}</span>
         </div>
         <div class="weather-metric">
           <span class="weather-metric-icon">🎯</span>

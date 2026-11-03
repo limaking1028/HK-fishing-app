@@ -38,3 +38,21 @@ test('顯示風級 = 評分風級，冇舊字眼', () => {
     assert.ok(!/微風|中風/.test(t), t);
   }
 });
+
+// 暴雨：用 hourly 同一個香港鐘數嘅雨量（≥ 30mm −25，取代大雨 −15）
+const raw = (cur, hp) => ({ current: { time: '2026-11-03T11:30', precipitation: cur, wind_speed_10m: 8, weather_code: 63, pressure_msl: 1015, temperature_2m: 24 },
+  hourly: hp === undefined ? undefined : { time: ['2026-11-03T10:00', '2026-11-03T11:00', '2026-11-03T12:00'], precipitation: hp } });
+test('暴雨：hourly 29.9 vs 30（揀返 11:00 嗰格），唔同大雨疊加', () => {
+  const a = L.parseWeather(raw(8, [99, 29.9, 99])).now, b = L.parseWeather(raw(8, [0, 30, 0])).now;
+  assert.strictEqual(a.precipHour, 29.9); assert.strictEqual(b.precipHour, 30);
+  const sa = L.getFishingWeatherScore(a), sb = L.getFishingWeatherScore(b);
+  assert.strictEqual(L.rainInfo(a.precip, a.precipHour).short, '大雨'); assert.strictEqual(L.rainInfo(b.precip, b.precipHour).short, '暴雨');
+  assert.strictEqual(sa.score - sb.score, 10);   // −15 → −25
+  assert.ok(sb.reasons.some(r => r.text.startsWith('暴雨')) && !sb.reasons.some(r => r.text.startsWith('大雨')));
+});
+test('冇 hourly／舊 cache（冇 precipHour）：照 15 分鐘雨量分級，唔出錯', () => {
+  const n = L.parseWeather(raw(8)).now; assert.strictEqual(n.precipHour, null);
+  assert.strictEqual(L.rainInfo(n.precip, n.precipHour).short, '大雨');
+  const old = { time: 0, temp: 24, precip: 0.1, weatherCode: 1, windSpeed: 8, pressure: 1015 };   // v192 cache 格式
+  assert.strictEqual(L.getFishingWeatherScore(old).score, 100); assert.strictEqual(L.rainInfo(old.precip, old.precipHour).short, '微量雨');
+});
