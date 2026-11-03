@@ -1232,6 +1232,7 @@ button { touch-action: manipulation; }
   .biggest-weight { color: #ffd166; font-size: 30px; letter-spacing: -.5px; line-height: 1.1; }
   .biggest-weight span { color: rgba(255,255,255,.85); }
   .biggest-meta { opacity: .85; font-size: 12px; }
+  .biggest-note { position: relative; margin-top: 8px; font-size: 12px; line-height: 1.4; color: #fff; }
 
   /* --- 分頁／篩選 --- */
   .my-sub-tab, .filter-chip, .lb-tab, .lb-period { min-height: 40px; }
@@ -4195,7 +4196,7 @@ function renderMyView() {
     // Route Real-photo: 用戶上傳照片 → 魚種真實照片 → SVG fallback
     const biIcon = catchThumbHtml(biggest, { klass: 'catch-thumb' });
     const biWd = weightDisplay(biggest);
-    biggestHtml = '<div class="biggest-card"><div class="biggest-card-header"><span class="biggest-badge">👑 重量王者紀錄</span></div><div class="biggest-card-body"><div class="catch-fish-icon">'+biIcon+'</div><div class="biggest-info"><div class="biggest-species">'+escapeHtml(biggest.species)+'</div><div class="biggest-weight">'+biWd.value+' <span>'+biWd.unit+'</span></div><div class="biggest-meta">'+(biggest.length?biggest.length+'cm · ':'')+escapeHtml(biggest.spot)+' · '+formatDate(biggest.date)+' '+escapeHtml(biggest.time||'')+'</div></div></div></div>';
+    biggestHtml = '<div class="biggest-card"><div class="biggest-card-header"><span class="biggest-badge">🎣 我的最重紀錄</span></div><div class="biggest-card-body"><div class="catch-fish-icon">'+biIcon+'</div><div class="biggest-info"><div class="biggest-species">'+escapeHtml(biggest.species)+'</div><div class="biggest-weight">'+biWd.value+' <span>'+biWd.unit+'</span></div><div class="biggest-meta">'+(biggest.length?biggest.length+'cm · ':'')+escapeHtml(biggest.spot)+' · '+formatDate(biggest.date)+' '+escapeHtml(biggest.time||'')+'</div></div></div><div class="biggest-note">個人紀錄，唔代表排行榜名次</div></div>';
   }
   // 各魚種數量（摺疊）
   let speciesGroupHtml = '';
