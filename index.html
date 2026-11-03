@@ -5606,8 +5606,10 @@ function renderWeatherCards(view, results) {
         </div>
         <div class="weather-metric">
           <span class="weather-metric-icon">🌧️</span>
-          <span class="weather-metric-val">${w.precip.toFixed(1)} <span class="weather-metric-unit">mm</span></span>
-          <span class="weather-metric-sub">${w.precip < 0.3 ? '無雨' : '降雨中'}</span>
+          ${window.weatherLib.rainInfo(w.precip, w.precipHour).short === '暴雨'
+            ? `<span class="weather-metric-val">${w.precipHour.toFixed(1)} <span class="weather-metric-unit">mm/小時</span></span>`
+            : `<span class="weather-metric-val">${w.precip.toFixed(1)} <span class="weather-metric-unit">mm</span></span>`}
+          <span class="weather-metric-sub">${window.weatherLib.rainInfo(w.precip, w.precipHour).short}</span>
         </div>
         <div class="weather-metric">
           <span class="weather-metric-icon">🎯</span>
