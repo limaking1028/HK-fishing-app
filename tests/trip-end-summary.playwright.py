@@ -13,7 +13,7 @@ def check(c, n):
     if not c: fails.append(n)
 def shot(pg, n):
     if shots: os.makedirs(shots, exist_ok=True); pg.evaluate('scrollTo(0,0)'); pg.wait_for_timeout(200); pg.screenshot(path=f'{shots}/{tag}-{n}-390x844.png')
-SETUP = """(withCatch => {
+SETUP = """((withCatch, withTally) => {
   const now = Date.now(), iso = ms => new Date(ms).toISOString();
   state.user = {id:'00000000-0000-0000-0000-0000000000aa', email:null};
   const ended = Array.from({length:3}, (_, i) => ({id:'old'+i, spot:['長洲','青衣','坪洲'][i], method:'岸釣', bait:'蝦', startedAt:iso(now-(i+1)*86400e3-3*3600e3), endedAt:iso(now-(i+1)*86400e3), catchCount:i, totalWeight:0}));
@@ -27,20 +27,21 @@ SETUP = """(withCatch => {
   const copy = Object.assign({}, state.activeTrip);
   state.trips = [copy].concat(ended);
   window.dbEndTrip = async (id, endedAt) => { state.__ended = {id, endedAt}; return true; };
-  window.dbLoadTrips = async () => [Object.assign({}, copy, state.__ended ? {endedAt: state.__ended.endedAt, catchCount: withCatch?2:0, totalWeight: withCatch?0.9:0} : {})].concat(ended);
+  window.dbLoadTrips = async () => [Object.assign({}, copy, state.__ended ? {endedAt: state.__ended.endedAt, catchCount: (withCatch?2:0)+(withTally?5:0), totalWeight: withCatch?0.9:0} : {})].concat(ended);
   window.tripConditions = async () => null; window.tallySync = async () => {};
   window.renderScoreCard = async () => {};
+  if (withTally) { _tally.data['t-test'] = {'黑鱲': 3, '連尖': 2}; }
   window.confirm = () => true;
 })"""
 VIS = "[...document.querySelectorAll('button')].filter(b=>b.offsetParent).map(b=>b.innerText.trim())"
-def run(p, entry, withCatch):
+def run(p, entry, withCatch, withTally=False):
     b = p.chromium.launch(); c = b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, service_workers='block', is_mobile=True, has_touch=True)
     pg = c.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
     pg.route('**/*', lambda r, *_: r.abort() if 'supabase.co' in r.request.url else r.continue_())
     pg.goto(f'http://127.0.0.1:{srv.server_port}/index.html'); pg.wait_for_timeout(2500)
     pg.click('text=唔登入，先睇潮汐同天氣'); pg.wait_for_timeout(800)
-    pg.evaluate(SETUP + '(' + ('true' if withCatch else 'false') + ')')
-    name = entry + ('' if withCatch else '-0catch')
+    pg.evaluate(SETUP + '(' + ('true' if withCatch else 'false') + ',' + ('true' if withTally else 'false') + ')')
+    name = entry + ('' if withCatch else '-0catch') + ('-tally' if withTally else '')
     if entry == 'record':
         pg.evaluate("switchView('record'); state.formSuccess = true; renderRecordView(); renderActiveTripBanner()"); pg.wait_for_timeout(1000)
         shot(pg, name + '-1-before-end'); pg.click('.atb-end')
@@ -54,16 +55,22 @@ def run(p, entry, withCatch):
     check(act == ['view-trips'], name + ': 得一個 active view = view-trips ' + str(act))
     txt = pg.inner_text('#view-trips')
     check('🏁' in txt and '行程已結束' in txt, name + ': 標題「🏁 行程已結束」')
-    check('總時長' in txt and '總魚獲' in txt and '總重量' in txt and '個魚種' in txt, name + ': 總時長／總魚獲／總重量／魚種')
+    check('總時長' in txt and '總魚獲' in txt and '總重量' in txt and (('個魚種' in txt) == withCatch), name + ': 總時長／總魚獲／總重量（有魚先有魚種數）')
     if withCatch:
         check('黑鱲' in txt and '連尖' in txt and '魚獲清單' in txt, name + ': 魚獲清單有黑鱲、連尖')
         check('共 2 個魚種' in txt, name + ': 2 個魚種')
     else:
         check('這次行程還沒有魚獲' in txt, name + ': 0 條魚顯示「這次行程還沒有魚獲」')
+        check('共 0 個魚種' not in txt, name + ': 冇「共 0 個魚種」')
+    check(not pg.evaluate("(()=>{const t=document.getElementById('toast');return !!(t&&t.classList.contains('show')&&/行程已結束/.test(t.textContent))})()"), name + ': 轉去總結頁冇「行程已結束」toast')
     btns = pg.evaluate(VIS)
     check(sum('開始新行程' in t for t in btns) == 1 and sum('開始行程' in t for t in btns) == 0, name + ': 得一粒「開始新行程」 ' + str(btns))
     check(not any('計數' in t for t in btns), name + ': 冇快速計數掣')
-    check('快速計數' not in txt, name + ': 冇計數時唔顯示快速計數區')
+    if withTally:
+        check('快速計數' in txt and '3 條' in txt and '2 條' in txt, name + ': 顯示快速計數結果（黑鱲 3 條、連尖 2 條）')
+        check('5' in pg.inner_text('.trip-stats-grid'), name + ': 總魚獲包括計數 5 條')
+    else:
+        check('快速計數' not in txt, name + ': 冇計數時唔顯示快速計數區')
     check(not any('記錄下一條' in t for t in btns), name + ': 冇「記錄下一條」')
     check(pg.evaluate('state.formSuccess') is False, name + ': formSuccess 已清')
     pg.click('#view-trips button:has-text("查看我的魚獲")'); pg.wait_for_timeout(600)
@@ -73,6 +80,6 @@ def run(p, entry, withCatch):
     check(not errs, name + ': no page errors ' + str(errs))
     b.close()
 with sync_playwright() as p:
-    run(p, 'record', True); run(p, 'trip', True); run(p, 'record', False); run(p, 'trip', False)
+    run(p, 'record', True); run(p, 'trip', True); run(p, 'record', False); run(p, 'trip', False); run(p, 'record', False, True); run(p, 'trip', False, True)
 print('RESULT', 'OK' if not fails else 'FAILS: ' + str(len(fails)))
 sys.exit(1 if fails else 0)
