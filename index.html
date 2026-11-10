@@ -1207,7 +1207,6 @@ button { touch-action: manipulation; }
   .first-progress { font-size: 13px; font-weight: 700; color: var(--teal-dark); background: var(--teal-light); border-radius: 10px; padding: 8px 10px; margin: 0 0 12px; line-height: 1.45; }
   .lb-demo { position: relative; margin: 4px 0 10px; border: 2px dashed #9ca3af; border-radius: 12px; background: #f3f4f6; padding: 14px 12px 12px; }
   .lb-demo-tag { display: inline-block; background: #d1d5db; color: #111827; font-size: 13px; font-weight: 800; line-height: 1.4; padding: 3px 8px; border-radius: 6px; }
-  .lb-demo-edge { position: absolute; top: 0; right: 12px; transform: translateY(-50%); }
   .lb-demo-top { margin-bottom: 8px; }
   .lb-demo-row { display: flex; gap: 10px; align-items: center; }
   .lb-demo-photo { width: 56px; height: 56px; border-radius: 8px; background: #fff; flex: 0 0 56px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
@@ -2129,13 +2128,9 @@ function periodFilter(c, period) {
 /* ===== Record View ===== */
 function successEligLine() {
   const r = state.lastEligibility;
-  let line = !r ? '你嘅紀錄已加入個人歷史'
-    : (r.eligible ? '🏆 符合上榜條件，已加入排行榜'
-      : '已加入個人歷史。未計入排行榜：' + r.reasons.map(c => escapeHtml(lbLib.reasonText(c))).join('、'));
-  if (state.catches.filter(c => c.isMine && !c.isDemo).length === 1) {
-    line += '<br>第一條搞掂！下次喺香港即場影相＋開定位，就有機會上榜，仲可能拎到🏅創始釣友編號。';
-  }
-  return line;
+  if (!r) return '你嘅紀錄已加入個人歷史';
+  if (r.eligible) return '🏆 符合上榜條件，已加入排行榜';
+  return '已加入個人歷史。未計入排行榜：' + r.reasons.map(c => escapeHtml(lbLib.reasonText(c))).join('、');
 }
 function recordTopTipHtml() {
   if (state.activeTrip) return '';
@@ -4233,7 +4228,6 @@ function onboardCardHtml() {
 function lbDemoHtml() {
   const photo = speciesPhotoHtml('〈魚種〉', { size: 56 });
   return '<div class="lb-demo" role="note">'
-    + '<span class="lb-demo-tag lb-demo-edge">示範，非真實用戶</span>'
     + '<div class="lb-demo-top"><span class="lb-demo-tag">示範，非真實用戶</span></div>'
     + '<div class="lb-demo-row">'
     + '<div class="lb-demo-photo" aria-hidden="true">' + photo + '</div>'
