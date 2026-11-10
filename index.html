@@ -2887,17 +2887,17 @@ function updateEligibilityHint() {
   groups.forEach(g => {
     const hit = g[1].find(code => bad.has(code));
     const cls = g[2] ? 'pend' : (hit ? 'bad' : 'ok');
-    const icon = g[2] ? '○' : (hit ? '' : '');
+    const icon = g[2] ? '○' : (hit ? '✗' : '✓');
     html += '<div class="elig-row ' + cls + '">' + (icon ? icon + ' ' : '') + g[0] + (hit && !g[2] ? ' — ' + escapeHtml(lbLib.reasonText(hit)) : '') + '</div>';
   });
   // v159：重量王者另外要磅／尺相 + 管理員審核（數量／品種王者唔使）
   const pf = document.getElementById('catch-proof'), hasProof = !!(pf && pf.files && pf.files[0]);
   const pn = document.getElementById('proof-name'); if (pn) pn.textContent = hasProof ? '已揀：' + pf.files[0].name : '';
-  html += '<div class="elig-row ' + (hasProof ? 'ok' : 'pend') + '">' + (hasProof ? '' : '○') + '磅／尺相（重量王者，審核後上榜）' + (hasProof ? '' : ' — 冇就唔計重量王者') + '</div>';
+  html += '<div class="elig-row ' + (hasProof ? 'ok' : 'pend') + '">' + (hasProof ? '✓ ' : '○ ') + '磅／尺相（重量王者，審核後上榜）' + (hasProof ? '' : ' — 冇就唔計重量王者') + '</div>';
   html += '<div class="elig-row pend">○ 新魚種（品種王者，每個新魚種審核一次）</div>';   // v172
   box.className = 'elig-box' + (r.eligible ? ' ok' : '');
   box.innerHTML = '<div class="elig-title">' + (r.eligible ? '符合上榜條件' : '上榜條件（未符合都可以儲存記錄，只係唔計排行榜）') + '</div>' + html
-    + '<div class="elig-award">點樣拎稱號：頭 100 個記低合資格魚獲可得「創始釣友」；排行榜第一名可得「全港霸主」。</div>';
+    + '<div class="elig-award">點樣拎稱號：頭 100 個記低合資格魚獲可得「創始釣友」；排行榜第一名會顯示「全港霸主」徽章。</div>';
   paintFirstFishProgress();
 }
 function paintFirstFishProgress() {
