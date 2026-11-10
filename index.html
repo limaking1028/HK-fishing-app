@@ -364,6 +364,7 @@ button { touch-action: manipulation; }
   .input-suffix .form-input { border: none; border-radius: 0; }
   .elig-box { background: var(--gray-1); border-radius: 10px; padding: 10px 12px; margin: 4px 0 12px; font-size: 12px; line-height: 1.7; }
   .elig-box .elig-title { font-weight: 700; margin-bottom: 4px; font-size: 13px; }
+  .elig-award { margin-top: 6px; color: var(--gray-6); }
   .elig-box.ok { background: #ecfdf5; color: #047857; }
   .elig-row.ok { color: #047857; } .elig-row.bad { color: #b45309; } .elig-row.pend { color: var(--gray-4); }
   .lb-rules { font-size: 12px; color: var(--gray-5); background: var(--gray-1); border-radius: 10px; padding: 12px 14px; margin: 12px 0; line-height: 1.8; }
@@ -2292,7 +2293,7 @@ function renderRecordView() {
     + '<div class="form-row"><div class="form-group"><label class="form-label">釣法</label><select class="form-select" id="catch-method" onchange="onMethodChange(this.value)">'+blankChoiceOptions(FISHING_METHODS, state.selectedMethod)+'</select><input type="text" class="form-input" id="custom-method" placeholder="輸入釣法名稱..." value="'+(state.customMethod||'')+'" oninput="state.customMethod=this.value" style="margin-top:8px;display:'+(state.selectedMethod==='其他'?'block':'none')+';"></div><div class="form-group"><label class="form-label">釣餌</label><select class="form-select" id="catch-bait" onchange="onBaitChange(this.value)">'+blankChoiceOptions(BAIT_TYPES, state.selectedBait)+'</select><input type="text" class="form-input" id="custom-bait" placeholder="輸入釣餌名稱..." value="'+(state.customBait||'')+'" oninput="state.customBait=this.value" style="margin-top:8px;display:'+(state.selectedBait==='其他'?'block':'none')+';"></div></div>'
     + '<div class="form-group"><label class="form-label">備註</label><textarea class="form-textarea" id="catch-notes" placeholder="例如：黃昏流水好、風向、水溫等..."></textarea></div>'
     + '<div class="form-group"><label class="form-label">魚獲照片 <span style="font-size:11px;color:var(--gray-4);font-weight:400;">（想上榜先要）</span></label><div class="photo-upload" onclick="document.getElementById(\'catch-photo\').click()"><div class="upload-icon">相片</div><div class="upload-text">即時影相（可上榜）</div></div><input type="file" id="catch-photo" accept="image/*" capture="environment" style="display:none" onchange="previewPhoto(this)"><button type="button" class="login-link" onclick="document.getElementById(\'catch-photo-gallery\').click()">從相簿揀（拍攝超過 30 分鐘就唔計排行榜）</button><input type="file" id="catch-photo-gallery" accept="image/*" style="display:none" onchange="previewPhoto(this)"><div id="photo-preview-container"></div></div>'
-    + '<div class="form-group"><label class="form-label">磅／尺相 <span style="font-size:11px;color:var(--gray-4);font-weight:400;">（上重量王者必須：魚放喺磅上或者尺旁邊，管理員審核後先上榜）</span></label><button type="button" class="login-link" onclick="document.getElementById(\'catch-proof\').click()">揀磅／尺相</button><input type="file" id="catch-proof" accept="image/*" style="display:none" onchange="updateEligibilityHint()"><div id="proof-name" style="font-size:12px;color:var(--gray-4);"></div></div>'
+    + '<div class="form-group"><label class="form-label">磅／尺相</label><div class="photo-upload" id="proof-upload" onclick="document.getElementById(\'catch-proof\').click()"><div class="upload-icon">有重量顯示的照片</div><div class="upload-text">上重量王者用，魚放喺磅上或者尺旁邊，管理員審核後先上榜</div></div><input type="file" id="catch-proof" accept="image/*" style="display:none" onchange="updateEligibilityHint();previewProof(this)"><div id="proof-name" style="font-size:12px;color:var(--gray-4);"></div></div>'
     + '<div id="test-mode-box"></div>'   // v160：管理員測試模式（普通用戶唔顯示）
     + '<div id="elig-box" class="elig-box"></div>'
     + '<button class="btn btn-primary" onclick="submitCatch()">送出魚獲記錄</button></div>';
@@ -2890,7 +2891,8 @@ function updateEligibilityHint() {
   html += '<div class="elig-row ' + (hasProof ? 'ok' : 'pend') + '">' + (hasProof ? '' : '○') + '磅／尺相（重量王者，審核後上榜）' + (hasProof ? '' : ' — 冇就唔計重量王者') + '</div>';
   html += '<div class="elig-row pend">○ 新魚種（品種王者，每個新魚種審核一次）</div>';   // v172
   box.className = 'elig-box' + (r.eligible ? ' ok' : '');
-  box.innerHTML = '<div class="elig-title">' + (r.eligible ? '符合上榜條件' : '上榜條件（未符合都可以儲存記錄，只係唔計排行榜）') + '</div>' + html;
+  box.innerHTML = '<div class="elig-title">' + (r.eligible ? '符合上榜條件' : '上榜條件（未符合都可以儲存記錄，只係唔計排行榜）') + '</div>' + html
+    + '<div class="elig-award">點樣拎稱號：頭 100 個記低合資格魚獲可得「創始釣友」；排行榜第一名可得「全港霸主」。</div>';
   paintFirstFishProgress();
 }
 function paintFirstFishProgress() {
@@ -2904,6 +2906,14 @@ function paintFirstFishProgress() {
   el.textContent = '第一條魚：① 魚種' + tick(spOk) + '  ② 重量' + tick(w > 0) + '  ③ 釣點' + tick(!!(state.selectedSpot || (spotSel && spotSel.value)));
 }
 window.updateEligibilityHint = updateEligibilityHint;
+function previewProof(input) {
+  const box = document.getElementById('proof-upload');
+  const f = input && input.files && input.files[0];
+  if (!box || !f) return;
+  const r = new FileReader();
+  r.onload = function (e) { box.innerHTML = '<img class="photo-preview" src="' + e.target.result + '" alt="磅尺相">'; };
+  r.readAsDataURL(f);
+}
 function previewPhoto(input) {
   ['catch-photo', 'catch-photo-gallery'].forEach(id => { const el = document.getElementById(id); if (el && el !== input) el.value = ''; });
   const f0 = input.files && input.files[0];
