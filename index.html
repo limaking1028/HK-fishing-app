@@ -867,6 +867,7 @@ button { touch-action: manipulation; }
   .spot-share-row b { flex: 1; min-width: 0; font-size: 15px; word-break: break-all; }
   .spot-share-row span { font-size: 12px; color: var(--gray-4); flex: none; }
   .map-empty { text-align: center; padding: 60px 20px; color: var(--gray-4); }
+  .map-container .map-empty { padding-top: 118px; }
   .map-empty-icon { font-size: 48px; margin-bottom: 12px; }
 
   /* ===== Route I+: 地圖潮汐站 marker ===== */
@@ -2252,7 +2253,7 @@ function renderRecordView() {
       let statusText;
       if (isTripSpot) {
         if (tripHasGps) {
-          statusText = '行程 GPS 已就緒' + accText + ' ·行程中保持當前位置，無需重新定位<br><span style="font-size:10px;color:var(--gray-5);">移動到新釣點時，按下方按鈕更新</span>';
+          statusText = '行程 GPS 已就緒' + accText + ' · 行程中保持當前位置，無需重新定位<br><span style="font-size:10px;color:var(--gray-5);">移動到新釣點時，按下方按鈕更新</span>';
         } else {
           statusText = '行程釣點已帶入 · GPS 未啟用，可按下方按鈕啟用（選填）';
         }
@@ -2547,8 +2548,8 @@ function onDateChange() {
         const tide = window.tidesLib.getCurrentTide(st.code, d.getTime());
         const trendStr = tide.trend === 'rising' ? '漲中' : tide.trend === 'falling' ? '退中' : '平';
         const hStr = tide.height !== null ? tide.height.toFixed(2) + 'm' : '—';
-        const nextH = tide.nextHigh ? '▲ ' + window.tidesLib.formatTime(tide.nextHigh.ms) : '';
-        const nextL = tide.nextLow ? '▼ ' + window.tidesLib.formatTime(tide.nextLow.ms) : '';
+        const nextH = tide.nextHigh ? window.tidesLib.formatTime(tide.nextHigh.ms) : '';
+        const nextL = tide.nextLow ? window.tidesLib.formatTime(tide.nextLow.ms) : '';
         const distStr = st.distanceKm < 1 ? Math.round(st.distanceKm * 1000) + 'm' : st.distanceKm.toFixed(1) + 'km';
         html += '<div class="astro-tide">' + st.name_zh + ' ' + hStr + ' ' + trendStr + ' · ' + nextH + (nextH && nextL ? ' → ' : '') + nextL + ' <span style="color:#7b8aa3;">（' + distStr + '）</span></div>';
       }
@@ -2885,14 +2886,13 @@ function updateEligibilityHint() {
   groups.forEach(g => {
     const hit = g[1].find(code => bad.has(code));
     const cls = g[2] ? 'pend' : (hit ? 'bad' : 'ok');
-    const icon = g[2] ? '○' : (hit ? '' : '');
-    html += '<div class="elig-row ' + cls + '">' + (icon ? icon + ' ' : '') + g[0] + (hit && !g[2] ? ' — ' + escapeHtml(lbLib.reasonText(hit)) : '') + '</div>';
+    html += '<div class="elig-row ' + cls + '">' + g[0] + (hit && !g[2] ? ' — ' + escapeHtml(lbLib.reasonText(hit)) : '') + '</div>';
   });
   // v159：重量王者另外要磅／尺相 + 管理員審核（數量／品種王者唔使）
   const pf = document.getElementById('catch-proof'), hasProof = !!(pf && pf.files && pf.files[0]);
   const pn = document.getElementById('proof-name'); if (pn) pn.textContent = hasProof ? '已揀：' + pf.files[0].name : '';
-  html += '<div class="elig-row ' + (hasProof ? 'ok' : 'pend') + '">' + (hasProof ? '' : '○') + '磅／尺相（重量王者，審核後上榜）' + (hasProof ? '' : ' — 冇就唔計重量王者') + '</div>';
-  html += '<div class="elig-row pend">○ 新魚種（品種王者，每個新魚種審核一次）</div>';   // v172
+  html += '<div class="elig-row ' + (hasProof ? 'ok' : 'pend') + '">磅／尺相（重量王者，審核後上榜）' + (hasProof ? '' : ' — 冇就唔計重量王者') + '</div>';
+  html += '<div class="elig-row pend">新魚種（品種王者，每個新魚種審核一次）</div>';   // v172
   box.className = 'elig-box' + (r.eligible ? ' ok' : '');
   box.innerHTML = '<div class="elig-title">' + (r.eligible ? '符合上榜條件' : '上榜條件（未符合都可以儲存記錄，只係唔計排行榜）') + '</div>' + html;
   paintFirstFishProgress();
@@ -3415,10 +3415,9 @@ function renderActiveTripBanner() {
   if (window.tidesLib && t.spot) {
     const tide = window.tidesLib.describeCurrent(window.tidesLib.getStationForSpot(t.spot), Date.now());
     if (tide) {
-      const tideIcon = tide.trend === 'rising' || tide.trend === 'falling' ? '' : '→';
       const nextTxt = tide.nextHigh ? `${window.tidesLib.formatTime(tide.nextHigh.ms)} 高${tide.nextHigh.height}m` :
                       tide.nextLow ? `${window.tidesLib.formatTime(tide.nextLow.ms)} 低${tide.nextLow.height}m` : '';
-      tideChip = '<div class="atb-tide">' + tide.height + 'm ' + (tideIcon ? tideIcon + ' ' : '') + tide.trendText +
+      tideChip = '<div class="atb-tide">' + tide.height + 'm ' + tide.trendText +
         (nextTxt ? ' · ' + nextTxt : '') + '</div>';
     }
   }
@@ -3452,10 +3451,9 @@ function tickActiveTripBanner() {
     if (chip) {
       const tide = window.tidesLib.describeCurrent(window.tidesLib.getStationForSpot(t.spot), Date.now());
       if (tide) {
-        const tideIcon = tide.trend === 'rising' || tide.trend === 'falling' ? '' : '→';
         const nextTxt = tide.nextHigh ? `${window.tidesLib.formatTime(tide.nextHigh.ms)} 高${tide.nextHigh.height}m` :
                         tide.nextLow ? `${window.tidesLib.formatTime(tide.nextLow.ms)} 低${tide.nextLow.height}m` : '';
-        chip.innerHTML = '' + tide.height + 'm ' + (tideIcon ? tideIcon + ' ' : '') + tide.trendText +
+        chip.innerHTML = '' + tide.height + 'm ' + tide.trendText +
           (nextTxt ? ' · ' + nextTxt : '');
       }
     }
@@ -3986,13 +3984,13 @@ function renderTripsView() {
       + '</select></div>'
       + '<div style="display:flex;gap:8px;margin-top:16px;">'
         + '<button class="btn" style="flex:1;background:var(--gray-2);color:var(--gray-6);" onclick="cancelTripPick();">取消</button>'
-        + '<button class="btn btn-primary" style="flex:2;" onclick="confirmStartTrip();" ' + (!detectedSpot ? 'disabled style="opacity:0.5;flex:2;"' : 'style="flex:2;"') + '>' + (isEditing ? '儲存變更' : '▶ 開始行程') + '</button>'
+        + '<button class="btn btn-primary" style="flex:2;" onclick="confirmStartTrip();" ' + (!detectedSpot ? 'disabled style="opacity:0.5;flex:2;"' : 'style="flex:2;"') + '>' + (isEditing ? '儲存變更' : '開始行程') + '</button>'
       + '</div></div>';
   } else {
     html += '<div class="card" style="text-align:center;padding:24px 16px;">'
       + '<div style="font-size:15px;color:var(--gray-6);margin-bottom:6px;font-weight:600;">準備好去釣魚？</div>'
       + '<div style="font-size:13px;color:var(--gray-5);margin-bottom:18px;">開始行程後會自動計時，<br>釣到的魚會歸入這個行程</div>'
-      + '<button class="start-trip-btn" onclick="startTrip();">▶ 開始行程</button>'
+      + '<button class="start-trip-btn" onclick="startTrip();">開始行程</button>'
     + '</div>';
   }
   // 歷史行程
@@ -4119,7 +4117,7 @@ function renderTripDetailView(id) {
   }
   if (justEnded) html += '<div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">'
     + '<button class="btn btn-outline" onclick="switchView(\'my\');">查看我的魚獲</button>'
-    + '<button class="btn btn-primary" onclick="closeTripDetail();startTrip();">▶ 開始新行程</button></div>';
+    + '<button class="btn btn-primary" onclick="closeTripDetail();startTrip();">開始新行程</button></div>';
   view.innerHTML = html;
 }
 
@@ -5544,7 +5542,7 @@ function renderMapTideList(view) {
       });
     const curH = cur.height === null ? '—' : cur.height.toFixed(2);
     const trendClass = cur.trend || 'unknown';
-    const trendText = cur.trend === 'rising' ? '↗ 漲中' : cur.trend === 'falling' ? '↘ 退中' : '→ 平';
+    const trendText = cur.trend === 'rising' ? '漲中' : cur.trend === 'falling' ? '退中' : '平';
     const nextHigh = cur.nextHigh ? `${window.tidesLib.formatTime(cur.nextHigh.ms)} 高潮 ${cur.nextHigh.height}m` : '—';
     const nextLow  = cur.nextLow  ? `${window.tidesLib.formatTime(cur.nextLow.ms)} 低潮 ${cur.nextLow.height}m` : '—';
     const adviceHtml = advice.map(a => `<div>${escapeHtml(a.text)}</div>`).join('') + (advice.length ? '<div style="font-size:11px;opacity:.7;">以上建議根據潮汐及天氣推算，僅供參考。</div>' : '');
@@ -5569,7 +5567,7 @@ function renderMapTideList(view) {
       </div>
       <div class="tide-card-curve">${window.tidesLib.curveSvg(curve, 280, 130, { nowMs: now, events: events24h })}</div>
       <div class="tide-card-legend" style="font-size:10px;color:var(--gray-5);text-align:center;margin:-4px 0 6px;">
-        <span style="color:#f97316;">▲ 高潮</span> · <span style="color:#0d9488;">▼ 低潮</span> · <span style="color:#ef4444;">● 現在</span>
+        <span style="color:#f97316;">高潮</span> · <span style="color:#0d9488;">低潮</span> · <span style="color:#ef4444;">現在</span>
       </div>
       ${(() => {
         const f5 = window.tidesLib.getForecastDays(st.code, now, 5);
@@ -5588,11 +5586,10 @@ function renderMapTideList(view) {
           } else if (d.hasData) {
             rangeTxt = '只得單一潮';   // 當日只有高潮或只有低潮，唔計潮差
           }
-          // 高低潮按時間先後排列；未能確定高低嘅事件用「•」顯示
+          // 高低潮按時間先後排列；未能確定高低嘅事件仍顯示時間同高度
           const evHtml = (d.events || []).map(e => {
-            const sym = e.type === 'high' ? '▲' : e.type === 'low' ? '▼' : '•';
             const cls = e.type === 'high' ? 'hi' : e.type === 'low' ? 'lo' : 'uk';
-            return `<span class="${cls}">${sym}${window.tidesLib.formatTime(e.ms)} ${e.height.toFixed(2)}</span>`;
+            return `<span class="${cls}">${window.tidesLib.formatTime(e.ms)} ${e.height.toFixed(2)}</span>`;
           }).join(' ') || '<span class="uk">當日未有潮汐數據</span>';
           return `<div class="tide-forecast-row">
             <div class="tide-forecast-date">${d.label ? `<span class="lbl">${d.label}</span>` : ''}${md}<span style="color:var(--gray-4);font-weight:400;"> ${wd}</span></div>
@@ -5731,7 +5728,7 @@ function renderWeatherCards(view, results) {
           <span class="weather-metric-sub">${w.humidity !== null ? '濕度 ' + w.humidity.toFixed(0) + '%' : '—'}</span>
         </div>
       </div>
-      <div class="weather-card-sparkline-label">24h 風速曲線 <span style="color:var(--gray-5);font-weight:400;">（<span style="color:#ef4444;">●</span> 現在 · <span style="color:#f97316;">●</span> 峰值）</span></div>
+      <div class="weather-card-sparkline-label">24h 風速曲線 <span style="color:var(--gray-5);font-weight:400;">（<span style="color:#ef4444;">現在</span> · <span style="color:#f97316;">峰值</span>）</span></div>
       <div class="weather-card-sparkline">${sparkline}</div>
       <div class="weather-card-reasons">${reasonsShort}</div>
       <div class="weather-card-foot">
@@ -5896,7 +5893,7 @@ function buildTideStationPopup(code) {
   const curvePoints = window.tidesLib.getTideCurve24h(code, now);
   const advice = window.tidesLib.getFishingAdvice(code, now);
   const curH = cur.height === null ? '—' : cur.height.toFixed(2);
-  const trendIcon = cur.trend === 'rising' ? '↗ 漲中' : cur.trend === 'falling' ? '↘ 退中' : '→ 平';
+  const trendIcon = cur.trend === 'rising' ? '漲中' : cur.trend === 'falling' ? '退中' : '平';
   const trendClass = cur.trend || 'unknown';
   // 高低潮列表
   const tideRows = nextTides.map(e => {
@@ -5956,7 +5953,7 @@ function refreshTideBar() {
     const trend = t.trend || 'unknown';
     return `<div class="tide-bar-chip" onclick="flyToTideStation('${st.code}')" title="${escapeHtml(st.area)}">
       <div class="tide-bar-chip-name">${escapeHtml(st.name_zh)}</div>
-      <div class="tide-bar-chip-val ${trend}">${h}m ${trend==='rising'?'↗':trend==='falling'?'↘':'→'}</div>
+      <div class="tide-bar-chip-val ${trend}">${h}m</div>
     </div>`;
   }).join('');
   bar.innerHTML = `<div class="tide-bar-title">即時潮汐</div>${chips}`;
