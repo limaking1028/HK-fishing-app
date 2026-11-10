@@ -199,7 +199,7 @@ button { touch-action: manipulation; }
 .tally-fish { width: 72px; aspect-ratio: 16 / 9; flex: none; border-radius: 10px; overflow: hidden; background: var(--gray-2); display: flex; align-items: center; justify-content: center; }
 .tally-fish-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .tally-fish-emoji { font-size: 24px; line-height: 1; }
-.tally-del { flex: none; width: 40px; height: 48px; border: 1.5px solid var(--gray-3); background: #fff; border-radius: 12px; font-size: 17px; cursor: pointer; }
+.tally-del { flex: none; width: auto; min-width: 52px; height: 48px; padding: 0 8px; border: 1.5px solid var(--gray-3); background: #fff; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
 .tally-del:active { background: var(--gray-2); }
 .tally-name { flex: 1; font-size: 16px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tally-minus { width: 48px; height: 56px; border-radius: 12px; border: 1px solid var(--gray-3); background: white; font-size: 24px; font-weight: 700; color: var(--gray-5); cursor: pointer; }
@@ -232,7 +232,8 @@ button { touch-action: manipulation; }
   #header { background: linear-gradient(135deg, var(--teal-dark), var(--teal)); color: white; padding: 14px 18px; text-align: center; font-size: 17px; font-weight: 700; position: sticky; top: 0; z-index: 100; letter-spacing: 0.5px; box-shadow: 0 2px 8px rgba(10,110,122,0.3); display: flex; align-items: center; justify-content: space-between; }
   .header-title { flex: 1; text-align: center; }
   .header-settings { font-size: 13px; font-weight: 600; opacity: 0.9; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
-  .header-edit { font-size: 12px; }
+  .header-edit { flex: none; font-size: 13px; font-weight: 800; margin-left: 6px; white-space: nowrap; }
+  #header-username { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: none; align-items: flex-end; justify-content: center; }
   .modal-overlay.show { display: flex; }
   .modal-sheet { background: white; border-radius: 16px 16px 0 0; width: 100%; max-width: 500px; padding: 24px 20px calc(24px + env(safe-area-inset-bottom)); animation: slideUp 0.25s ease; max-height: 92vh; max-height: 92dvh; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
@@ -242,7 +243,8 @@ button { touch-action: manipulation; }
   .modal-input:focus { outline: none; border-color: var(--teal); }
   .modal-btns { display: flex; gap: 10px; }
   .modal-btns .btn { flex: 1; }
-  .modal-close { position: absolute; top: 12px; right: 16px; font-size: 22px; color: var(--gray-4); cursor: pointer; }
+  .modal-close { position: absolute; top: 12px; right: 12px; font-size: 14px; font-weight: 700; line-height: 1.2; color: var(--gray-4); cursor: pointer; white-space: nowrap; padding: 4px 2px; }
+  .modal-title { padding-left: 52px; padding-right: 52px; }
   #main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: calc(84px + var(--safe-bottom)); }  /* v179: tab bar 高度 + safe-area，捲到底唔會遮掣 */
   /* ===== Route H: 進行中行程 banner ===== */
   .active-trip-banner {
@@ -354,7 +356,9 @@ button { touch-action: manipulation; }
   .form-input, .form-select, .form-textarea { width: 100%; padding: 11px 14px; border: 1.5px solid var(--gray-2); border-radius: var(--radius-sm); font-size: 15px; font-family: inherit; background: var(--white); color: var(--gray-6); transition: border-color 0.2s; -webkit-appearance: none; }
   .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--teal); }
   .form-textarea { resize: vertical; min-height: 70px; }
-  .form-row { display: flex; gap: 10px; }
+  .form-row { display: flex; gap: 10px; min-width: 0; }
+  .form-row > .form-group { flex: 1; min-width: 0; }
+  .form-row input, .form-row select { min-width: 0; max-width: 100%; }
   .form-row > .form-group { flex: 1; }
   .input-suffix { display: flex; align-items: center; border: 1.5px solid var(--gray-2); border-radius: var(--radius-sm); overflow: hidden; }
   .input-suffix .form-input { border: none; border-radius: 0; }
@@ -370,7 +374,7 @@ button { touch-action: manipulation; }
   #photo-zoom { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,.92); display: none; align-items: center; justify-content: center; padding: 16px; }
   #photo-zoom.show { display: flex; }
   #photo-zoom img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; touch-action: pinch-zoom; }
-  .pz-close { position: absolute; top: calc(12px + env(safe-area-inset-top)); right: 14px; width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(255,255,255,.18); color: #fff; font-size: 20px; cursor: pointer; }
+  .pz-close { position: absolute; top: calc(12px + env(safe-area-inset-top)); right: 14px; width: auto; height: auto; min-height: 32px; padding: 6px 10px; border-radius: 8px; border: none; background: rgba(255,255,255,.18); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
   img[data-zoom] { cursor: zoom-in; }
   .lb-thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex-shrink: 0; margin-right: 8px; background: #eef2f6; }
   .lb-thumb-none { display: flex; align-items: center; justify-content: center; font-size: 20px; }
@@ -415,7 +419,7 @@ button { touch-action: manipulation; }
   .sp-sub-section-title span { color: var(--gray-4); font-weight: 600; }
   .sp-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 8px;
   }
   .sp-card {
@@ -494,32 +498,27 @@ button { touch-action: manipulation; }
     font-weight: 700;
   }
   .sp-pin {
-    position: absolute;
-    top: 2px;
-    left: 4px;
+    display: block;
+    margin-top: 2px;
     font-size: 10px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #b45309;
   }
   .sp-pin-toggle {
-    position: absolute;
-    bottom: 2px;
-    right: 2px;
-    font-size: 14px;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.2;
+    padding: 2px 4px;
+    border-radius: 6px;
     background: rgba(255,255,255,0.85);
-    display: flex;
-    align-items: center;
-    justify-content: center;
     cursor: pointer;
-    opacity: 0.4;
-    transition: opacity 0.15s, transform 0.15s;
     border: 1px solid var(--gray-3);
-    z-index: 2;
+    white-space: nowrap;
+    max-width: 100%;
   }
-  .sp-card:hover .sp-pin-toggle { opacity: 0.85; }
-  .sp-pin-toggle:hover { transform: scale(1.15); }
-  .sp-pin-toggle:active { transform: scale(0.9); }
   .sp-pin-toggle.active {
     opacity: 1;
     background: #fef3c7;
@@ -582,7 +581,7 @@ button { touch-action: manipulation; }
   .sp-expand-btn.open .sp-expand-arrow { transform: rotate(0deg); }
   .photo-upload { border: 2px dashed var(--gray-3); border-radius: var(--radius); padding: 24px 16px; text-align: center; cursor: pointer; transition: border-color 0.2s; position: relative; }
   .photo-upload:active { border-color: var(--teal); }
-  .photo-upload .upload-icon { font-size: 36px; }
+  .photo-upload .upload-icon { font-size: 16px; font-weight: 800; line-height: 1.2; }
   .photo-upload .upload-text { font-size: 13px; color: var(--gray-4); margin-top: 6px; }
   .photo-preview { width: 100%; max-height: 240px; border-radius: var(--radius-sm); margin-top: 10px; }
   /* Route A1: 月相/日出日落 資訊卡 */
@@ -674,8 +673,6 @@ button { touch-action: manipulation; }
   .lb-item.mine .lb-username { color: var(--orange); }
   /* 第一名「全港霸主」單行式 — 用戶名左 / 徽章中 / 數值右 / detail 跟其他名單一樣在 user 內第二行 */
   .lb-item-champion { background: linear-gradient(135deg, #fff8e1 0%, #ffeaa7 50%, #ffd98e 100%) !important; border: 2px solid #f5a623; box-shadow: 0 6px 20px rgba(245,166,35,0.35), 0 0 0 1px rgba(245,166,35,0.2); padding: 10px 14px !important; margin-bottom: 12px !important; position: relative; }
-  .lb-item-champion::before { content: '✨'; position: absolute; top: -8px; right: -8px; font-size: 28px; opacity: 0.4; transform: rotate(15deg); pointer-events: none; }
-  .lb-item-champion::after { content: '✨'; position: absolute; bottom: -8px; left: -8px; font-size: 22px; opacity: 0.3; transform: rotate(-20deg); pointer-events: none; }
   .lb-item-champion .lb-user { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
   .lb-item-champion .lb-username { flex: 0 0 auto; color: var(--orange); }
   .lb-item-champion .lb-rank { width: 38px; height: 38px; font-size: 17px; box-shadow: 0 2px 8px rgba(245,166,35,0.5), 0 0 0 3px rgba(245,166,35,0.15); }
@@ -834,8 +831,9 @@ button { touch-action: manipulation; }
   .gps-auto-box.success.locked { background: linear-gradient(135deg, #f5f3ff, #ede9fe); border-color: var(--teal); box-shadow: 0 0 0 1px rgba(20,184,166,0.1); }
   .gps-auto-box.warn { background: linear-gradient(135deg, #fef3c7, #fde68a); border-color: #f59e0b; }
   .gps-auto-box.error { background: linear-gradient(135deg, #fee2e2, #fecaca); border-color: #dc2626; }
-  .gps-auto-icon { font-size: 28px; animation: none; flex-shrink: 0; }
-  .gps-auto-box.loading .gps-auto-icon { animation: spin 1.2s linear infinite; }
+  .gps-auto-icon { font-size: 13px; font-weight: 800; line-height: 1.2; animation: none; flex-shrink: 0; white-space: nowrap; text-align: center; }
+  .gps-auto-content { min-width: 0; }
+  .gps-auto-box.loading .gps-auto-icon { animation: none; }
   .gps-auto-box.success .gps-auto-icon, .gps-auto-box.warn .gps-auto-icon { animation: none; }
   .gps-auto-content { flex: 1; min-width: 0; }
   .gps-auto-title { font-size: 14px; font-weight: 700; color: var(--dark); margin-bottom: 4px; }
@@ -906,10 +904,10 @@ button { touch-action: manipulation; }
   .station-highlight-marker { position: relative; z-index: 1000; }
   .station-highlight-pin {
     position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-    width: 34px; height: 34px; border-radius: 50%;
+    width: auto; min-width: 44px; height: 28px; padding: 0 8px; border-radius: 14px;
     background: #ef4444; color: white;
     display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
+    font-size: 12px; font-weight: 800; white-space: nowrap;
     border: 3px solid white;
     box-shadow: 0 3px 10px rgba(239,68,68,0.5);
   }
@@ -997,7 +995,7 @@ button { touch-action: manipulation; }
     gap: 10px;
   }
   .loc-warn-row { background: rgba(234,67,53,0.04); border-radius: 8px; padding: 4px 0; }
-  .loc-icon { font-size: 22px; flex-shrink: 0; }
+  .loc-icon { font-size: 12px; font-weight: 800; line-height: 1.2; flex-shrink: 0; white-space: nowrap; }
   .loc-icon.spin { animation: spin 1s linear infinite; display: inline-block; }
   @keyframes spin { 100% { transform: rotate(360deg); } }
   .loc-text { flex: 1; min-width: 0; }
@@ -1056,10 +1054,12 @@ button { touch-action: manipulation; }
     border: 1px solid rgba(0,0,0,0.08);
     border-radius: 8px;
     padding: 4px 8px;
-    font-size: 14px;
+    font-size: 13px;
+    font-weight: 700;
     cursor: pointer;
     font-family: inherit;
     flex-shrink: 0;
+    white-space: nowrap;
   }
   .loc-station-list {
     margin-top: 8px;
@@ -1137,7 +1137,7 @@ button { touch-action: manipulation; }
     background: #f8fafc; border-radius: 8px; padding: 6px 4px; text-align: center;
     display: flex; flex-direction: column; gap: 2px;
   }
-  .weather-metric-icon { font-size: 13px; }
+  .weather-metric-icon { font-size: 12px; font-weight: 800; line-height: 1.2; white-space: nowrap; }
   .weather-metric-val { font-size: 13px; font-weight: 800; color: var(--dark); }
   .weather-metric-unit { font-size: 9px; color: var(--gray-4); font-weight: 500; }
   .weather-metric-sub { font-size: 10px; color: var(--gray-5); }
@@ -1184,7 +1184,7 @@ button { touch-action: manipulation; }
   #header { background: var(--ink-grad); padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px; letter-spacing: 0; box-shadow: 0 2px 14px rgba(7,56,74,.28); }
   .guest-login-prompt .btn + .btn { margin-top: 10px; }  /* 訪客鎖定頁：「登入／註冊」同「睇潮汐」兩粒掣之間留位 */
   .header-title { font-size: 17px; font-weight: 800; letter-spacing: .3px; }
-  .header-settings { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.18); padding: 6px 12px; border-radius: 999px; min-height: 36px; opacity: 1; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  .header-settings { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.18); padding: 6px 12px; border-radius: 999px; min-height: 36px; max-width: 58%; opacity: 1; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
   .header-settings:active { background: rgba(255,255,255,.24); }
   /* v174：創始釣友 */
   .founder-badge { display: inline-block; font-size: 11px; font-weight: 700; color: #92400e; background: linear-gradient(135deg,#fef3c7,#fde68a); border: 1px solid #fcd34d; border-radius: 999px; padding: 1px 7px; margin-left: 4px; white-space: nowrap; vertical-align: 1px; }
@@ -1320,7 +1320,7 @@ button { touch-action: manipulation; }
   <div id="login-screen"></div>
   <header id="header">
     <div class="header-title" id="header-title">釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v196</span></div>
-    <div class="header-settings" onclick="openNameDialog()"><span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">✏️</span></div>
+    <div class="header-settings" onclick="openNameDialog()"><span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">改名</span></div>
   </header>
   <main id="main">
     <!-- Route H: 進行中行程 banner（無行程時隱藏） — 永遠黏在 main 頂部，跨所有 view 顯示 -->
@@ -1353,7 +1353,7 @@ button { touch-action: manipulation; }
   <!-- 改名字 Modal -->
   <div class="modal-overlay" id="name-modal">
     <div class="modal-sheet" style="position:relative;">
-      <span class="modal-close" onclick="closeNameDialog()">✕</span>
+      <span class="modal-close" onclick="closeNameDialog()">關閉</span>
       <div class="modal-title">設置你的釣友名稱</div>
       <input type="text" class="modal-input" id="name-input" placeholder="輸入你的名稱（2–12 個字）" maxlength="24">
       <div class="modal-btns">
@@ -1418,7 +1418,7 @@ button { touch-action: manipulation; }
   <!-- 分享面板 Modal -->
   <div class="modal-overlay" id="share-modal">
     <div class="modal-sheet" style="position:relative;">
-      <span class="modal-close" onclick="closeShareModal()">✕</span>
+      <span class="modal-close" onclick="closeShareModal()">關閉</span>
       <div class="modal-title">分享魚獲</div>
       <div id="share-modal-body"></div>
     </div>
@@ -1427,7 +1427,7 @@ button { touch-action: manipulation; }
   <!-- 朋友分享的魚獲 Modal -->
   <div class="modal-overlay" id="import-modal" style="align-items:center;">
     <div class="modal-sheet" style="position:relative;border-radius:16px;max-height:90vh;overflow-y:auto;">
-      <span class="modal-close" onclick="closeImportModal()">✕</span>
+      <span class="modal-close" onclick="closeImportModal()">關閉</span>
       <div id="import-modal-body"></div>
     </div>
   </div>
@@ -1560,7 +1560,8 @@ async function sbRegister(username, pin, avatar, displayName) {
   if (existing) throw new Error('用戶名已被使用');
   const salt = generateSalt();
   const pinHash = await hashPin(clean, salt, pin);
-  const { data, error } = await sb.from('users').insert({ username: clean, pin_hash: pinHash, pin_salt: salt, avatar: avatar || '🎣', display_name: (displayName || clean).slice(0, 12) }).select().single();
+  const shownName = (displayName || clean);
+  const { data, error } = await sb.from('users').insert({ username: clean, pin_hash: pinHash, pin_salt: salt, avatar: avatar || Array.from(String(shownName).trim())[0] || '', display_name: shownName.slice(0, 12) }).select().single();
   if (error) throw error;
   state.user = data;
   localStorage.setItem('hk_fishing_user_id', data.id);
@@ -2037,7 +2038,7 @@ function openFeedback() {
   if (!ov) { ov = document.createElement('div'); ov.className = 'modal-overlay'; ov.id = 'feedback-modal'; document.body.appendChild(ov); ov.addEventListener('click', e => { if (e.target === ov) closeFeedback(); }); }
   _fbCat = 'bug';
   ov.innerHTML = '<div class="modal-sheet" style="position:relative;" role="dialog" aria-label="回報問題／意見">'
-    + '<span class="modal-close" role="button" aria-label="關閉" onclick="closeFeedback()">✕</span>'
+    + '<span class="modal-close" role="button" aria-label="關閉" onclick="closeFeedback()">關閉</span>'
     + '<div class="modal-title">回報問題／意見</div>'
     + '<div class="fb-cats" id="fb-cats">'
     +   '<button type="button" class="fb-cat on" data-c="bug" onclick="fbPick(this)">問題</button>'
@@ -2087,7 +2088,7 @@ function openPhotoZoom(url, alt) {
     ov.addEventListener('click', closePhotoZoom);
     document.body.appendChild(ov);
   }
-  ov.innerHTML = '<button type="button" class="pz-close" aria-label="關閉">✕</button><img src="' + escapeHtml(url) + '" alt="' + escapeHtml(alt || '魚獲相片') + '">';
+  ov.innerHTML = '<button type="button" class="pz-close" aria-label="關閉">關閉</button><img src="' + escapeHtml(url) + '" alt="' + escapeHtml(alt || '魚獲相片') + '">';
   ov.classList.add('show');
 }
 function closePhotoZoom() { const ov = document.getElementById('photo-zoom'); if (ov) { ov.classList.remove('show'); ov.innerHTML = ''; } }
@@ -2259,7 +2260,7 @@ function renderRecordView() {
         ? (tripHasGps ? '更新當前位置（選填 · 移動到新釣點時用）' : '啟用 GPS 定位（選填）')
         : (hasGps ? '重新定位' : '啟用自動定位');
       const btnClass = isTripSpot ? 'gps-btn gps-btn-secondary' : 'gps-btn';
-      const iconEmoji = isTripSpot ? (tripHasGps ? '🔒' : '⏱️') : (hasGps ? '🎯' : '📡');
+      const iconEmoji = isTripSpot ? (tripHasGps ? '鎖定' : '行程') : (hasGps ? '已定位' : '未定位');
       const tripInheritBadge = isTripSpot ? ' <span class="trip-inherit-badge">行程帶入</span>' : '';
       return '<div class="form-group">'
         + '<label class="form-label">釣點 <span class="auto-gps-badge">自動定位</span>' + tripInheritBadge + '</label>'
@@ -2289,7 +2290,7 @@ function renderRecordView() {
     + '<div id="astro-info" class="astro-card"></div>'
     + '<div class="form-row"><div class="form-group"><label class="form-label">釣法</label><select class="form-select" id="catch-method" onchange="onMethodChange(this.value)">'+blankChoiceOptions(FISHING_METHODS, state.selectedMethod)+'</select><input type="text" class="form-input" id="custom-method" placeholder="輸入釣法名稱..." value="'+(state.customMethod||'')+'" oninput="state.customMethod=this.value" style="margin-top:8px;display:'+(state.selectedMethod==='其他'?'block':'none')+';"></div><div class="form-group"><label class="form-label">釣餌</label><select class="form-select" id="catch-bait" onchange="onBaitChange(this.value)">'+blankChoiceOptions(BAIT_TYPES, state.selectedBait)+'</select><input type="text" class="form-input" id="custom-bait" placeholder="輸入釣餌名稱..." value="'+(state.customBait||'')+'" oninput="state.customBait=this.value" style="margin-top:8px;display:'+(state.selectedBait==='其他'?'block':'none')+';"></div></div>'
     + '<div class="form-group"><label class="form-label">備註</label><textarea class="form-textarea" id="catch-notes" placeholder="例如：黃昏流水好、風向、水溫等..."></textarea></div>'
-    + '<div class="form-group"><label class="form-label">魚獲照片 <span style="font-size:11px;color:var(--gray-4);font-weight:400;">（想上榜先要）</span></label><div class="photo-upload" onclick="document.getElementById(\'catch-photo\').click()"><div class="upload-icon">📸</div><div class="upload-text">即時影相（可上榜）</div></div><input type="file" id="catch-photo" accept="image/*" capture="environment" style="display:none" onchange="previewPhoto(this)"><button type="button" class="login-link" onclick="document.getElementById(\'catch-photo-gallery\').click()">從相簿揀（拍攝超過 30 分鐘就唔計排行榜）</button><input type="file" id="catch-photo-gallery" accept="image/*" style="display:none" onchange="previewPhoto(this)"><div id="photo-preview-container"></div></div>'
+    + '<div class="form-group"><label class="form-label">魚獲照片 <span style="font-size:11px;color:var(--gray-4);font-weight:400;">（想上榜先要）</span></label><div class="photo-upload" onclick="document.getElementById(\'catch-photo\').click()"><div class="upload-icon">相片</div><div class="upload-text">即時影相（可上榜）</div></div><input type="file" id="catch-photo" accept="image/*" capture="environment" style="display:none" onchange="previewPhoto(this)"><button type="button" class="login-link" onclick="document.getElementById(\'catch-photo-gallery\').click()">從相簿揀（拍攝超過 30 分鐘就唔計排行榜）</button><input type="file" id="catch-photo-gallery" accept="image/*" style="display:none" onchange="previewPhoto(this)"><div id="photo-preview-container"></div></div>'
     + '<div class="form-group"><label class="form-label">磅／尺相 <span style="font-size:11px;color:var(--gray-4);font-weight:400;">（上重量王者必須：魚放喺磅上或者尺旁邊，管理員審核後先上榜）</span></label><button type="button" class="login-link" onclick="document.getElementById(\'catch-proof\').click()">揀磅／尺相</button><input type="file" id="catch-proof" accept="image/*" style="display:none" onchange="updateEligibilityHint()"><div id="proof-name" style="font-size:12px;color:var(--gray-4);"></div></div>'
     + '<div id="test-mode-box"></div>'   // v160：管理員測試模式（普通用戶唔顯示）
     + '<div id="elig-box" class="elig-box"></div>'
@@ -2420,14 +2421,14 @@ function renderSpeciesSelector() {
     const isCustom = f.custom;
     const isPinned = pinned || pinnedNames.has(f.name);
     const countBadge = count > 0 ? '<span class="sp-count">×' + count + '</span>' : '';
-    const pinBadge = isPinned ? '<span class="sp-pin" title="已收藏">⭐</span>' : '';
+    const pinBadge = isPinned ? '<span class="sp-pin" title="已收藏">已收藏</span>' : '';
     const clickAction = isCustom ? `selectSpeciesByName('${f.name}')` : `selectSpeciesByName('${f.name}')`;
     // Image vs emoji：如有 photo 就用真實魚圖 (auto try .jpg/.png/.webp)，否則 fallback 為 emoji
     const iconHtml = f.photo
       ? fishPhotoImg(f.photo, f.icon, 'sp-icon-img').replace('alt=""', 'alt="' + escapeHtml(f.name) + '"')
       : `<div class="sp-icon-emoji">🐟</div>`;
     return `<div class="sp-card ${isSelected ? 'selected' : ''} ${isPinned ? 'pinned' : ''} ${isCustom ? 'custom-species' : ''}" onclick="${clickAction}" data-species="${escapeHtml(f.name)}">
-      <div class="sp-pin-toggle ${isPinned ? 'active' : ''}" onclick="event.stopPropagation();togglePinSpecies('${escapeHtml(f.name)}')" title="${isPinned ? '取消收藏' : '加入收藏'}">${isPinned ? '⭐' : '☆'}</div>
+      <div class="sp-pin-toggle ${isPinned ? 'active' : ''}" onclick="event.stopPropagation();togglePinSpecies('${escapeHtml(f.name)}')" title="${isPinned ? '取消收藏' : '加入收藏'}">${isPinned ? '已收藏' : '收藏'}</div>
       <div class="sp-icon">${iconHtml}</div>
       <div class="sp-name">${escapeHtml(f.name)}</div>
       ${countBadge}${pinBadge}
@@ -3327,14 +3328,14 @@ function renderTallySheet() {
     + '<button type="button" class="tally-minus" aria-label="減一" onclick="tallyStep(' + i + ',-1)">−</button>'
     + '<input class="tally-qty" type="number" inputmode="numeric" min="0" max="9999" value="' + (cur[sp] || 0) + '" aria-label="' + escapeHtml(sp) + ' 數量" onchange="tallyType(' + i + ',this.value)">'
     + '<button type="button" class="tally-plus" aria-label="加一" onclick="tallyStep(' + i + ',1)">＋1</button>'
-    + '<button type="button" class="tally-del" aria-label="刪除 ' + escapeHtml(sp) + '" onclick="tallyRemove(' + i + ')">🗑</button></div></div>';
+    + '<button type="button" class="tally-del" aria-label="刪除 ' + escapeHtml(sp) + '" onclick="tallyRemove(' + i + ')">刪除</button></div></div>';
   }).join('');
   const opts = FISH_SPECIES.filter(f => !f.custom && !_tallyShown.includes(f.name)).map(f => '<option value="' + escapeHtml(f.name) + '">' + escapeHtml(f.name) + '</option>').join('');
   const photos = tripHaulPhotos(tid).map(tallySafePhoto).filter(Boolean);
   const ph = photos.map(u => '<img class="tally-ph" src="' + escapeHtml(u) + '" alt="收成相" loading="lazy">').join('');
   const _prev = ov.querySelector('.modal-sheet'), _keep = ov.classList.contains('show') && _prev ? _prev.scrollTop : -1;
   ov.innerHTML = '<div class="modal-sheet tally-sheet" style="position:relative;" role="dialog" aria-label="快速計數">'
-    + '<span class="modal-close" role="button" aria-label="關閉" onclick="closeTallySheet()">✕</span>'
+    + '<span class="modal-close" role="button" aria-label="關閉" onclick="closeTallySheet()">關閉</span>'
     + '<div class="modal-title">快速計數</div>'
     + '<div class="tally-sub">' + (trip.spot ? '' + escapeHtml(trip.spot) + ' · ' : '') + '連續上魚時一撳加一，唔使逐條記錄。只用於個人記錄，<b>唔會計入排行榜</b>。</div>'
     + '<div class="tally-add"><select id="tally-add-sel" class="form-select"><option value="">＋ 新增魚種…</option>' + opts + '<option value="__other">其他（自己輸入）</option></select></div>'
@@ -3952,7 +3953,7 @@ function renderTripsView() {
     // 內嵌 picker（開始 / 編輯都用）— GPS 自動識別釣點
     const recentSpots = getRecentSpots(5);
     const isEditing = state.editingActiveTrip;
-    const titleIcon = isEditing ? '✏️' : '📍';
+    const titleIcon = isEditing ? '改名' : '定位';
     const titleText = isEditing ? '編輯這次行程' : 'GPS 自動識別這次行程';
     const subtitleText = isEditing ? '可重新定位釣點或調整釣法/釣餌' : '點按下方按鈕，無需手動選擇釣點';
     const detectedSpot = state.tripPickingDetectedSpot || (state.tripPickingLat && state.tripPickingSpot ? state.tripPickingSpot : '');
@@ -3960,7 +3961,7 @@ function renderTripsView() {
       ? '<div class="gps-detected-spot">已識別：<b>' + escapeHtml(detectedSpot) + '</b></div>'
       : (state.tripPickingLat ? '<div class="gps-detected-spot warn">座標已記錄但未識別到釣點</div>' : '');
     html += '<div class="card" style="padding:20px 16px;">'
-      + '<div style="text-align:center;"><div style="font-size:36px;margin-bottom:8px;">' + titleIcon + '</div>'
+      + '<div style="text-align:center;"><div style="font-size:16px;font-weight:800;margin-bottom:8px;">' + titleIcon + '</div>'
       + '<div style="font-size:15px;color:var(--gray-6);font-weight:600;margin-bottom:4px;">' + titleText + '</div>'
       + '<div style="font-size:12px;color:var(--gray-4);margin-bottom:14px;">' + subtitleText + '</div></div>'
       // GPS 自動定位（取代下拉選擇器）
@@ -3985,7 +3986,6 @@ function renderTripsView() {
       + '</div></div>';
   } else {
     html += '<div class="card" style="text-align:center;padding:24px 16px;">'
-      + '<div style="font-size:48px;margin-bottom:12px;">🎣</div>'
       + '<div style="font-size:15px;color:var(--gray-6);margin-bottom:6px;font-weight:600;">準備好去釣魚？</div>'
       + '<div style="font-size:13px;color:var(--gray-5);margin-bottom:18px;">開始行程後會自動計時，<br>釣到的魚會歸入這個行程</div>'
       + '<button class="start-trip-btn" onclick="startTrip();">開始行程</button>'
@@ -4054,7 +4054,7 @@ function renderTripDetailView(id) {
   const isActive = !trip.endedAt;
   const justEnded = !isActive && state.justEndedTripId === id;
   let html = '<button class="btn btn-outline" style="margin-bottom:12px;" onclick="closeTripDetail();">← 返回行程列表</button>';
-  if (justEnded) html += '<div style="text-align:center;padding:4px 0 10px;"><div style="font-size:40px;">🏁</div><div style="font-size:18px;font-weight:700;">行程已結束</div></div>';
+  if (justEnded) html += '<div style="text-align:center;padding:4px 0 10px;"><div style="font-size:18px;font-weight:700;">行程已結束</div></div>';
   html += '<div class="trip-detail-header">'
     + '<div class="trip-detail-title">' + (trip.spot ? escapeHtml(trip.spot) : '未命名行程') + (isActive ? ' <span style="font-size:12px;color:var(--orange);">（進行中）</span>' : '') + '</div>'
     + '<div class="trip-detail-meta">' + dateStr + ' ' + timeStr + (trip.endedAt ? ' · 結束 ' + new Date(trip.endedAt).toTimeString().slice(0,5) : '') + '</div>';
@@ -4396,7 +4396,7 @@ function getMyStatsHTML() {
     + '<button class="filter-chip ' + (period === '90' ? 'active' : '') + '" onclick="setStatsPeriod(\'90\')">近 90 日</button></div>';
 
   if (!r.catchCount && !r.trips.count) {
-    return h + '<div class="ms-empty"><div class="big">📊</div>' + (period === '90' ? '近 90 日未有記錄。' : '未有記錄。')
+    return h + '<div class="ms-empty">' + (period === '90' ? '近 90 日未有記錄。' : '未有記錄。')
       + '<br>開始行程或者記錄魚獲之後，呢度會顯示你嘅釣魚統計。</div>' + msProCard() + '</div>';
   }
   if (r.catchCount < 5) h += '<div class="ms-hint">記錄少過 5 條，統計只供參考。記得越多，越睇得出你嘅規律。</div>';
@@ -4465,7 +4465,7 @@ function openInterest() {
   const feats = ['潮汐同中魚嘅關係', '天氣同月相影響', '個人最佳時間同釣點', '出釣前預測', '每月釣魚報告'];
   const prices = ['唔會付費', '每月 HK$10 以下', '每月 HK$10–20', '每月 HK$20–40', '每月 HK$40 以上'];
   ov.innerHTML = '<div class="modal-sheet" style="position:relative;" role="dialog" aria-label="進階分析興趣登記">'
-    + '<span class="modal-close" role="button" aria-label="關閉" onclick="closeInterest()">✕</span>'
+    + '<span class="modal-close" role="button" aria-label="關閉" onclick="closeInterest()">關閉</span>'
     + '<div class="modal-title">進階分析</div>'
     + '<div class="int-q">你最想要邊啲？（可多選）</div><div class="int-opts" id="int-feats">'
     + feats.map(f => '<label class="int-opt"><input type="checkbox" value="' + f + '">' + f + '</label>').join('') + '</div>'
@@ -5146,7 +5146,7 @@ function openReport(type, key, name) {
   let ov = document.getElementById('report-modal');
   if (!ov) { ov = document.createElement('div'); ov.className = 'modal-overlay'; ov.id = 'report-modal'; document.body.appendChild(ov); ov.addEventListener('click', e => { if (e.target === ov) closeReport(); }); }
   ov.innerHTML = '<div class="modal-sheet" style="position:relative;" role="dialog" aria-label="檢舉或封鎖">'
-    + '<span class="modal-close" role="button" aria-label="關閉" onclick="closeReport()">✕</span>'
+    + '<span class="modal-close" role="button" aria-label="關閉" onclick="closeReport()">關閉</span>'
     + '<div class="modal-title">檢舉／封鎖「' + escapeHtml(name || '釣友') + '」</div>'
     + '<div class="fb-cats" id="rp-kinds"><button type="button" class="fb-cat on" data-k="content" onclick="rpKind(this)">檢舉呢個內容</button><button type="button" class="fb-cat" data-k="user" onclick="rpKind(this)">檢舉呢個用戶</button></div>'
     + '<div class="fb-cats" id="rp-reasons" style="flex-wrap:wrap;">' + REPORT_REASONS.map(r => '<button type="button" class="fb-cat' + (r[0] === 'offensive' ? ' on' : '') + '" data-r="' + r[0] + '" onclick="rpReason(this)">' + r[1] + '</button>').join('') + '</div>'
@@ -5189,7 +5189,7 @@ async function openBlockList() {
   if (!state.user) { toast('請先登入'); return; }
   let ov = document.getElementById('blocks-modal');
   if (!ov) { ov = document.createElement('div'); ov.className = 'modal-overlay'; ov.id = 'blocks-modal'; document.body.appendChild(ov); ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('show'); }); }
-  ov.innerHTML = '<div class="modal-sheet" style="position:relative;" role="dialog" aria-label="封鎖名單"><span class="modal-close" role="button" aria-label="關閉" onclick="document.getElementById(\'blocks-modal\').classList.remove(\'show\')">✕</span><div class="modal-title">封鎖名單</div><div id="blocks-list" style="font-size:14px;">載入中…</div></div>';
+  ov.innerHTML = '<div class="modal-sheet" style="position:relative;" role="dialog" aria-label="封鎖名單"><span class="modal-close" role="button" aria-label="關閉" onclick="document.getElementById(\'blocks-modal\').classList.remove(\'show\')">關閉</span><div class="modal-title">封鎖名單</div><div id="blocks-list" style="font-size:14px;">載入中…</div></div>';
   ov.classList.add('show');
   const el = document.getElementById('blocks-list');
   try {
@@ -5228,11 +5228,11 @@ function renderLeaderboardView() {
   }
   let listHtml = '';
   if (loading) {
-    listHtml = '<div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-text">載入排行榜中...</div></div>';
+    listHtml = '<div class="empty-state"><div class="empty-text">載入排行榜中...</div></div>';
   } else if (lbData.length === 0) {
     listHtml = useServer
       ? lbDemoHtml()
-      : '<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-text">暫無排行榜數據<br><span style="font-size:12px;">符合上榜條件嘅魚獲先會出現喺呢度</span></div></div>';
+      : '<div class="empty-state"><div class="empty-text">暫無排行榜數據<br><span style="font-size:12px;">符合上榜條件嘅魚獲先會出現喺呢度</span></div></div>';
   } else {
     lbData.forEach((item, idx) => {
       const rank = idx + 1; let rankClass = 'normal';
@@ -5338,7 +5338,7 @@ function renderMapView() {
   state._stationFocus = false;
   if (gpsCatches.length === 0 && !stationFocus) {
     view.innerHTML = view.innerHTML.replace('<div id="map-canvas"></div>',
-      '<div id="map-canvas" style="display:none"></div><div class="map-empty"><div class="map-empty-icon">🗺️</div>'
+      '<div id="map-canvas" style="display:none"></div><div class="map-empty">'
       + '<div style="font-size:16px;font-weight:700;color:var(--dark);margin-bottom:6px;">尚未有 GPS 記錄</div>'
       + '<div style="font-size:13px;color:var(--gray-4);margin-bottom:16px;">在記錄魚獲時點「使用當前位置」即可在地圖顯示</div>'
       + '<button class="btn btn-primary" onclick="goToView(\'record\')">去記錄魚獲</button></div>');
@@ -5373,7 +5373,7 @@ function openSpotShare(preselect) {
   if (!ov) { ov = document.createElement('div'); ov.className = 'modal-overlay'; ov.id = 'spot-share-modal'; document.body.appendChild(ov); ov.addEventListener('click', e => { if (e.target === ov) closeSpotShare(); }); }
   const rows = _shareSpots.map((x, i) => '<label class="spot-share-row"><input type="checkbox" data-i="' + i + '"' + (x.name === preselect ? ' checked' : '') + '><b>' + escapeHtml(x.name) + '</b><span>' + x.n + ' 條魚</span></label>').join('');
   ov.innerHTML = '<div class="modal-sheet" style="position:relative;" role="dialog" aria-label="分享釣點">'
-    + '<span class="modal-close" role="button" aria-label="關閉" onclick="closeSpotShare()">✕</span>'
+    + '<span class="modal-close" role="button" aria-label="關閉" onclick="closeSpotShare()">關閉</span>'
     + '<div class="modal-title">分享釣點</div>'
     + '<div id="spot-share-note" style="font-size:13px;color:var(--gray-4);margin-bottom:8px;text-align:center;">' + SPOT_SHARE_NOTE_OFF + '</div>'
     + rows
@@ -5445,7 +5445,7 @@ function renderLocationCard() {
 
   if (status === 'idle') {
     html = '<div class="loc-row">'
-      + '<span class="loc-icon">📍</span>'
+      + '<span class="loc-icon">定位</span>'
       + '<div class="loc-text">'
       + '<div class="loc-title">想知最近邊個站？</div>'
       + '<div class="loc-sub">開啟定位搵到你附近 3 個驗潮站</div>'
@@ -5454,7 +5454,7 @@ function renderLocationCard() {
       + '</div>';
   } else if (status === 'locating') {
     html = '<div class="loc-row">'
-      + '<span class="loc-icon spin">📡</span>'
+      + '<span class="loc-icon">訊號</span>'
       + '<div class="loc-text">'
       + '<div class="loc-title">定位中…</div>'
       + '<div class="loc-sub">需要你授權位置存取</div>'
@@ -5466,10 +5466,10 @@ function renderLocationCard() {
     const inHK = window.geoLib.isLikelyHongKong(loc.lat, loc.lng);
     const nearest = state.nearestStations;
     const nearestStationsHtml = nearest.map((s, i) => {
-      const medal = ['🥇','🥈','🥉'][i];
+      const medal = ['1','2','3'][i];
       const dist = window.geoLib.formatDistance(s.distanceKm);
       const bear = window.geoLib.formatBearing(s.bearingDeg);
-      const estBadge = s.estimated ? ' <span class="loc-est">📐</span>' : '';
+      const estBadge = s.estimated ? ' <span class="loc-est">估算</span>' : '';
       return `<div class="loc-station-row" onclick="showStationOnMap('${s.code}')">
         <span class="loc-station-medal">${medal}</span>
         <span class="loc-station-name">${escapeHtml(s.name_zh)} <span class="loc-station-code">${s.code}</span>${estBadge}</span>
@@ -5477,17 +5477,17 @@ function renderLocationCard() {
       </div>`;
     }).join('');
     html = '<div class="loc-row">'
-      + '<span class="loc-icon">📍</span>'
+      + '<span class="loc-icon">定位</span>'
       + '<div class="loc-text">'
       + '<div class="loc-title">你嘅位置 <span class="loc-acc">' + accuracyStr + '</span>' + (inHK ? '' : ' <span class="loc-warn">非香港範圍</span>') + '</div>'
       + '<div class="loc-sub">' + loc.lat.toFixed(4) + ', ' + loc.lng.toFixed(4) + ' · ' + new Date(loc.timestamp).toLocaleTimeString('zh-HK', {hour:'2-digit', minute:'2-digit'}) + '</div>'
       + '</div>'
-      + '<button class="loc-btn-mini" onclick="requestUserLocation(true)" title="重新定位">🔄</button>'
+      + '<button class="loc-btn-mini" onclick="requestUserLocation(true)" title="重新定位">重試</button>'
       + '</div>'
       + '<div class="loc-station-list">' + nearestStationsHtml + '</div>';
   } else if (status === 'denied') {
     html = '<div class="loc-row loc-warn-row">'
-      + '<span class="loc-icon">🚫</span>'
+      + '<span class="loc-icon">拒絕</span>'
       + '<div class="loc-text">'
       + '<div class="loc-title">定位被拒絕</div>'
       + '<div class="loc-sub">' + ((/iPhone|iPad|iPod/i.test(navigator.userAgent || '')) ? 'iPhone：設定 → 私隱與安全性 → 定位服務（開啟）→ Safari 網站 →「使用 App 期間」；並關閉無痕瀏覽，然後完全關閉 Safari 再開' : '請確認手機「定位」已開，再喺瀏覽器網站權限 → 位置揀「允許」') + '，再撳重試。' + (state.geoError ? '<br><span style="opacity:.6">技術訊息：' + escapeHtml(String(state.geoError)).slice(0, 100) + '</span>' : '') + '</div>'
@@ -5498,7 +5498,7 @@ function renderLocationCard() {
     // unavailable / timeout / error
     const errMsg = state.geoError || '無法取得位置';
     html = '<div class="loc-row loc-warn-row">'
-      + '<span class="loc-icon">⚠️</span>'
+      + '<span class="loc-icon">警告</span>'
       + '<div class="loc-text">'
       + '<div class="loc-title">定位失敗</div>'
       + '<div class="loc-sub">' + escapeHtml(errMsg) + '</div>'
@@ -5710,19 +5710,19 @@ function renderWeatherCards(view, results) {
       </div>
       <div class="weather-card-metrics">
         <div class="weather-metric">
-          <span class="weather-metric-icon">💨</span>
+          <span class="weather-metric-icon">風</span>
           <span class="weather-metric-val">${w.windSpeed.toFixed(1)} <span class="weather-metric-unit">km/h</span></span>
           <span class="weather-metric-sub">${wc.arrow} ${wc.dir}風</span>
         </div>
         <div class="weather-metric">
-          <span class="weather-metric-icon">🌧️</span>
+          <span class="weather-metric-icon">雨</span>
           ${window.weatherLib.rainInfo(w.precip, w.precipHour).short === '暴雨'
             ? `<span class="weather-metric-val">${w.precipHour.toFixed(1)} <span class="weather-metric-unit">mm/小時</span></span>`
             : `<span class="weather-metric-val">${w.precip.toFixed(1)} <span class="weather-metric-unit">mm</span></span>`}
           <span class="weather-metric-sub">${window.weatherLib.rainInfo(w.precip, w.precipHour).short}</span>
         </div>
         <div class="weather-metric">
-          <span class="weather-metric-icon">🎯</span>
+          <span class="weather-metric-icon">準繩</span>
           <span class="weather-metric-val">${w.pressure !== null ? w.pressure.toFixed(0) : '—'} <span class="weather-metric-unit">hPa</span></span>
           <span class="weather-metric-sub">${w.humidity !== null ? '濕度 ' + w.humidity.toFixed(0) + '%' : '—'}</span>
         </div>
@@ -6044,7 +6044,7 @@ function showStationOnMap(code) {
     // 高亮 marker（大紅色 pulse 動畫）
     const highlightIcon = L.divIcon({
       className: 'station-highlight-marker',
-      html: '<div class="station-highlight-pulse"></div><div class="station-highlight-pin">📍</div>',
+      html: '<div class="station-highlight-pulse"></div><div class="station-highlight-pin">定位</div>',
       iconSize: [40, 40],
       iconAnchor: [20, 20]
     });
@@ -6137,7 +6137,6 @@ function getPokedexHTML() {
     } else {
       return '<div class="pokedex-card locked">'
         + '<span class="pokedex-rarity '+rarityClass+'">'+rarityLabels[f.rarity||'common']+'</span>'
-        + '<div class="pokedex-lock-icon">❓</div>'
         + '<div class="pokedex-name">'+f.name+'</div>'
         + '<div class="pokedex-locked-text">未解鎖</div>'
         + '<div class="pokedex-desc" style="margin-top:4px;">'+(f.habitat||'')+'</div>'
@@ -6218,7 +6217,7 @@ function renderGuestLoginPrompt(name) {
     + '<button class="map-subtab" data-tab="map" onclick="switchMapTab(this.dataset.tab)">地圖</button>'
     + '<button class="map-subtab" data-tab="tide" onclick="switchMapTab(this.dataset.tab)">潮汐</button>'
     + '<button class="map-subtab" data-tab="weather" onclick="switchMapTab(this.dataset.tab)">天氣</button></div>' : '';
-  view.innerHTML = tabs + '<div class="map-empty guest-login-prompt"><div class="map-empty-icon">🔒</div>'
+  view.innerHTML = tabs + '<div class="map-empty guest-login-prompt">'
     + '<div style="font-size:16px;font-weight:700;color:var(--dark);margin-bottom:6px;">登入後先可以用呢個功能</div>'
     + '<div style="font-size:13px;color:var(--gray-4);margin-bottom:16px;">未登入都可以睇潮汐同天氣。<br>想記低自己條魚、同香港釣友比排行榜，就要登入。用電郵驗證碼就唔使記密碼。</div>'
     + '<button class="btn btn-primary" onclick="renderLoginScreen()">登入／註冊</button>'
@@ -6326,7 +6325,6 @@ function renderLoginScreen() {
 
         <!-- 步驟 2:已 send,等 email 撳 -->
         <div id="auth-step-sent" class="auth-step">
-          <div class="auth-success-icon">✅</div>
           <div class="login-field">
             <label>驗證碼已發送至</label>
             <div class="auth-email-display" id="auth-email-display"></div>
@@ -6572,7 +6570,6 @@ function renderRecoveryScreen() {
   window._recovering = true;
   screen.innerHTML = `
     <div class="login-screen"><div class="login-card">
-      <div class="login-logo">🔑</div>
       <div class="login-title">設定新密碼</div>
       <div class="login-field"><label>新密碼</label>
         <input type="password" class="login-input" id="auth-new-pass" placeholder="最少 8 個字元" autocomplete="new-password"
@@ -6634,7 +6631,6 @@ function setInitStatus(step, detail) {
   const screen = document.getElementById('login-screen');
   if (!screen) return;
   screen.innerHTML = '<div id="init-status" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;text-align:center;font-family:-apple-system,sans-serif;">'
-    + '<div style="font-size:48px;margin-bottom:16px;">🎣</div>'
     + '<div style="font-size:18px;font-weight:600;color:#333;margin-bottom:8px;">釣港</div>'
     + '<div style="font-size:14px;color:#666;margin-bottom:6px;">' + (step || '初始化中...') + '</div>'
     + '<div style="font-size:12px;color:#999;max-width:280px;word-break:break-word;">' + (detail || '') + '</div>'
@@ -6767,7 +6763,6 @@ function showInitError(title, message) {
   const screen = document.getElementById('login-screen');
   if (screen) {
     screen.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;text-align:center;font-family:-apple-system,sans-serif;">'
-      + '<div style="font-size:48px;margin-bottom:16px;">🎣</div>'
       + '<div style="font-size:18px;font-weight:600;color:#333;margin-bottom:8px;">釣港</div>'
       + '<div style="font-size:15px;font-weight:600;color:#ea4335;margin-bottom:4px;">' + (title || '載入失敗') + '</div>'
       + '<div style="font-size:13px;color:#999;margin-bottom:24px;">' + (message || '') + '</div>'
