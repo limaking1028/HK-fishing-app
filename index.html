@@ -862,6 +862,7 @@ button { touch-action: manipulation; }
   .spot-share-row b { flex: 1; min-width: 0; font-size: 15px; word-break: break-all; }
   .spot-share-row span { font-size: 12px; color: var(--gray-4); flex: none; }
   .map-empty { text-align: center; padding: 60px 20px; color: var(--gray-4); }
+  .map-container .map-empty { padding-top: 108px; }
   .map-empty-icon { font-size: 48px; margin-bottom: 12px; }
 
   /* ===== Route I+: 地圖潮汐站 marker ===== */
@@ -1404,7 +1405,7 @@ button { touch-action: manipulation; }
         你的釣魚記錄可以幫我們發現「什麼條件下最容易上魚」,將來回饋給所有釣友。
       </div>
       <div style="background:var(--gray-1);border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:12.5px;color:var(--gray-5);line-height:1.6;">
-        <div style="margin-bottom:6px;"><strong style="color:var(--gray-6);">✓ 會收集:</strong> 時間、月相、潮汐、天氣、GPS 距離</div>
+        <div style="margin-bottom:6px;"><strong style="color:var(--gray-6);">會收集:</strong> 時間、月相、潮汐、天氣、GPS 距離</div>
         <div style="margin-bottom:6px;"><strong style="color:var(--gray-6);">✗ 不會收集:</strong> 你的名字、照片、備註、聯絡方式</div>
         <div><strong style="color:var(--gray-6);">隨時可改:</strong> 設定 → 改名字 → 下方開關</div>
       </div>
@@ -1734,7 +1735,7 @@ async function retryUnsyncedCatches() {
   }
   persistUnsynced();
   if (state.view === 'my') renderMyView();
-  if (success > 0) toast('✓ 已補傳 ' + success + ' 條魚獲到雲端' + (failed > 0 ? ' (' + failed + ' 條仍失敗)' : ''), 3000);
+  if (success > 0) toast('已補傳 ' + success + ' 條魚獲到雲端' + (failed > 0 ? ' (' + failed + ' 條仍失敗)' : ''), 3000);
   else if (failed > 0) toast('✗ 仍有 ' + failed + ' 條魚獲未同步', 3000);
 }
 
@@ -2244,12 +2245,12 @@ function renderRecordView() {
       let statusText;
       if (isTripSpot) {
         if (tripHasGps) {
-          statusText = '✓ 行程 GPS 已就緒' + accText + ' · 行程中保持當前位置，無需重新定位<br><span style="font-size:10px;color:var(--gray-5);">移動到新釣點時，按下方按鈕更新</span>';
+          statusText = '行程 GPS 已就緒' + accText + ' · 行程中保持當前位置，無需重新定位<br><span style="font-size:10px;color:var(--gray-5);">移動到新釣點時，按下方按鈕更新</span>';
         } else {
-          statusText = '✓ 行程釣點已帶入 · GPS 未啟用，可按下方按鈕啟用（選填）';
+          statusText = '行程釣點已帶入 · GPS 未啟用，可按下方按鈕啟用（選填）';
         }
       } else if (hasGps) {
-        statusText = '✓ GPS 已就緒' + accText + '，可送出或重新定位';
+        statusText = 'GPS 已就緒' + accText + '，可送出或重新定位';
       } else {
         statusText = '系統會自動識別最近釣點，無需手動輸入';
       }
@@ -2681,7 +2682,7 @@ function getCurrentLocation() {
       btn.classList.remove('loading');
       btn.textContent = '重新定位';
       status.className = 'gps-status success';
-      status.innerHTML = '✓ 已記錄 GPS（精度 ±' + accuracy + 'm，已模糊化至約 110m）<br><span class="gps-detect-status">正在自動識別釣點...</span>';
+      status.innerHTML = '已記錄 GPS（精度 ±' + accuracy + 'm，已模糊化至約 110m）<br><span class="gps-detect-status">正在自動識別釣點...</span>';
       if (titleEl) titleEl.textContent = '正在識別釣點...';
       if (box) box.classList.remove('loading');
       // Route L: 三層回退自動識別釣點
@@ -2880,13 +2881,13 @@ function updateEligibilityHint() {
   groups.forEach(g => {
     const hit = g[1].find(code => bad.has(code));
     const cls = g[2] ? 'pend' : (hit ? 'bad' : 'ok');
-    const icon = g[2] ? '○' : (hit ? '✗' : '✓');
-    html += '<div class="elig-row ' + cls + '">' + icon + ' ' + g[0] + (hit && !g[2] ? ' — ' + escapeHtml(lbLib.reasonText(hit)) : '') + '</div>';
+    const icon = g[2] ? '○' : (hit ? '✗' : '');
+    html += '<div class="elig-row ' + cls + '">' + (icon ? icon + ' ' : '') + g[0] + (hit && !g[2] ? ' — ' + escapeHtml(lbLib.reasonText(hit)) : '') + '</div>';
   });
   // v159：重量王者另外要磅／尺相 + 管理員審核（數量／品種王者唔使）
   const pf = document.getElementById('catch-proof'), hasProof = !!(pf && pf.files && pf.files[0]);
   const pn = document.getElementById('proof-name'); if (pn) pn.textContent = hasProof ? '已揀：' + pf.files[0].name : '';
-  html += '<div class="elig-row ' + (hasProof ? 'ok' : 'pend') + '">' + (hasProof ? '✓' : '○') + '磅／尺相（重量王者，審核後上榜）' + (hasProof ? '' : ' — 冇就唔計重量王者') + '</div>';
+  html += '<div class="elig-row ' + (hasProof ? 'ok' : 'pend') + '">' + (hasProof ? '' : '○') + '磅／尺相（重量王者，審核後上榜）' + (hasProof ? '' : ' — 冇就唔計重量王者') + '</div>';
   html += '<div class="elig-row pend">○ 新魚種（品種王者，每個新魚種審核一次）</div>';   // v172
   box.className = 'elig-box' + (r.eligible ? ' ok' : '');
   box.innerHTML = '<div class="elig-title">' + (r.eligible ? '符合上榜條件' : '上榜條件（未符合都可以儲存記錄，只係唔計排行榜）') + '</div>' + html;
@@ -3674,7 +3675,7 @@ function tripGetGPS() {
       document.getElementById('trip-accuracy').value = acc;
       btn.disabled = false; btn.classList.remove('loading');
       status.className = 'gps-status success';
-      status.innerHTML = '✓ 已記錄 GPS（精度 ±' + acc + 'm，已模糊化）<br><span class="gps-detect-status">正在自動識別釣點...</span>';
+      status.innerHTML = '已記錄 GPS（精度 ±' + acc + 'm，已模糊化）<br><span class="gps-detect-status">正在自動識別釣點...</span>';
       // 整合 autoDetectSpot 三層識別（與魚獲表單共用邏輯）
       try {
         const result = await autoDetectSpot(lat, lng);
@@ -3966,7 +3967,7 @@ function renderTripsView() {
       + '<div style="font-size:12px;color:var(--gray-4);margin-bottom:14px;">' + subtitleText + '</div></div>'
       // GPS 自動定位（取代下拉選擇器）
       + '<div class="gps-section"><button type="button" id="trip-gps-btn" class="gps-btn" onclick="tripGetGPS()">' + (state.tripPickingLat ? '重新定位' : '啟用 GPS 自動識別') + '</button>'
-      + '<div class="gps-status" id="trip-gps-status">' + (state.tripPickingLat ? '✓ 已記錄（精度 ±' + (state.tripPickingAccuracy || '?') + 'm）' + spotHtml : '未取得位置') + '</div></div>'
+      + '<div class="gps-status" id="trip-gps-status">' + (state.tripPickingLat ? '已記錄（精度 ±' + (state.tripPickingAccuracy || '?') + 'm）' + spotHtml : '未取得位置') + '</div></div>'
       + '<input type="hidden" id="trip-lat" value="'+(state.tripPickingLat||'')+'"><input type="hidden" id="trip-lng" value="'+(state.tripPickingLng||'')+'"><input type="hidden" id="trip-accuracy" value="'+(state.tripPickingAccuracy||'')+'"><input type="hidden" id="trip-detected-spot" value="' + escapeHtml(detectedSpot) + '">'
       // 自訂備註（GPS 識別失敗或需要更精確位置時使用）
       + '<input type="text" class="form-input" id="trip-spot-custom" placeholder="具體位置備註（可選，例如：西防波堤第 3 支竿位）..." value="'+(state.tripPickingCustom||'')+'" oninput="state.tripPickingCustom=this.value" style="margin-top:8px;">'
@@ -4572,13 +4573,13 @@ function setAnalyticsConsent(val) {
 function setAnalyticsConsentAndClose(val) {
   setAnalyticsConsent(val);
   closeConsentModal();
-  showToast(val ? '✓ 已開啟匿名統計(隨時可改)' : '✓ 已關閉匿名統計');
+  showToast(val ? '已開啟匿名統計(隨時可改)' : '已關閉匿名統計');
 }
 function toggleAnalyticsConsent() {
   const next = !getAnalyticsConsent();
   setAnalyticsConsent(next);
   refreshAnalyticsToggleUI();
-  showToast(next ? '✓ 已開啟匿名統計' : '✓ 已關閉匿名統計');
+  showToast(next ? '已開啟匿名統計' : '已關閉匿名統計');
 }
 function refreshAnalyticsToggleUI() {
   const btn = document.getElementById('analytics-toggle-btn');
@@ -4588,7 +4589,7 @@ function refreshAnalyticsToggleUI() {
   btn.style.background = on ? 'var(--teal)' : 'white';
   btn.style.color = on ? 'white' : 'var(--gray-5)';
   btn.style.borderColor = on ? 'var(--teal)' : 'var(--gray-3)';
-  label.textContent = on ? '✓ 已同意匿名統計' : '✗ 未同意(只存基本欄位)';
+  label.textContent = on ? '已同意匿名統計' : '✗ 未同意(只存基本欄位)';
 }
 function maybeShowConsentModal() {
   // 只在「從未做過選擇」時彈出;已選過的不再打擾
@@ -4682,7 +4683,7 @@ async function clearAllRecords() {
   state.lastCatchId = null;
   closeNameDialog();
   renderAll();
-  showToast('✓ 已清除所有記錄');
+  showToast('已清除所有記錄');
 }
 
 /* ===== 輕量分享（路徑一） ===== */
@@ -4971,7 +4972,7 @@ function checkSharedCatch() {
         + '</div></div>' : '')
       + (d.n ? '<div style="padding:10px 14px;font-size:14px;color:var(--gray-5);background:var(--gray-1);border-radius:8px;margin-bottom:16px;">'+e(d.n)+'</div>' : '')
       + (has
-        ? '<div style="text-align:center;color:var(--green);font-weight:600;padding:12px;">✓ 已收藏到你嘅記錄</div>'
+        ? '<div style="text-align:center;color:var(--green);font-weight:600;padding:12px;">已收藏到你嘅記錄</div>'
         + '<button class="btn btn-outline" style="width:100%;" onclick="clearShareParam();closeImportModal();">打開 App</button>'
         : '<div class="modal-btns">'
         + '<button class="btn btn-primary" onclick="importCatch(\''+shareData+'\')">收藏到我手機</button>'
@@ -5584,9 +5585,9 @@ function renderMapTideList(view) {
           } else if (d.hasData) {
             rangeTxt = '只得單一潮';   // 當日只有高潮或只有低潮，唔計潮差
           }
-          // 高低潮按時間先後排列；未能確定高低嘅事件用「•」顯示
+          // 高低潮按時間先後排列；未能確定高低嘅事件只顯示時間
           const evHtml = (d.events || []).map(e => {
-            const sym = e.type === 'high' ? '▲' : e.type === 'low' ? '▼' : '•';
+            const sym = e.type === 'high' ? '▲' : e.type === 'low' ? '▼' : '';
             const cls = e.type === 'high' ? 'hi' : e.type === 'low' ? 'lo' : 'uk';
             return `<span class="${cls}">${sym}${window.tidesLib.formatTime(e.ms)} ${e.height.toFixed(2)}</span>`;
           }).join(' ') || '<span class="uk">當日未有潮汐數據</span>';
@@ -6159,7 +6160,7 @@ function renderPokedexCatchCard(c) {
     +     (c.length ? '<span class="pokedex-catch-length">' + c.length + 'cm</span>' : '')
     +   '</div>'
     +   '<div class="pokedex-catch-meta">' + escapeHtml(c.spot) + (c.method ? ' · ' + escapeHtml(c.method) : '') + '</div>'
-    +   '<div class="pokedex-catch-date">' + formatDate(c.date) + ' ' + escapeHtml(c.time || '') + (c.verified ? ' <span class="pokedex-verified">✓ 有效</span>' : '') + '</div>'
+    +   '<div class="pokedex-catch-date">' + formatDate(c.date) + ' ' + escapeHtml(c.time || '') + (c.verified ? ' <span class="pokedex-verified">有效</span>' : '') + '</div>'
     + '</div>'
     + '</div>';
 }
