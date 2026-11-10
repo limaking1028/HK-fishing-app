@@ -5585,9 +5585,9 @@ function renderMapTideList(view) {
           } else if (d.hasData) {
             rangeTxt = '只得單一潮';   // 當日只有高潮或只有低潮，唔計潮差
           }
-          // 高低潮按時間先後排列；未能確定高低嘅事件只顯示時間
+          // 高低潮按時間先後排列；未能確定高低嘅事件用「•」顯示
           const evHtml = (d.events || []).map(e => {
-            const sym = e.type === 'high' ? '▲' : e.type === 'low' ? '▼' : '';
+            const sym = e.type === 'high' ? '▲' : e.type === 'low' ? '▼' : '•';
             const cls = e.type === 'high' ? 'hi' : e.type === 'low' ? 'lo' : 'uk';
             return `<span class="${cls}">${sym}${window.tidesLib.formatTime(e.ms)} ${e.height.toFixed(2)}</span>`;
           }).join(' ') || '<span class="uk">當日未有潮汐數據</span>';
