@@ -1201,22 +1201,6 @@ button { touch-action: manipulation; }
   .split-dismiss { background: none; border: 0; color: var(--gray-4); font-size: 13px; font-family: inherit; cursor: pointer; padding: 4px 2px; }
   .split-actions { display: flex; gap: 8px; }
   .split-actions .btn { width: auto; flex: 1; min-height: 48px; padding: 8px 6px; font-size: 14px; line-height: 1.3; }
-  .onboard-card { margin: 0 0 12px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 12px 14px; }
-  .onboard-title { font-size: 16px; font-weight: 800; color: #92400e; margin-bottom: 6px; }
-  .onboard-steps { margin: 0 0 10px; padding-left: 1.3em; font-size: 14px; line-height: 1.55; color: var(--dark); }
-  .onboard-actions { display: flex; gap: 8px; margin-bottom: 8px; }
-  .onboard-actions .btn { width: auto; flex: 1; min-height: 46px; padding: 8px 6px; font-size: 15px; }
-  .onboard-note { font-size: 13px; color: #92400e; line-height: 1.5; }
-  .first-progress { font-size: 13px; font-weight: 700; color: var(--teal-dark); background: var(--teal-light); border-radius: 10px; padding: 8px 10px; margin: 0 0 12px; line-height: 1.45; }
-  .lb-demo { position: relative; margin: 4px 0 10px; border: 2px dashed #9ca3af; border-radius: 12px; background: #f3f4f6; padding: 14px 12px 12px; }
-  .lb-demo-tag { display: inline-block; background: #d1d5db; color: #111827; font-size: 13px; font-weight: 800; line-height: 1.4; padding: 3px 8px; border-radius: 6px; }
-  .lb-demo-top { margin-bottom: 8px; }
-  .lb-demo-row { display: flex; gap: 10px; align-items: center; }
-  .lb-demo-photo { width: 56px; height: 56px; border-radius: 8px; background: #fff; flex: 0 0 56px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-  .lb-demo-photo svg { width: 56px; height: 56px; }
-  .lb-demo-name { font-size: 15px; font-weight: 800; }
-  .lb-demo-detail { font-size: 13px; color: #374151; line-height: 1.45; }
-  .lb-demo-note { font-size: 13px; color: #374151; line-height: 1.5; margin: 8px 0; }
   .founder-banner { background: linear-gradient(135deg,#fef3c7,#fde68a); border: 1px solid #fcd34d; color: #92400e; border-radius: 12px; padding: 10px 12px; font-size: 13px; font-weight: 700; line-height: 1.5; text-align: center; margin: 0 0 12px; }
   .founder-banner b { font-size: 15px; }
 
@@ -1307,6 +1291,19 @@ button { touch-action: manipulation; }
   .google-btn { border-radius: 14px; border-color: var(--gray-3); }
 
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+
+  /* 新用戶教學：只照住要撳嘅一個掣 */
+  #tut-layer { position: fixed; inset: 0; z-index: 100000; pointer-events: none; }
+  #tut-layer[hidden] { display: none !important; }
+  #tut-d1, #tut-d2, #tut-d3, #tut-d4 { position: fixed; background: rgba(7,24,34,.62); pointer-events: auto; }
+  #tut-ring { position: fixed; border: 2px solid #fff; border-radius: 12px; box-shadow: 0 0 0 2px #0e8495; pointer-events: none; z-index: 2; }
+  #tut-hint { position: fixed; z-index: 3; max-width: 280px; background: #fff; color: #14202b; font-size: 15px; font-weight: 800; line-height: 1.35; padding: 8px 10px; border-radius: 10px; box-shadow: 0 6px 18px rgba(7,24,34,.25); pointer-events: none; }
+  #tut-bar { position: fixed; z-index: 4; top: calc(8px + env(safe-area-inset-top, 0px)); left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
+  #tut-count { background: #fff; color: #0a5866; font-weight: 800; font-size: 14px; border-radius: 999px; padding: 4px 10px; }
+  #tut-skip { pointer-events: auto; background: #fff; color: #0a5866; border: 0; font-weight: 800; font-size: 14px; font-family: inherit; border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+  #tut-done { position: fixed; z-index: 5; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); background: #fff; border-radius: 16px; padding: 22px 16px; text-align: center; box-shadow: 0 12px 40px rgba(7,24,34,.3); pointer-events: auto; }
+  #tut-done p { margin: 0 0 14px; font-size: 17px; font-weight: 800; line-height: 1.45; color: #14202b; }
+  #tut-done button { width: 100%; }
   </style>
 
   <!-- Leaflet CSS -->
@@ -1361,6 +1358,9 @@ button { touch-action: manipulation; }
       <div class="modal-btns">
         <button class="btn btn-outline" onclick="closeNameDialog()">取消</button>
         <button class="btn btn-primary" onclick="saveName()">保存</button>
+      </div>
+      <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
+        <button type="button" class="btn btn-outline" style="width:100%;" onclick="replayTutorial()">重睇教學</button>
       </div>
       <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
         <div style="font-size:13px;color:var(--gray-5);margin-bottom:8px;font-weight:600;">預設重量單位</div>
@@ -1651,6 +1651,7 @@ async function stripImageMeta(file) {
 }
 
 async function uploadCatchPhoto(file) {
+  if (tutorialOn()) return null;
   if (!file || !sb || !state.user) return null;
   file = await stripImageMeta(file);   // v159：清 EXIF／GPS（photo_hash 仍然用原相計，防重複唔受影響）
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -1666,6 +1667,7 @@ async function uploadCatchPhoto(file) {
 
 // v159：磅／尺相上載去私人 bucket catch-proof/<user_id>/，再寫 catches.proof_path（失敗唔影響魚獲本身）
 async function attachCatchProof(c, saved) {
+  if (tutorialOn()) { if (c) delete c._proofFile; return saved; }
   const file = c._proofFile; delete c._proofFile;
   if (!saved || !file || !sb || !state.user) return saved;
   try {
@@ -1697,6 +1699,7 @@ function fixLegacyWeight(c) {
 // ===== 未同步魚獲：只存「還沒上傳成功」的記錄（不再把整個魚獲清單寫入本機）=====
 const UNSYNCED_KEY = 'hk_fishing_unsynced_v1';
 function persistUnsynced() {
+  if (tutorialOn()) return;
   try {
     const list = state.catches.filter(c => c.unsynced && c.isMine).map(c => { const o = Object.assign({}, c); delete o._photoFile; o._wv = 2; return o; });
     if (list.length) localStorage.setItem(UNSYNCED_KEY, JSON.stringify(list));
@@ -1752,6 +1755,7 @@ async function sha256File(file) {
   } catch (e) { return null; }
 }
 async function dbAddCatch(c) {
+  if (tutorialOn()) return null;
   if (!sb || !state.user) return null;
   // 照片：每條魚獲只上傳一次（重試時重用），失敗不阻擋魚獲本身儲存
   let photoUrl = c._uploadedPhoto || c.photoUrl || null;
@@ -1955,6 +1959,7 @@ async function loadCatches() {
   const sample = genSampleCatches(); localStorage.setItem(STORAGE_KEY, JSON.stringify(sample)); return sample;
 }
 function saveCatches(c) {
+  if (tutorialOn()) return;
   if (SB_ENABLED && state.user) return;  // 雲端模式：每次操作直接寫 DB
   localStorage.setItem(STORAGE_KEY, JSON.stringify(c));
 }
@@ -2136,17 +2141,6 @@ function successEligLine() {
   if (r.eligible) return '符合上榜條件，已加入排行榜';
   return '已加入個人歷史。未計入排行榜：' + r.reasons.map(c => escapeHtml(lbLib.reasonText(c))).join('、');
 }
-function recordTopTipHtml() {
-  if (state.activeTrip) return '';
-  if (state.shoreMode) {
-    return '<div class="lb-tip">喺海邊就快手記低：魚種、重量、釣點，30 秒搞掂。<br>唔想講位就揀「秘點」，排行榜同分享都只會寫「秘點」。<br>想上榜：即場影相＋開定位（要喺香港範圍）。<br>打算釣成朝？撳「開始行程」，之後每條都計數量／品種王者。</div>';
-  }
-  return '<div class="lb-tip">想上排行榜？即時影相 ＋ 開咗行程（數量／品種王者要行程）</div>';
-}
-function firstFishProgressHtml() {
-  if (state.catches.filter(c => c.isMine && !c.isDemo).length > 0) return '';
-  return '<div class="first-progress" id="first-progress">第一條魚：① 魚種  ② 重量  ③ 釣點</div>';
-}
 function renderRecordView() {
   const view = document.getElementById('view-record');
   if (state.formSuccess) {
@@ -2198,8 +2192,6 @@ function renderRecordView() {
   // Route H: 進行中行程的提示由頂部 banner 統一顯示，表單內不再重複
   const tripBadge = '';
   view.innerHTML = '<div class="card"><div class="section-title">記錄新魚獲</div>'
-    + recordTopTipHtml()
-    + firstFishProgressHtml()
     + tripBadge
     + '<div class="form-group"><label class="form-label">魚種 <span class="req">*</span></label><div id="species-selector"></div>'
     + '</div></div>'
@@ -2370,6 +2362,7 @@ function getAllSpecies() {
 }
 
 function togglePinSpecies(name) {
+  if (tutorialOn()) return;
   if (!state.pinnedSpecies) state.pinnedSpecies = [];
   const idx = state.pinnedSpecies.indexOf(name);
   if (idx >= 0) {
@@ -2396,6 +2389,10 @@ function selectSpeciesByName(name) {
     // 揀完魚種：列表收起後捲去「重量」欄（揀「其他」要先輸入名，唔捲；唔 focus、唔彈鍵盤）
     if (!document.getElementById('custom-species')) { const w = document.getElementById('catch-weight'); if (w) w.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
     try { updateEligibilityHint(); } catch (e) {}
+    if (tutorialOn() && state.tutorial.step === 4 && state.selectedSpecies != null) {
+      state.tutorial.step = 5;
+      tutorialPaint();
+    }
   }
 }
 
@@ -2853,6 +2850,7 @@ function currentEligibilityInput() {
 }
 // v160：測試模式只畀管理員（is_admin 由伺服器判斷；server trigger 會拒絕非管理員設 is_test）
 async function renderTestModeToggle() {
+  if (tutorialOn()) return;
   const box = document.getElementById('test-mode-box');
   if (!box || !sb || !state.user) return;
   if (state.adminFor !== state.user.id) {
@@ -2893,17 +2891,6 @@ function updateEligibilityHint() {
   box.className = 'elig-box' + (r.eligible ? ' ok' : '');
   box.innerHTML = '<div class="elig-title">' + (r.eligible ? '符合上榜條件' : '上榜條件（未符合都可以儲存記錄，只係唔計排行榜）') + '</div>' + html
     + '<div class="elig-award">點樣拎稱號：頭 100 個記低合資格魚獲可得「創始釣友」；排行榜第一名會顯示「全港霸主」徽章。</div>';
-  paintFirstFishProgress();
-}
-function paintFirstFishProgress() {
-  const el = document.getElementById('first-progress');
-  if (!el) return;
-  const sp = state.selectedSpecies != null ? FISH_SPECIES[state.selectedSpecies] : null;
-  const spOk = !!sp && (!sp.custom || !!(state.customSpecies || '').trim());
-  const w = parseFloat((document.getElementById('catch-weight') || {}).value);
-  const spotSel = document.getElementById('catch-spot');
-  const tick = ok => ok ? '' : '';
-  el.textContent = '第一條魚：① 魚種' + tick(spOk) + '  ② 重量' + tick(w > 0) + '  ③ 釣點' + tick(!!(state.selectedSpot || (spotSel && spotSel.value)));
 }
 window.updateEligibilityHint = updateEligibilityHint;
 function previewProof(input) {
@@ -2913,6 +2900,7 @@ function previewProof(input) {
   const r = new FileReader();
   r.onload = function (e) { box.innerHTML = '<img class="photo-preview" src="' + e.target.result + '" alt="磅尺相">'; };
   r.readAsDataURL(f);
+  if (tutorialOn() && state.tutorial.step === 7) { state.tutorial.step = 8; setTimeout(tutorialPaint, 30); }
 }
 function previewPhoto(input) {
   ['catch-photo', 'catch-photo-gallery'].forEach(id => { const el = document.getElementById(id); if (el && el !== input) el.value = ''; });
@@ -2921,6 +2909,7 @@ function previewPhoto(input) {
   setTimeout(() => { try { updateEligibilityHint(); } catch (e) {} }, 0);
   const c = document.getElementById('photo-preview-container');
   if (input.files && input.files[0]) { const r = new FileReader(); r.onload = e => { c.innerHTML = '<img class="photo-preview" src="'+e.target.result+'" alt="preview">'; }; r.readAsDataURL(input.files[0]); }
+  if (tutorialOn() && state.tutorial.step === 6 && input.files && input.files[0]) { state.tutorial.step = 7; setTimeout(tutorialPaint, 30); }
 }
 
 function weightUnitOptionsHtml(sel) {
@@ -2934,11 +2923,15 @@ function updateWeightConv() {
   if (!v || v <= 0) { el.textContent = ''; return; }
   const kg = weightLib.toKg(v, u);
   el.textContent = '≈ ' + weightLib.describeOthers(kg, u);
+  if (tutorialOn() && state.tutorial.step === 5) {
+    if (v > 0) { state.tutorial.step = 6; tutorialPaint(); }
+  }
 }
 function onWeightUnitChange(sel) { state.weightInputUnit = sel.value; updateWeightConv(); }
 window.updateWeightConv = updateWeightConv; window.onWeightUnitChange = onWeightUnitChange;
 function fmtWeight(kg, unit) { return weightLib.format(kg, unit || weightLib.getPref()).text; }
 function submitCatch() {
+  if (tutorialOn()) { tutorialShowDone(); return; }
   if (state.selectedSpecies === null) { toast('請選擇魚種'); return; }
   const weightUnit = state.weightInputUnit || weightLib.getPref();
   const weightRaw = parseFloat(document.getElementById('catch-weight').value);
@@ -3156,6 +3149,7 @@ async function dbLoadTrips() {
 }
 
 async function dbAddTrip(tripData) {
+  if (tutorialOn()) return null;
   if (!sb || !state.user) return null;
   const { data, error } = await sb.from('fishing_trips').insert({
     user_id: state.user.id,
@@ -3172,6 +3166,7 @@ async function dbAddTrip(tripData) {
 }
 
 async function dbUpdateTrip(tripId, patch) {
+  if (tutorialOn()) return false;
   if (!sb || !state.user) return false;
   const { data, error } = await sb.from('fishing_trips').update(patch)
     .eq('id', tripId).eq('user_id', state.user.id).select();
@@ -3201,12 +3196,14 @@ async function tripConditions(trip, atMs, timeoutMs) {
 }
 // 開始快照喺背景寫入；資料庫未有欄位（未跑 migration-v141）就靜靜略過，唔打擾用戶
 async function dbSaveTripStartConditions(tripId, snap) {
+  if (tutorialOn()) return;
   if (!sb || !state.user || !snap) return;
   const { error } = await sb.from('fishing_trips').update({ start_conditions: snap }).eq('id', tripId).eq('user_id', state.user.id);
   if (error) console.warn('[trips] start_conditions 未能寫入', error.message);
 }
 
 async function dbEndTrip(tripId, endedAt, stats, endConditions) {
+  if (tutorialOn()) return false;
   if (!sb || !state.user) return false;
   const endPatch = {
     ended_at: endedAt,
@@ -3260,6 +3257,7 @@ function tallySet(tripId, sp, qty) {
   return qty;
 }
 async function tallySync() {
+  if (tutorialOn()) return;
   if (_tallySyncing || !sb || !state.user) return;
   const keys = Object.keys(_tally.dirty); if (!keys.length) return;
   _tallySyncing = true;
@@ -3507,6 +3505,7 @@ async function adoptOpenTrip(trip, msg) {
 }
 
 async function startTrip() {
+  if (tutorialOn()) { tutorialBeginPicker(); return; }
   if (!sb || !state.user) { toast('請先登入'); return; }
   if (state.activeTrip) { toast('已有進行中嘅行程，請先結束佢'); return; }
   const open = await dbFindOpenTrip();
@@ -3549,6 +3548,8 @@ function editActiveTrip() {
 }
 
 function cancelTripPick() {
+  var back = state.openRecordAfterTrip;
+  state.openRecordAfterTrip = false;
   state.tripPicking = false;
   state.editingActiveTrip = false;
   state.tripPickingSpot = '';
@@ -3556,7 +3557,21 @@ function cancelTripPick() {
   state.tripPickingCustom = '';
   state.tripPickingMethod = '';
   state.tripPickingBait = '';
+  if (back) { switchView(back); return; }
   renderTripsView();
+}
+function recordFirstFish() {
+  if (tutorialOn()) return;
+  if (state.activeTrip) { goToView('record'); return; }
+  state.openRecordAfterTrip = state.view || 'my';
+  if (state.view !== 'trips') goToView('trips');
+  startTrip().then(function () {
+    if (!state.openRecordAfterTrip || state.tripPicking) return;
+    var back = state.openRecordAfterTrip;
+    state.openRecordAfterTrip = false;
+    if (state.activeTrip) { if (state.view !== 'record') goToView('record'); return; }
+    if (state.view !== back) goToView(back);
+  });
 }
 
 // 進行中行程：快速重新 GPS 定位（不需進 picker）
@@ -3665,17 +3680,34 @@ function onTripSpotChange(s) {
   }
   el.innerHTML = html + '<div style="font-size:10px;color:var(--gray-4);margin-top:2px;">（資料來源：HKO ' + station + '）</div>';
 }
-function onTripMethodChange(m) { state.tripPickingMethod = m; }
-function onTripBaitChange(b) { state.tripPickingBait = b; }
+function onTripMethodChange(m) {
+  state.tripPickingMethod = m;
+  if (tutorialOn() && state.tutorial.step === 2 && state.tutorial.sub === 'method' && m) {
+    state.tutorial.sub = 'bait';
+    tutorialPaint();
+  }
+}
+function onTripBaitChange(b) {
+  state.tripPickingBait = b;
+  if (tutorialOn() && state.tutorial.step === 2 && state.tutorial.sub === 'bait' && b) {
+    state.tutorial.step = 3;
+    tutorialPaint();
+  }
+}
 
 function tripGetGPS() {
   const btn = document.getElementById('trip-gps-btn');
   const status = document.getElementById('trip-gps-status');
-  if (!navigator.geolocation) { status.textContent = '瀏覽器不支援定位'; status.className = 'gps-status error'; return; }
+  const tutGen = tutorialOn() ? state.tutorial.gen : 0;
+  if (!navigator.geolocation) {
+    if (tutGen) { tutorialGpsSettled(null); return; }
+    status.textContent = '瀏覽器不支援定位'; status.className = 'gps-status error'; return;
+  }
   btn.disabled = true; btn.classList.add('loading'); btn.textContent = '定位中...';
   status.textContent = '正在取得位置...'; status.className = 'gps-status';
   getPositionRobust(
     async (pos) => {
+      if (tutGen) { if (tutorialOn() && state.tutorial.gen === tutGen) tutorialGpsSettled(pos); return; }
       const lat = Math.round(pos.coords.latitude * 1000) / 1000;
       const lng = Math.round(pos.coords.longitude * 1000) / 1000;
       const acc = Math.round(pos.coords.accuracy);
@@ -3731,6 +3763,7 @@ function tripGetGPS() {
       }
     },
     (err) => {
+      if (tutGen) { if (tutorialOn() && state.tutorial.gen === tutGen) tutorialGpsSettled(null); return; }
       btn.disabled = false; btn.classList.remove('loading');
       btn.textContent = '啟用 GPS 自動識別';
       let msg = '無法取得位置';
@@ -3758,6 +3791,7 @@ function getRecentSpots(limit) {
 }
 
 async function confirmStartTrip() {
+  if (tutorialOn()) { tutorialBeginRecord(); return; }
   const spot = state.tripPickingDetectedSpot || state.tripPickingSpot;
   if (!spot) { toast('請先啟用 GPS 自動識別'); return; }
   const custom = (state.tripPickingCustom || '').trim();
@@ -3848,6 +3882,7 @@ async function confirmStartTrip() {
   // 重新載入 trips 並跳到記錄 tab 讓用戶加第一條魚
   state.trips = await dbLoadTrips();
   renderTripsView();
+  state.openRecordAfterTrip = false;
   switchView('record');
   renderRecordView();
 }
@@ -4018,6 +4053,7 @@ function renderTripsView() {
   if (state.tripPicking && state.tripPickingSpot) {
     try { onTripSpotChange(state.tripPickingSpot); } catch(e) {}
   }
+  if (tutorialOn() && (state.tutorial.step === 1 || state.tutorial.step === 2 || state.tutorial.step === 3)) requestAnimationFrame(function () { tutorialPaint(); });
 }
 
 function renderTripCard(trip, durationSec) {
@@ -4209,10 +4245,286 @@ async function loadLbFounders(rows) {
   try { const r = await sb.rpc('lb_founder_nos', { p_ids: ids }); if (!r.error && r.data) { state.lbFounders = Object.assign(state.lbFounders || {}, r.data); if (state.view === 'leaderboard') renderLeaderboardView(); } } catch (e) {}
 }
 
-const ONBOARD_DISMISS_KEY = 'hkf-onboard1-dismissed';
+/* ===== 新用戶教學（純練習：唔寫行程、魚獲、相片、排行榜）===== */
+const TUTORIAL_SEEN_KEY = 'hkf-tutorial-seen';
+function tutorialOn() { return !!(state.tutorial && state.tutorial.on); }
+function tutorialSeen() { try { return localStorage.getItem(TUTORIAL_SEEN_KEY) === '1'; } catch (e) { return false; } }
+function tutorialMarkSeen() { try { localStorage.setItem(TUTORIAL_SEEN_KEY, '1'); } catch (e) {} }
+function tutorialInstallGuards() {
+  if (window.__tutGuard || !window.tripsLib) return;
+  window.__tutGuard = true;
+  const save = window.tripsLib.saveActiveTrip, clear = window.tripsLib.clearActiveTrip;
+  window.tripsLib.saveActiveTrip = function (trip) { if (tutorialOn()) return; return save.call(window.tripsLib, trip); };
+  window.tripsLib.clearActiveTrip = function () { if (tutorialOn()) return; return clear.call(window.tripsLib); };
+}
+function tutorialHint() {
+  const s = state.tutorial;
+  if (!s) return '';
+  if (s.step === 1 || s.step === 3) return '撳「開始行程」';
+  if (s.step === 2 && s.sub === 'gps') return '撳「啟用 GPS 自動識別」';
+  if (s.step === 2 && s.sub === 'method') return '揀一個釣法';
+  if (s.step === 2 && s.sub === 'bait') return '揀一個釣餌';
+  if (s.step === 4) return '揀一種魚';
+  if (s.step === 5) return '輸入重量';
+  if (s.step === 6) return '撳「上載魚獲照片」';
+  if (s.step === 7) return '撳「上載顯示重量照片」';
+  if (s.step === 8) return '撳送出';
+  return '';
+}
+function tutorialTarget() {
+  const s = state.tutorial;
+  if (!s || !s.on) return null;
+  if (s.step === 1) return document.querySelector('#view-trips .start-trip-btn');
+  if (s.step === 2 && s.sub === 'gps') return document.getElementById('trip-gps-btn');
+  if (s.step === 2 && s.sub === 'method') return document.getElementById('trip-method-select');
+  if (s.step === 2 && s.sub === 'bait') return document.getElementById('trip-bait-select');
+  if (s.step === 3) return document.querySelector('#view-trips button[onclick="confirmStartTrip();"]');
+  if (s.step === 4) return document.querySelector('#species-selector .sp-card');
+  if (s.step === 5) return document.getElementById('catch-weight');
+  if (s.step === 6) return document.querySelector('#view-record .photo-upload');
+  if (s.step === 7) return document.getElementById('proof-upload');
+  if (s.step === 8) return document.querySelector('#view-record button[onclick="submitCatch()"]');
+  return null;
+}
+function tutorialEnsure() {
+  let layer = document.getElementById('tut-layer');
+  if (layer) return layer;
+  layer = document.createElement('div');
+  layer.id = 'tut-layer';
+  layer.hidden = true;
+  layer.innerHTML = '<div id="tut-d1"></div><div id="tut-d2"></div><div id="tut-d3"></div><div id="tut-d4"></div>'
+    + '<div id="tut-ring"></div><div id="tut-hint" role="status"></div>'
+    + '<div id="tut-bar"><span id="tut-count"></span><button type="button" id="tut-skip">略過教學</button></div>'
+    + '<div id="tut-done" hidden><p id="tut-done-msg">教學完成，可以正式記錄魚獲啦！</p><button type="button" class="btn btn-primary" id="tut-done-btn">知道</button></div>';
+  document.body.appendChild(layer);
+  document.getElementById('tut-skip').onclick = function () { skipTutorial(); };
+  document.getElementById('tut-done-btn').onclick = function () { tutorialFinish(); };
+  if (!window._tutScroll) {
+    window._tutScroll = true;
+    const main = document.getElementById('main');
+    if (main) main.addEventListener('scroll', function () {
+      if (!tutorialOn() || state.tutorial.step === 'done') return;
+      const el = tutorialTarget(); if (el) tutorialPlace(el);
+    }, { passive: true });
+    window.addEventListener('resize', function () { if (tutorialOn() && state.tutorial.step !== 'done') tutorialPaint(); });
+  }
+  return layer;
+}
+function tutorialHide() { const layer = document.getElementById('tut-layer'); if (layer) layer.hidden = true; }
+function tutorialPaint(tries) {
+  if (!tutorialOn()) return;
+  tries = tries || 0;
+  const layer = tutorialEnsure();
+  layer.hidden = false;
+  layer.dataset.step = String(state.tutorial.step);
+  layer.dataset.sub = state.tutorial.sub || '';
+  if (state.tutorial.step === 'done') { tutorialShowDone(); return; }
+  document.getElementById('tut-done').hidden = true;
+  document.getElementById('tut-bar').style.display = 'flex';
+  document.getElementById('tut-count').textContent = state.tutorial.step + '/8';
+  const el = tutorialTarget();
+  if (!el) { if (tries < 25) setTimeout(function () { tutorialPaint(tries + 1); }, 60); return; }
+  try { el.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (e) {}
+  requestAnimationFrame(function () {
+    if (!tutorialOn() || state.tutorial.step === 'done') return;
+    const now = tutorialTarget() || el;
+    const r = now.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) { if (tries < 25) setTimeout(function () { tutorialPaint(tries + 1); }, 60); return; }
+    tutorialPlace(now);
+  });
+}
+function tutorialPlace(el) {
+  if (!el || !tutorialOn() || state.tutorial.step === 'done') return;
+  const r = el.getBoundingClientRect();
+  if (r.width < 2 || r.height < 2) return;
+  const pad = 6, vw = window.innerWidth, vh = window.innerHeight;
+  let t = Math.max(0, r.top - pad), l = Math.max(0, r.left - pad);
+  let w = r.width + pad * 2, h = r.height + pad * 2;
+  if (t + h > vh) h = Math.max(8, vh - t);
+  if (l + w > vw) w = Math.max(8, vw - l);
+  const d1 = document.getElementById('tut-d1'), d2 = document.getElementById('tut-d2'), d3 = document.getElementById('tut-d3'), d4 = document.getElementById('tut-d4');
+  d1.style.cssText = 'display:block;top:0;left:0;width:100%;height:' + t + 'px';
+  d2.style.cssText = 'display:block;top:' + t + 'px;left:0;width:' + l + 'px;height:' + h + 'px';
+  d3.style.cssText = 'display:block;top:' + t + 'px;left:' + (l + w) + 'px;right:0;height:' + h + 'px';
+  d4.style.cssText = 'display:block;top:' + (t + h) + 'px;left:0;width:100%;bottom:0';
+  const ring = document.getElementById('tut-ring');
+  ring.style.cssText = 'display:block;left:' + l + 'px;top:' + t + 'px;width:' + w + 'px;height:' + h + 'px';
+  const hint = document.getElementById('tut-hint');
+  hint.style.display = 'block';
+  hint.textContent = tutorialHint();
+  const hintW = Math.min(280, vw - 16);
+  hint.style.maxWidth = hintW + 'px';
+  const navH = 78;
+  const below = t + h + 8;
+  let hy = (below + 46 < vh - navH) ? below : Math.max(52, t - 46);
+  let hx = Math.min(Math.max(8, l), Math.max(8, vw - hintW - 8));
+  hint.style.left = hx + 'px';
+  hint.style.top = hy + 'px';
+}
+function tutorialFullDim() {
+  const d1 = document.getElementById('tut-d1');
+  d1.style.cssText = 'display:block;top:0;left:0;width:100%;height:100%';
+  ['tut-d2', 'tut-d3', 'tut-d4'].forEach(function (id) { document.getElementById(id).style.display = 'none'; });
+  document.getElementById('tut-ring').style.display = 'none';
+  document.getElementById('tut-hint').style.display = 'none';
+}
+function tutorialShowDone() {
+  if (!tutorialOn()) return;
+  state.tutorial.step = 'done';
+  const layer = tutorialEnsure();
+  layer.hidden = false;
+  layer.dataset.step = 'done';
+  document.getElementById('tut-bar').style.display = 'none';
+  document.getElementById('tut-done').hidden = false;
+  tutorialFullDim();
+}
+function tutorialParkRealTrip() {
+  const t = state.tutorial;
+  if (!t || t.parked) return;
+  t.parked = true;
+  t.parkedTrip = state.activeTrip || null;
+  state.activeTrip = null;
+  try { window.tripsLib.stopTimer(); } catch (e) {}
+  try { renderActiveTripBanner(); } catch (e) {}
+}
+function tutorialClearPractice() {
+  state.tripPicking = false;
+  state.editingActiveTrip = false;
+  state.tripDetailId = null;
+  state.justEndedTripId = null;
+  state.tripPickingSpot = '';
+  state.tripPickingDetectedSpot = '';
+  state.tripPickingCustom = '';
+  state.tripPickingMethod = '';
+  state.tripPickingBait = '';
+  state.tripPickingLat = null;
+  state.tripPickingLng = null;
+  state.tripPickingAccuracy = null;
+  state.formSuccess = false;
+  state.selectedSpecies = null;
+  state.customSpecies = '';
+  state.selectedMethod = '';
+  state.customMethod = '';
+  state.selectedBait = '';
+  state.customBait = '';
+  state.selectedSpot = '';
+  state.customSpot = '';
+  state.catchLat = null;
+  state.catchLng = null;
+  state.catchAccuracy = null;
+  state.photoAgeSec = null;
+  state.speciesPicking = false;
+  state.speciesExpanded = false;
+  try { clearPhotoInputs(); } catch (e) {}
+}
+function tutorialFinish() {
+  if (!state.tutorial) { tutorialHide(); return; }
+  const snap = state.tutorial.tripKey;
+  const parked = state.tutorial.parkedTrip || null;
+  tutorialMarkSeen();
+  tutorialClearPractice();
+  state.activeTrip = parked;
+  try {
+    const now = localStorage.getItem('hk_fishing_active_trip');
+    if (now !== snap) {
+      if (snap == null) localStorage.removeItem('hk_fishing_active_trip');
+      else localStorage.setItem('hk_fishing_active_trip', snap);
+    }
+  } catch (e) {}
+  state.tutorial = null;
+  tutorialHide();
+  if (state.activeTrip && window.tripsLib) { try { window.tripsLib.startTimer(tickActiveTripBanner, 1000); } catch (e) {} }
+  try { renderActiveTripBanner(); } catch (e) {}
+  state.founderAt = Date.now();
+  switchView('my');
+}
+function skipTutorial() { tutorialFinish(); }
+function startTutorial() {
+  tutorialInstallGuards();
+  tutorialMarkSeen();
+  try { closeNameDialog(); } catch (e) {}
+  let tripKey = null;
+  try { tripKey = localStorage.getItem('hk_fishing_active_trip'); } catch (e) {}
+  state.tutorial = { on: true, step: 1, sub: 'gps', gen: Date.now(), parked: false, parkedTrip: null, tripKey: tripKey };
+  tutorialParkRealTrip();
+  state.tripPicking = false;
+  state.editingActiveTrip = false;
+  state.tripDetailId = null;
+  state.justEndedTripId = null;
+  state.formSuccess = false;
+  switchView('trips');
+  tutorialEnsure();
+  tutorialPaint();
+}
+function replayTutorial() { startTutorial(); }
+function maybeAutoTutorial() {
+  if (tutorialOn() || tutorialSeen()) return;
+  if (SB_ENABLED && !state.user) return;
+  const consent = document.getElementById('consent-modal');
+  if (consent && consent.classList.contains('show')) {
+    if (!consent._tutWatch) {
+      consent._tutWatch = true;
+      const obs = new MutationObserver(function () {
+        if (!consent.classList.contains('show')) { obs.disconnect(); maybeAutoTutorial(); }
+      });
+      obs.observe(consent, { attributes: true, attributeFilter: ['class'] });
+    }
+    return;
+  }
+  startTutorial();
+}
+function tutorialBeginPicker() {
+  if (!tutorialOn()) return;
+  state.tripPicking = true;
+  state.editingActiveTrip = false;
+  state.tripPickingSpot = '';
+  state.tripPickingDetectedSpot = '';
+  state.tripPickingCustom = '';
+  state.tripPickingMethod = '';
+  state.tripPickingBait = '';
+  state.tripPickingLat = null;
+  state.tripPickingLng = null;
+  state.tripPickingAccuracy = null;
+  state.tutorial.step = 2;
+  state.tutorial.sub = 'gps';
+  renderTripsView();
+  tutorialPaint();
+}
+function tutorialGpsSettled(pos) {
+  if (!tutorialOn() || state.tutorial.step !== 2 || state.tutorial.sub !== 'gps') return;
+  if (pos && pos.coords && isFinite(pos.coords.latitude) && isFinite(pos.coords.longitude)) {
+    state.tripPickingLat = Math.round(pos.coords.latitude * 1000) / 1000;
+    state.tripPickingLng = Math.round(pos.coords.longitude * 1000) / 1000;
+    state.tripPickingAccuracy = Math.round(pos.coords.accuracy || 0);
+  } else {
+    toast('定位未開到，教學照樣繼續');
+  }
+  state.tripPickingDetectedSpot = '教學位置';
+  state.tripPickingSpot = '教學位置';
+  state.tutorial.sub = 'method';
+  renderTripsView();
+  tutorialPaint();
+}
+function tutorialBeginRecord() {
+  if (!tutorialOn() || state.tutorial.step !== 3) return;
+  state.tripPicking = false;
+  state.editingActiveTrip = false;
+  state.tripPickingSpot = '';
+  state.tripPickingDetectedSpot = '';
+  state.tripPickingCustom = '';
+  state.tripPickingMethod = '';
+  state.tripPickingBait = '';
+  state.tripPickingLat = null;
+  state.tripPickingLng = null;
+  state.tripPickingAccuracy = null;
+  state.formSuccess = false;
+  state.selectedSpecies = null;
+  state.speciesPicking = false;
+  state.tutorial.step = 4;
+  switchView('record');
+  tutorialPaint();
+}
 const SPLIT_DISMISS_KEY = 'hkf-split-dismissed';
-function onboardDismissed() { try { return localStorage.getItem(ONBOARD_DISMISS_KEY) === '1'; } catch (e) { return false; } }
-function dismissOnboard() { try { localStorage.setItem(ONBOARD_DISMISS_KEY, '1'); } catch (e) {} if (state.view === 'my') renderMyView(); }
 function splitDismissed() { try { return sessionStorage.getItem(SPLIT_DISMISS_KEY) === '1'; } catch (e) { return false; } }
 function dismissSplit() { try { sessionStorage.setItem(SPLIT_DISMISS_KEY, '1'); } catch (e) {} if (state.view === 'my') renderMyView(); }
 function chooseShore() { state.shoreMode = true; state.ashoreTip = false; switchView('record'); }
@@ -4220,32 +4532,11 @@ function chooseTide() { state.shoreMode = false; state.ashoreTip = true; state.m
 function splitPromptHtml() {
   if (splitDismissed()) return '';
   return '<div class="split-card" id="split-card">'
-    + '<div class="split-head"><span>今日點？</span><button type="button" class="split-dismiss" onclick="dismissSplit()">收埋</button></div>'
+    + '<div class="split-head"><span>歡迎加入釣港</span><button type="button" class="split-dismiss" onclick="dismissSplit()">收埋</button></div>'
     + '<div class="split-actions">'
-    + '<button type="button" class="btn btn-primary" onclick="chooseShore()">我而家喺海邊</button>'
+    + '<button type="button" class="btn btn-primary" onclick="startTutorial()">開始行程教學</button>'
     + '<button type="button" class="btn btn-outline" onclick="chooseTide()">未落場，睇潮水</button>'
     + '</div></div>';
-}
-function onboardCardHtml() {
-  return '<div class="onboard-card" id="onboard-card">'
-    + '<div class="onboard-title">記低你第一條魚（大約 30 秒）</div>'
-    + '<ol class="onboard-steps"><li>揀魚種</li><li>入重量（公斤、克、斤、兩都得）</li><li>揀釣點：撳「定位」，或者揀「秘點」唔講喺邊</li></ol>'
-    + '<div class="onboard-actions">'
-    + '<button type="button" class="btn btn-primary" onclick="goToView(\'record\')">開始記第一條</button>'
-    + '<button type="button" class="btn btn-outline" onclick="dismissOnboard()">遲啲先</button>'
-    + '</div>'
-    + '</div>';
-}
-function lbDemoHtml() {
-  const photo = speciesPhotoHtml('〈魚種〉', { size: 56 });
-  return '<div class="lb-demo" role="note">'
-    + '<div class="lb-demo-top"><span class="lb-demo-tag">示範，非真實用戶</span></div>'
-    + '<div class="lb-demo-row">'
-    + '<div class="lb-demo-photo" aria-hidden="true">' + photo + '</div>'
-    + '<div><div class="lb-demo-name">示範釣友</div>'
-    + '<div class="lb-demo-detail">〈魚種〉 · 〈重量〉 · 〈日期〉</div>'
-    + '<div class="lb-demo-detail">秘點</div></div></div></div>'
-    + '<button type="button" class="btn btn-primary" onclick="goToView(\'record\')">去記魚</button>';
 }
 function renderMyView() {
   const view = document.getElementById('view-my');
@@ -4343,10 +4634,9 @@ function renderMyView() {
     + '<div class="collapsible-header" onclick="toggleSection(\''+recKey+'\')"><span class="collapsible-title">全部記錄（'+filtered.length+' 條）</span><span class="collapsible-arrow">▶</span></div>'
     + '<div class="collapsible-content">' + listHtml + '</div>'
     + '</div>';
-  const showOnboard = totalCatches === 0 && !onboardDismissed();
-  view.innerHTML = subTabsHtml + splitPromptHtml() + (showOnboard ? onboardCardHtml() : '')
+  view.innerHTML = subTabsHtml + splitPromptHtml()
     + '<div style="padding:0 16px"><div class="my-founder-slot"></div><div class="founder-banner-slot"></div></div>'
-    + (totalCatches === 0 && !showOnboard ? '<button class="btn btn-primary first-catch-cta" onclick="goToView(\'record\')">記錄第一條魚</button>' : '')   // v175
+    + (totalCatches === 0 ? '<button class="btn btn-primary first-catch-cta" onclick="recordFirstFish()">記錄第一條魚</button>' : '')   // v175
     + '<div class="stats-row">'
     + '<div class="stat-card"><div class="stat-value">'+totalCatches+'</div><div class="stat-label">總魚獲</div></div>'
     + '<div class="stat-card"><div class="stat-value">'+weightDisplay({weight: totalWeightKg}).value+'<span style="font-size:13px">'+weightDisplay({weight: totalWeightKg}).unit+'</span></div><div class="stat-label">總重量</div></div>'
@@ -5241,9 +5531,7 @@ function renderLeaderboardView() {
   if (loading) {
     listHtml = '<div class="empty-state"><div class="empty-text">載入排行榜中...</div></div>';
   } else if (lbData.length === 0) {
-    listHtml = useServer
-      ? lbDemoHtml()
-      : '<div class="empty-state"><div class="empty-text">暫無排行榜數據<br><span style="font-size:12px;">符合上榜條件嘅魚獲先會出現喺呢度</span></div></div>';
+    listHtml = '<div class="empty-state"><div class="empty-text">暫無排行榜數據<br><span style="font-size:12px;">符合上榜條件嘅魚獲先會出現喺呢度</span></div></div>';
   } else {
     lbData.forEach((item, idx) => {
       const rank = idx + 1; let rankClass = 'normal';
@@ -6212,7 +6500,7 @@ function renderView(name) {
   else if (name==='my') renderMyView();
   else if (name==='trips') {  // Route H
     // 進入 trips view 時若 trips 還沒載過，重新拉
-    if (SB_ENABLED && state.user && (!state.trips || state.trips.length === 0)) {
+    if (!tutorialOn() && SB_ENABLED && state.user && (!state.trips || state.trips.length === 0)) {
       dbLoadTrips().then(trips => { state.trips = trips; renderTripsView(); });
     } else renderTripsView();
   }
@@ -6753,6 +7041,7 @@ async function init() {
     checkSharedCatch();
     switchView('my');
     showApp();
+    maybeAutoTutorial();
   } catch (e) {
     console.error('[init] 初始化失敗:', e);
     showInitError('載入時發生錯誤', e.message || '請重新載入頁面');
@@ -6802,7 +7091,7 @@ function startUsageTracking() {
   };
   const flush = async () => {
     tick();
-    if (_usagePend < 5 || !state.user || !window.sb) return;
+    if (tutorialOn() || _usagePend < 5 || !state.user || !window.sb) return;
     const n = Math.min(_usagePend, 120); _usagePend -= n;
     try { const r = await sb.rpc('track_usage', { p_seconds: n }); if (r && r.error) _usagePend += n; }
     catch (e) { _usagePend += n; }
