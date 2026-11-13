@@ -1201,12 +1201,6 @@ button { touch-action: manipulation; }
   .split-dismiss { background: none; border: 0; color: var(--gray-4); font-size: 13px; font-family: inherit; cursor: pointer; padding: 4px 2px; }
   .split-actions { display: flex; gap: 8px; }
   .split-actions .btn { width: auto; flex: 1; min-height: 48px; padding: 8px 6px; font-size: 14px; line-height: 1.3; }
-  .onboard-card { margin: 0 0 12px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 12px 14px; }
-  .onboard-title { font-size: 16px; font-weight: 800; color: #92400e; margin-bottom: 6px; }
-  .onboard-steps { margin: 0 0 10px; padding-left: 1.3em; font-size: 14px; line-height: 1.55; color: var(--dark); }
-  .onboard-actions { display: flex; gap: 8px; margin-bottom: 8px; }
-  .onboard-actions .btn { width: auto; flex: 1; min-height: 46px; padding: 8px 6px; font-size: 15px; }
-  .onboard-note { font-size: 13px; color: #92400e; line-height: 1.5; }
   .first-progress { font-size: 13px; font-weight: 700; color: var(--teal-dark); background: var(--teal-light); border-radius: 10px; padding: 8px 10px; margin: 0 0 12px; line-height: 1.45; }
   .founder-banner { background: linear-gradient(135deg,#fef3c7,#fde68a); border: 1px solid #fcd34d; color: #92400e; border-radius: 12px; padding: 10px 12px; font-size: 13px; font-weight: 700; line-height: 1.5; text-align: center; margin: 0 0 12px; }
   .founder-banner b { font-size: 15px; }
@@ -2148,10 +2142,6 @@ function successEligLine() {
   if (r.eligible) return '符合上榜條件，已加入排行榜';
   return '已加入個人歷史。未計入排行榜：' + r.reasons.map(c => escapeHtml(lbLib.reasonText(c))).join('、');
 }
-function recordTopTipHtml() {
-  if (state.activeTrip || state.shoreMode) return '';
-  return '<div class="lb-tip">想上排行榜？即時影相 ＋ 開咗行程（數量／品種王者要行程）</div>';
-}
 function firstFishProgressHtml() {
   if (state.catches.filter(c => c.isMine && !c.isDemo).length > 0) return '';
   return '<div class="first-progress" id="first-progress">第一條魚：① 魚種  ② 重量  ③ 釣點</div>';
@@ -2207,7 +2197,6 @@ function renderRecordView() {
   // Route H: 進行中行程的提示由頂部 banner 統一顯示，表單內不再重複
   const tripBadge = '';
   view.innerHTML = '<div class="card"><div class="section-title">記錄新魚獲</div>'
-    + recordTopTipHtml()
     + firstFishProgressHtml()
     + tripBadge
     + '<div class="form-group"><label class="form-label">魚種 <span class="req">*</span></label><div id="species-selector"></div>'
@@ -4535,10 +4524,7 @@ function tutorialBeginRecord() {
   switchView('record');
   tutorialPaint();
 }
-const ONBOARD_DISMISS_KEY = 'hkf-onboard1-dismissed';
 const SPLIT_DISMISS_KEY = 'hkf-split-dismissed';
-function onboardDismissed() { try { return localStorage.getItem(ONBOARD_DISMISS_KEY) === '1'; } catch (e) { return false; } }
-function dismissOnboard() { try { localStorage.setItem(ONBOARD_DISMISS_KEY, '1'); } catch (e) {} if (state.view === 'my') renderMyView(); }
 function splitDismissed() { try { return sessionStorage.getItem(SPLIT_DISMISS_KEY) === '1'; } catch (e) { return false; } }
 function dismissSplit() { try { sessionStorage.setItem(SPLIT_DISMISS_KEY, '1'); } catch (e) {} if (state.view === 'my') renderMyView(); }
 function chooseShore() { state.shoreMode = true; state.ashoreTip = false; switchView('record'); }
@@ -4551,16 +4537,6 @@ function splitPromptHtml() {
     + '<button type="button" class="btn btn-primary" onclick="startTutorial()">開始行程教學</button>'
     + '<button type="button" class="btn btn-outline" onclick="chooseTide()">未落場，睇潮水</button>'
     + '</div></div>';
-}
-function onboardCardHtml() {
-  return '<div class="onboard-card" id="onboard-card">'
-    + '<div class="onboard-title">記低你第一條魚（大約 30 秒）</div>'
-    + '<ol class="onboard-steps"><li>揀魚種</li><li>入重量（公斤、克、斤、兩都得）</li><li>揀釣點：撳「定位」，或者揀「秘點」唔講喺邊</li></ol>'
-    + '<div class="onboard-actions">'
-    + '<button type="button" class="btn btn-primary" onclick="goToView(\'record\')">開始記第一條</button>'
-    + '<button type="button" class="btn btn-outline" onclick="dismissOnboard()">遲啲先</button>'
-    + '</div>'
-    + '</div>';
 }
 function renderMyView() {
   const view = document.getElementById('view-my');
@@ -4658,10 +4634,9 @@ function renderMyView() {
     + '<div class="collapsible-header" onclick="toggleSection(\''+recKey+'\')"><span class="collapsible-title">全部記錄（'+filtered.length+' 條）</span><span class="collapsible-arrow">▶</span></div>'
     + '<div class="collapsible-content">' + listHtml + '</div>'
     + '</div>';
-  const showOnboard = totalCatches === 0 && !onboardDismissed();
-  view.innerHTML = subTabsHtml + splitPromptHtml() + (showOnboard ? onboardCardHtml() : '')
+  view.innerHTML = subTabsHtml + splitPromptHtml()
     + '<div style="padding:0 16px"><div class="my-founder-slot"></div><div class="founder-banner-slot"></div></div>'
-    + (totalCatches === 0 && !showOnboard ? '<button class="btn btn-primary first-catch-cta" onclick="goToView(\'record\')">記錄第一條魚</button>' : '')   // v175
+    + (totalCatches === 0 ? '<button class="btn btn-primary first-catch-cta" onclick="goToView(\'record\')">記錄第一條魚</button>' : '')   // v175
     + '<div class="stats-row">'
     + '<div class="stat-card"><div class="stat-value">'+totalCatches+'</div><div class="stat-label">總魚獲</div></div>'
     + '<div class="stat-card"><div class="stat-value">'+weightDisplay({weight: totalWeightKg}).value+'<span style="font-size:13px">'+weightDisplay({weight: totalWeightKg}).unit+'</span></div><div class="stat-label">總重量</div></div>'
