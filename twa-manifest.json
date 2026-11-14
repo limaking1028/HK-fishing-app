@@ -6,7 +6,7 @@
   "display": "standalone",
   "themeColor": "#0a6e7a",
   "backgroundColor": "#0a6e7a",
-  "enableNotifications": false,
+  "enableNotifications": true,
   "startUrl": "/HK-fishing-app/",
   "iconUrl": "https://limaking1028.github.io/HK-fishing-app/icon-512.png",
   "maskableIconUrl": "https://limaking1028.github.io/HK-fishing-app/icon-maskable-512.png",
