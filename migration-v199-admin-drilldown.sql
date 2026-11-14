@@ -36,7 +36,7 @@ returns jsonb language plpgsql stable security definer set search_path = public 
 begin
  if not public.is_admin() then raise exception 'forbidden'; end if;
  return coalesce((select jsonb_agg(to_jsonb(q) order by q.created_at desc, q.id desc) from (
-  select c.id, c.created_at, c.user_id, u.display_name, c.species, c.weight_kg, c.spot,
+  select c.id, c.created_at, c.user_id, u.display_name, c.species, coalesce(c.weight_kg, c.weight) as weight_kg, c.spot,
    c.photo_url, c.leaderboard_eligible as eligible, c.ineligible_reason as reason,
    c.admin_excluded as excluded, c.trip_id
   from public.catches c left join public.users u on u.id=c.user_id
@@ -77,6 +77,7 @@ begin
     where x.day>=today-6 and not exists(select 1 from public.founders_excluded fx where fx.user_id=x.user_id)),
   'daily', (select jsonb_agg(jsonb_build_object('d',d.day,
     'n',(select count(*) from public.catches c where c.user_id is not null and (c.created_at at time zone 'Asia/Hong_Kong')::date=d.day and not exists(select 1 from public.founders_excluded fx where fx.user_id=c.user_id)),
+    'u',(select count(distinct c.user_id) from public.catches c where c.user_id is not null and (c.created_at at time zone 'Asia/Hong_Kong')::date=d.day and not exists(select 1 from public.founders_excluded fx where fx.user_id=c.user_id)),
     'new_users',(select count(*) from auth.users a where (a.created_at at time zone 'Asia/Hong_Kong')::date=d.day and not exists(select 1 from public.founders_excluded fx where fx.user_id=a.id)),
     'active_users',(select count(distinct x.user_id) from public.app_usage x join auth.users a on a.id=x.user_id where x.day=d.day and not exists(select 1 from public.founders_excluded fx where fx.user_id=x.user_id))) order by d.day)
     from (select today-i as day from generate_series(0,13) i) d),
