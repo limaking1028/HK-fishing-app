@@ -49,7 +49,10 @@ self.addEventListener('notificationclick', e => {
     url.search = new URLSearchParams({view: 'leaderboard', lbType: board, lbPeriod: 'all'}).toString();
     const windows = await self.clients.matchAll({type: 'window', includeUncontrolled: true});
     const app = windows.find(w => new URL(w.url).origin === url.origin && new URL(w.url).pathname.startsWith(new URL(self.registration.scope).pathname));
-    if (app) { await app.navigate(url.href); await app.focus(); }
-    else await self.clients.openWindow(url.href);
+    if (app) {
+      try { await app.navigate(url.href); } catch (_) { /* The existing window may still be focusable. */ }
+      try { await app.focus(); return; } catch (_) { /* Closed/unfocusable window: open a new one. */ }
+    }
+    await self.clients.openWindow(url.href);
   })());
 });

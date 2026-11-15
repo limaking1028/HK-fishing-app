@@ -151,8 +151,12 @@ begin
    insert into public.lb_notify_state(id,snapshot) values(event_key,after_rows) on conflict(id) do update set snapshot=excluded.snapshot;
  else
    delete from public.lb_notify_state where id=event_key returning snapshot into before_rows;
+   if before_rows is null then return new; end if;
    for n in select * from jsonb_array_elements(after_rows) loop
      select x into old_row from jsonb_array_elements(before_rows) x where x->>'board'=n->>'board' and x->>'species'=n->>'species';
+     -- Quantity/species incumbents are not records: notify only when the holder changes.
+     if n->>'board' in ('quantity','species') and old_row is not null
+        and n->>'user_id'=old_row->>'user_id' then continue; end if;
      -- Only a new public catch/review by the actual new leader may generate notifications.
      if (n->>'user_id')::uuid=actor and (old_row is null or
           ((n->>'value')::numeric >= (old_row->>'value')::numeric and
@@ -165,6 +169,10 @@ begin
    end loop;
 
  end if;
+ return new;
+exception when others then
+ -- This block runs for BOTH BEFORE and AFTER. Roll back only notification work,
+ -- including temporary auth claims, so a push failure never rejects a catch/review.
  return new;
 end $$;
 -- BEFORE name sorts after the existing eligibility BEFORE triggers.

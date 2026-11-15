@@ -82,7 +82,7 @@ export async function handler(request: Request): Promise<Response> {
       for (const device of devices) {
         if (delivered.has(device.id)) continue;
         const allowed = await checked(client.rpc('push_delivery_allowed', {p_job: job.id, p_claim: job.claim_id, p_device: device.id}));
-        if (!allowed) { retry = true; continue; }
+        if (!allowed) continue; // Authorization refusal is skipped, not a delivery failure.
         try {
           const result = await send(device, payload(job));
           if (result === 'invalid') await checked(client.from('device_tokens').update({enabled: false}).eq('id', device.id).eq('user_id', job.user_id));

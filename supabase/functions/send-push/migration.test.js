@@ -80,6 +80,14 @@ await q(`insert into lb_species_review values('${uid(7)}','泥鯭','approved','$
 assert.equal(await scalar("select count(*)::int from notification_outbox where board='species' and type='record_broken' and user_id='"+uid(7)+"'"),1);
 assert.equal(await scalar("select count(*)::int from notification_outbox where board='species' and type='overtaken' and user_id='"+uid(6)+"'"),1);
 console.log('PASS quantity/species approval transitions, including multi-row approval statements');
+// Do not mistake incumbent quantity/species growth for a new champion.
+await q('delete from notification_outbox;');
+await add(24,7,'三鬚',1);
+await q(`insert into lb_species_review values('${uid(7)}','三鬚','approved','${uid(24)}');`);
+assert.equal(await scalar("select count(*)::int from notification_outbox where board in ('quantity','species')"),0);
+console.log('PASS incumbent quantity/species increases do not notify');
+// Use a real leadership change to seed the send-time authorization test below.
+await add(25,8,'泥鯭',2);await approve(25);
 // Token/prefs/bans reject delivery even after a job has already been claimed.
 await q(`update notification_prefs set enabled=true; update notification_outbox set send_after='2026-01-01';`);
 const batch=await rows('select * from push_claim_outbox()');
@@ -90,6 +98,32 @@ await q(`update auth.users set banned_until='infinity' where id='${job.user_id}'
 assert.equal(await scalar(`select push_delivery_allowed('${job.id}','${job.claim_id}','${token}')`),false);
 await q(`update auth.users set banned_until=null;`);
 console.log('PASS post-claim ban prevents outbound delivery');
+// Inject notification-only faults. Primary catches/reviews must still commit.
+const enqueueDefinition=await scalar("select pg_get_functiondef('public.push_enqueue_one(uuid,text,text,text)'::regprocedure)");
+await q(`create or replace function public.push_enqueue_one(p_user uuid,p_type text,p_board text,p_species text) returns void language plpgsql security definer set search_path=public as $$ begin raise exception 'fixture enqueue fault'; end $$; delete from notification_outbox;`);
+await add(26,8,'泥鯭',40);await approve(26);
+assert.equal(await scalar(`select count(*)::int from catches where id='${uid(26)}'`),1);
+assert.equal(await scalar(`select count(*)::int from lb_catch_approval where catch_id='${uid(26)}'`),1);
+assert.equal(await scalar('select count(*)::int from notification_outbox'),0);
+await q(enqueueDefinition);
+console.log('PASS AFTER enqueue exception cannot reject catch or approval');
+await q(`create function public.test_push_before_fault() returns trigger language plpgsql as $$ begin raise exception 'fixture before image fault'; end $$;
+create trigger test_push_before_fault before insert on public.lb_notify_state for each row execute function public.test_push_before_fault();
+select set_config('request.jwt.claim.sub','${uid(8)}',false);`);
+await add(27,8,'泥鯭',50);await approve(27);
+assert.equal(await scalar(`select count(*)::int from catches where id='${uid(27)}'`),1);
+assert.equal(await scalar(`select count(*)::int from lb_catch_approval where catch_id='${uid(27)}'`),1);
+assert.equal(await scalar('select count(*)::int from notification_outbox'),0);
+assert.equal(await scalar("select current_setting('request.jwt.claim.sub')"),uid(8));
+await q('drop trigger test_push_before_fault on public.lb_notify_state;');
+console.log('PASS BEFORE exception cannot reject writes, restores auth claims, and missing before image never emits record notifications');
+// Explicitly remove a good before image between row BEFORE and AFTER.
+await q(`create function public.test_push_forget_before() returns trigger language plpgsql as $$ begin delete from public.lb_notify_state; return new; end $$;
+create trigger zzz_push_forget_before before insert on public.lb_catch_approval for each row execute function public.test_push_forget_before();`);
+await add(28,8,'泥鯭',60);await q('delete from notification_outbox;');await approve(28);
+assert.equal(await scalar('select count(*)::int from notification_outbox'),0);
+await q('drop trigger zzz_push_forget_before on public.lb_catch_approval;');
+console.log('PASS null before_rows exits without false record notification');
 // RLS cannot access another user or outbox, or execute internal functions.
 await q(`select set_config('request.jwt.claim.sub','${uid(1)}',false);set role authenticated;`);
 assert.equal(await scalar('select count(*)::int from device_tokens'),1);
