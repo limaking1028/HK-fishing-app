@@ -92,10 +92,7 @@ workflows:
       - name: Build number
         script: |
           cd ios/App
-          # Dedicated monotonic test sequence; dotted build numbers avoid prod integer collisions.
-          # PROJECT_BUILD_NUMBER is the Codemagic project-wide build counter.
-          : "${PROJECT_BUILD_NUMBER:?Codemagic project counter required}"
-          agvtool new-version -all "2.0.$((PROJECT_BUILD_NUMBER + 1))"
+          agvtool new-version -all $(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0) + 1))
       - name: Build IPA
         script: |
           xcode-project build-ipa --workspace ios/App/App.xcworkspace --scheme App

@@ -32,7 +32,15 @@ function transform(file, source, manifest) {
       for (const id of ['auth-tab-register', 'auth-forgot-btn']) s = replace(s, 'id="' + id + '"', 'disabled title="測試環境未啟用" id="' + id + '"');
       s = s.replace('用電郵登入／註冊 ›', '用電郵及密碼登入 ›');
       s = replace(s, '<body', '<body data-hkf-env="test"');
-      s = replace(s, '</head>', '<style>#hkf-test-banner{position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#ffd600;color:#111;text-align:center;font-weight:bold;padding:calc(env(safe-area-inset-top) + 4px) 8px 4px;pointer-events:none}body{padding-top:40px}</style></head>');
+      s = replace(s, '</head>', `<style>
+:root{--hkf-safe-top:env(safe-area-inset-top,0px);--hkf-banner-height:calc(var(--hkf-safe-top) + 28px)}
+#hkf-test-banner{position:fixed;top:0;left:0;right:0;height:var(--hkf-banner-height);z-index:2147483647;background:#ffd600;color:#111;text-align:center;font-size:16px;line-height:20px;font-weight:bold;padding:calc(var(--hkf-safe-top) + 4px) 8px 4px;pointer-events:none}
+body{padding-top:var(--hkf-banner-height)}
+#app{min-height:calc(100vh - var(--hkf-banner-height));min-height:calc(100dvh - var(--hkf-banner-height))}
+#header{top:var(--hkf-banner-height);padding:12px 16px}
+.login-screen{top:var(--hkf-banner-height)}
+#tut-bar{top:calc(var(--hkf-banner-height) + 8px)}
+</style></head>`);
       s = s.replace(/(<body[^>]*>)/, '$1<div id="hkf-test-banner" role="status">測試環境</div>');
     }
     s = s.replace(/^.*切換到新項目.*$/m, '// Environment supplied by iOS build manifest.');

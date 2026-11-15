@@ -17,8 +17,9 @@ test('both iOS bundles parse, all files scan, original web and Android sources u
     assert.ok(!html.includes('Object.keys(HKF.local)'));assert.ok(!html.includes('caches.delete'));
     assert.equal(html.includes('id="hkf-test-banner"'),env==='test');
     assert.equal((html.match(/HKF.createClient\(/g)||[]).length,2);
-    if(env==='test'){
-      function scan(dir){for(const e of fs.readdirSync(dir,{withFileTypes:true})){const f=path.join(dir,e.name);if(e.isDirectory())scan(f);else assert.ok(!fs.readFileSync(f).includes(Buffer.from('lucizjohiycxdynrkjus')),f);}}scan(path.join(root,'www'));
+    {
+      const forbidden=env==='test'?'lucizjohiycxdynrkjus':'qyijyrcbzalvqiautvjf';
+      function scan(dir){for(const e of fs.readdirSync(dir,{withFileTypes:true})){const f=path.join(dir,e.name);if(e.isDirectory())scan(f);else assert.ok(!fs.readFileSync(f).includes(Buffer.from(forbidden)),f);}}scan(path.join(root,'www'));
     }
   }
   originals.forEach((b,i)=>assert.deepEqual(fs.readFileSync(path.join(root,['index.html','lib/auth.js','lib/push.js','sw.js'][i])),b));
@@ -30,4 +31,30 @@ test('service worker fetch stays same-origin photo-only, activate only removes o
   vm.runInNewContext(code,{self:{addEventListener(n,f){handlers[n]=f;},clients:{claim(){}},location:{origin:'https://localhost'}},caches:{keys:async()=>[prefix+'old','hkf:prod:other:old','unrelated'],delete:async k=>removed.push(k)},URL});
   let promise;handlers.activate({waitUntil(p){promise=p;}});await promise;assert.deepEqual(removed,[prefix+'old']);
   for(const url of ['https://remote/photos/fish.webp','https://localhost/index.html','https://localhost/auth/v1/token'])handlers.fetch({request:{url,method:'GET'},respondWith(){assert.fail('Unexpected interception');}});
+});
+
+test('both builds reject contamination from the other environment, including binary files',()=>{
+  const fixture=fs.mkdtempSync(path.join(root,'lib/.hkf-scan-'));
+  try{
+    for(const [env,ref] of [['prod','qyijyrcbzalvqiautvjf'],['test','lucizjohiycxdynrkjus']]){
+      fs.writeFileSync(path.join(fixture,'contaminated.bin'),Buffer.concat([Buffer.from([0,255]),Buffer.from(ref)]));
+      const result=build(env);assert.notEqual(result.status,0);assert.match(result.stderr,/Other environment ref found/);
+      assert.equal(fs.existsSync(path.join(root,'www')),false);
+    }
+  }finally{fs.rmSync(fixture,{recursive:true,force:true});}
+});
+test('test and production workflows both increment the latest integer TestFlight build',()=>{
+  const yaml=fs.readFileSync(path.join(root,'codemagic.yaml'),'utf8');
+  const scripts=[...yaml.matchAll(/      - name: Build number\n        script: \|\n([\s\S]*?)(?=      - name:)/g)].map(m=>m[1]);
+  assert.equal(scripts.length,2);assert.equal(scripts[0],scripts[1]);assert.ok(!yaml.includes('2.0.'));
+  // Execute their exact shell snippet against fake local CLIs: test 42 -> prod 43.
+  const dir=fs.mkdtempSync(path.join(require('node:os').tmpdir(),'hkf-number-'));
+  try{
+    fs.writeFileSync(path.join(dir,'app-store-connect'),'#!/bin/sh\ncat "$HKF_COUNTER"\n',{mode:0o755});
+    fs.writeFileSync(path.join(dir,'agvtool'),'#!/bin/sh\nprintf "%s" "$3" > "$HKF_COUNTER"\n',{mode:0o755});
+    const counter=path.join(dir,'counter');fs.writeFileSync(counter,'41');
+    const run=script=>cp.spawnSync('bash',['-e','-c',script],{cwd:root,env:{...process.env,PATH:dir+':'+process.env.PATH,HKF_COUNTER:counter,APP_STORE_APPLE_ID:'offline-app'},encoding:'utf8'});
+    assert.equal(run(scripts[1]).status,0);assert.equal(fs.readFileSync(counter,'utf8'),'42');
+    assert.equal(run(scripts[0]).status,0);assert.equal(fs.readFileSync(counter,'utf8'),'43');
+  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });

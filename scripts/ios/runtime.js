@@ -42,6 +42,32 @@
     if (legacyOwner !== owner) return null;
     return raw.getItem(name);
   }
+  // Account deletion only: remove records with an explicit matching owner.
+  // Legacy shared collections can contain multiple users; never delete a whole key by prefix.
+  function clearLegacyOwner() {
+    if (m.env !== 'prod' || owner === 'anon') return;
+    const belongs = value => value && typeof value === 'object' &&
+      (value.userId === owner || value.user_id === owner) &&
+      (!value.userId || value.userId === owner) && (!value.user_id || value.user_id === owner);
+    for (const name of userKeys) {
+      const value = raw.getItem(name);
+      if (value === null) continue;
+      try {
+        const data = JSON.parse(value);
+        if (Array.isArray(data)) {
+          const kept = data.filter(record => !belongs(record));
+          if (kept.length !== data.length) {
+            if (kept.length) raw.setItem(name, JSON.stringify(kept)); else raw.removeItem(name);
+          }
+        } else if (belongs(data)) raw.removeItem(name);
+        // Ownerless trip/tally/preferences and malformed values are ambiguous: preserve them.
+      } catch (_) {}
+    }
+    const legacyAuth = 'sb-' + m.ref + '-auth-token';
+    try { if (JSON.parse(raw.getItem(legacyAuth) || 'null')?.user?.id === owner) raw.removeItem(legacyAuth); } catch (_) {}
+    if (raw.getItem('hk_fishing_user_id') === owner) raw.removeItem('hk_fishing_user_id');
+    raw.removeItem('hk-push-asked:' + owner);
+  }
   function adapter(store, persistent) {
     return {
       getItem(name) {
@@ -63,6 +89,8 @@
     getItem(k) {
       if (!k.startsWith(prefix + 'auth:')) throw new Error('Auth storage refused');
       let v = raw.getItem(k);
+      // Supabase's default key is derived from the URL host's first component.
+      // Preserve its serialized session exactly; new-slot tombstones take precedence.
       if (v === null && m.env === 'prod' && k === authKey) {
         v = raw.getItem('sb-' + m.ref + '-auth-token');
         if (v !== null) raw.setItem(k, v);
@@ -77,6 +105,7 @@
     setOwner(id) { owner = id || 'anon'; },
     legacyCount() { return names(raw).filter(k => /^(hk[_-]|hkf-|sb-|wx_last_good|maptiler_key|map_show_tide)/.test(k)).length; },
     clearOwner() {
+      clearLegacyOwner();
       const p = prefix + enc(owner) + ':';
       for (const store of [raw, session]) for (const k of names(store)) if (k.startsWith(p)) store.setItem(k, '');
       for (const name of userKeys) raw.setItem(key(name), '');

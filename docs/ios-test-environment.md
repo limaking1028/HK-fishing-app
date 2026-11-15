@@ -18,7 +18,7 @@ Both bundles contain `hkf-env.js`/`hkf-env.json` with env, ref, URL and public a
 An independent env/ref seal in index is checked synchronously before app scripts.
 Missing/invalid manifests stop boot, with a visible error, without a database fallback.
 All Supabase creation paths use the same checked manifest and explicit session storageKey.
-The build scans **every file** in test output for the production ref and refuses contamination.
+The build scans **every file** in both outputs for the other environment’s ref and refuses contamination.
 
 Test: fixed yellow 測試環境 banner, test database, password login only, disabled
 Apple/Google/register/OTP/reset controls and API methods, exact
@@ -48,8 +48,13 @@ The legacy production Supabase session may be copied to the new explicit session
 
 Writes always use new keys. Deletion writes an empty tombstone to the new key so a preserved
 legacy queue/session cannot be resurrected on the next startup. Account deletion clears only
-the current owner and this environment's auth slot, never regex-deletes old or other-owner data.
-Original legacy values remain for rollback to an old App Store binary. No legacy data is
+the current owner and this environment's auth slot. In prod, account deletion also filters
+legacy catch/unsynced/imported arrays by explicit `userId`/`user_id`, removes explicitly owned
+legacy objects, removes a legacy auth session only if `session.user.id` matches, and removes
+that user's exact legacy push prompt flag/ID marker. Conflicting, missing or malformed ownership
+is preserved; in particular ownerless trip/tally/preferences cannot safely be attributed from
+one last-user marker. Other users' unsynced records are never removed. No regex deletion.
+Outside explicit account deletion, original legacy values remain for rollback to an old App Store binary. No legacy data is
 silently claimed by a different user. Existing cloud behavior for older catch caches is retained
 (the current source's `migrateLocalCatches()` is intentionally a no-op).
 
@@ -59,13 +64,34 @@ No workflow has a `triggering` block. Existing simulator/release workflows expli
 New `ios-testflight-test` uses test and the same `app.hkfishing.ios` bundle identifier.
 Configure environment group `hkf_test_environment` with `HKF_TEST_SUPABASE_ANON_KEY` in
 Codemagic UI. Do not commit the key. Release signing/publishing steps are unchanged.
-Test build numbers use `2.0.<PROJECT_BUILD_NUMBER + 1>`, an independent monotonic dotted
-sequence; prod retains its latest-TestFlight-plus-one rule. App Store Connect ordering acceptance
-with the existing app/version must be checked before a future manual submission; it has not
-been exercised here. Same bundle ID means installing test replaces prod on the device;
+Both workflows use the identical integer `latest TestFlight build number + 1` calculation;
+a test upload advances the same App Store Connect sequence and the next prod build can increment
+it normally. The workflows/banner identify the environment, not a separate number format.
+A local fake-CLI regression executes the actual YAML shell snippets for test then prod and
+verifies consecutive integer values. As with the existing workflow, run submissions serially
+to avoid two simultaneous builds selecting the same latest number. Same bundle ID means installing test replaces prod on the device;
 namespace isolation protects local data, but OS notification permission is shared by that ID.
 
 Validation is local/offline: Node VM tests, both generated bundles, auth/SW/push mocks and browser
 regressions. No remote SQL, merge, deployment, Codemagic invocation, signing or TestFlight upload.
 Real iPhone, APNs delivery, dashboard key configuration, Xcode signing and Codemagic remain
 manual validation items. No passwords, service-role keys or signing material are used.
+
+## Acceptance regression checks
+
+`npm ci` installs the Supabase JS SDK as a dev/test dependency only (not copied into www).
+The session upgrade test uses the real SDK default storageKey and `getSession()`, an unexpired
+synthetic session, and a fetch stub that rejects all network calls. It verifies the old session
+is still authenticated after migration, the old key remains byte-for-byte, and an existing new
+slot or logout tombstone is never overwritten. No real tokens or accounts are used.
+
+The generated-browser smoke checks 0px and simulated 59px safe areas at 390×844. Banner height,
+body inset, sticky header, login screen and tutorial bar share one CSS height; the header does
+not duplicate safe-area padding. Screenshots are local mock/tutorial previews, not real-device
+validation. `HKF_SCREENSHOT_DIR` selects where to save the page-top and tutorial images.
+
+Committed review screenshots (390×844 viewport, 2× scale, simulated 59px top safe area,
+local fixture user only):
+
+- [Test page top](screenshots/test-env-top-safe59.png)
+- [Test tutorial bar](screenshots/test-env-tutorial-safe59.png)

@@ -37,10 +37,11 @@ visit(out, f => {
 fs.copyFileSync(path.join(__dirname,'ios/runtime.js'),path.join(out,'lib/hkf-runtime.js'));
 fs.writeFileSync(path.join(out,'hkf-env.js'),'window.HKF_MANIFEST=' + JSON.stringify(manifest) + ';\n');
 fs.writeFileSync(path.join(out,'hkf-env.json'),JSON.stringify(manifest,null,2));
-if (env === 'test') visit(out,f => {
-  if (fs.readFileSync(f).includes(Buffer.from('lucizjohiycxdynrkjus'))) {
+const forbiddenRef = env === 'test' ? 'lucizjohiycxdynrkjus' : 'qyijyrcbzalvqiautvjf';
+visit(out,f => {
+  if (fs.readFileSync(f).includes(Buffer.from(forbiddenRef))) {
     fs.rmSync(out,{recursive:true,force:true});
-    throw new Error('Production ref found in test bundle');
+    throw new Error('Other environment ref found in ' + env + ' bundle');
   }
 });
 console.log('www/ ready: ' + env + ' (' + ref + ')');
