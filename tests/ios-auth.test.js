@@ -4,9 +4,10 @@ const SRC = fs.readFileSync(__dirname + '/../lib/auth.js', 'utf8');
 const same = (a, b) => assert.strictEqual(JSON.stringify(a), JSON.stringify(b)); // cross-realm (vm) safe
 const WEB = 'https://limaking1028.github.io/HK-fishing-app';
 
-function load(capacitor) {
+function load(capacitor, source = SRC) {
   const calls = [], listeners = [];
   const sb = { auth: {
+    signInWithPassword: async (a) => (calls.push(['password', a]), {data:{}, error:null}),
     signInWithOtp: async (a) => (calls.push(['otp', a]), { error: null }),
     signUp: async (a) => (calls.push(['signUp', a]), { data: { session: null, user: { identities: [1] } }, error: null }),
     resetPasswordForEmail: async (e, o) => (calls.push(['reset', o]), { error: null }),
@@ -20,8 +21,8 @@ function load(capacitor) {
   };
   const window = { location: { origin: 'https://limaking1028.github.io', pathname: '/HK-fishing-app/' },
     sb, localStorage: {}, Capacitor: capacitor, console };
-  const ctx = vm.createContext({ window, console, URL, setTimeout, clearTimeout, localStorage: {} });
-  vm.runInContext(SRC, ctx);
+  const ctx = vm.createContext({ window, console, URL, setTimeout, clearTimeout, localStorage: {}, HKF: {local:{},session:{}} });
+  vm.runInContext(source, ctx);
   return { lib: window.authLib, calls, listeners };
 }
 const cap = (native, platform) => ({ isNativePlatform: () => native, getPlatform: () => platform });
@@ -81,4 +82,25 @@ test('Apple: provider not enabled -> friendly Cantonese error, no browser opened
   vm.runInContext(SRC2, vm.createContext({ window, console, URL, setTimeout, clearTimeout, localStorage: {} }));
   await assert.rejects(window.authLib.signInWithApple(), /Apple 登入暫未開通/);
   assert.strictEqual(calls.length, 0);
+});
+
+const {transform} = require('../scripts/ios/transform');
+test('test iOS disables providers/mail/OTP at API boundary and accepts exact test PKCE callback only', async () => {
+  const source = transform('lib/auth.js', SRC, {env:'test'});
+  const {lib,calls} = load(cap(true,'ios'),source);
+  assert.strictEqual(lib.authRedirectUrl(),'app.hkfishing.ios://auth-test-callback');
+  for (const [method,args] of [['sendMagicLink',['a@b.com']],['verifyCode',['a@b.com','123456']],['signUpWithPassword',['a@b.com','fixture']],['sendPasswordReset',['a@b.com']],['signInWithApple',[]],['signInWithGoogle',[]]]) await assert.rejects(lib[method](...args),/測試環境未啟用/);
+  assert.strictEqual(calls.length,0);
+  await lib.signInWithPassword('a@b.com','offline-fixture');
+  assert.strictEqual(calls[0][0],'password'); calls.length=0;
+  for (const url of ['app.hkfishing.ios://auth-callback?code=x','app.hkfishing.ios://auth-test-callback.evil?code=x','app.hkfishing.ios://auth-test-callback/path?code=x','app.hkfishing.ios://auth-test-callback#access_token=a&refresh_token=b']) assert.strictEqual(await lib.handleNativeAuthUrl(url),false);
+  assert.strictEqual(calls.length,0);
+  await lib.handleNativeAuthUrl('app.hkfishing.ios://auth-test-callback?code=fixture');
+  same(calls,[['browser.close'],['exchange','fixture']]);
+});
+test('prod transformed auth keeps mail/OAuth and native callback behavior', async () => {
+  const {lib,calls}=load(cap(true,'ios'),transform('lib/auth.js',SRC,{env:'prod'}));
+  await lib.sendMagicLink('a@b.com');await lib.signInWithApple();
+  assert.strictEqual(calls[0][0],'otp');assert.strictEqual(calls[1][1].provider,'apple');
+  assert.strictEqual(await lib.handleNativeAuthUrl('app.hkfishing.ios://auth-callback-evil?code=x'),false);
 });

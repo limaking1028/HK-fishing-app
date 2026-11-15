@@ -10,6 +10,8 @@ workflows:
       xcode: latest
       cocoapods: default
       node: 22
+      vars:
+        APP_ENV: prod
     scripts:
       - name: Install & sync
         script: |
@@ -36,6 +38,7 @@ workflows:
         distribution_type: app_store
         bundle_identifier: app.hkfishing.ios
       vars:
+        APP_ENV: prod
         BUNDLE_ID: app.hkfishing.ios
         APP_STORE_APPLE_ID: "6829719028"   # App Store Connect > App Information > Apple ID
     scripts:
@@ -49,6 +52,50 @@ workflows:
         script: |
           cd ios/App
           agvtool new-version -all $(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0) + 1))
+      - name: Build IPA
+        script: |
+          xcode-project build-ipa --workspace ios/App/App.xcworkspace --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+
+  ios-testflight-test:
+    name: iOS test environment -> TestFlight (manual only)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: HKFISHING_ASC_KEY   # name of the API key integration created in Codemagic UI
+    environment:
+      xcode: latest
+      cocoapods: default
+      node: 22
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: app.hkfishing.ios
+      groups:
+        - hkf_test_environment # HKF_TEST_SUPABASE_ANON_KEY; configure in Codemagic UI
+      vars:
+        APP_ENV: test
+        BUNDLE_ID: app.hkfishing.ios
+        APP_STORE_APPLE_ID: "6829719028"   # App Store Connect > App Information > Apple ID
+    scripts:
+      - name: Install & sync
+        script: |
+          npm ci
+          npm run ios:sync
+      - name: Apply signing profiles
+        script: xcode-project use-profiles
+      - name: Build number
+        script: |
+          cd ios/App
+          # Dedicated monotonic test sequence; dotted build numbers avoid prod integer collisions.
+          # PROJECT_BUILD_NUMBER is the Codemagic project-wide build counter.
+          : "${PROJECT_BUILD_NUMBER:?Codemagic project counter required}"
+          agvtool new-version -all "2.0.$((PROJECT_BUILD_NUMBER + 1))"
       - name: Build IPA
         script: |
           xcode-project build-ipa --workspace ios/App/App.xcworkspace --scheme App
