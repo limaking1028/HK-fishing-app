@@ -1301,10 +1301,14 @@ button { touch-action: manipulation; }
   /* 新用戶教學：光圈跟隨目標元素，提示卡獨立顯示 */
   #tut-layer { position: fixed; inset: 0; z-index: 100000; pointer-events: none; }
   #tut-layer[hidden], #tut-layer [hidden] { display: none !important; }
-  #app .tut-target { position: relative; z-index: 1; outline: 3px solid #0e8495; outline-offset: 4px; animation: tut-glow 1.5s ease-in-out infinite; }
+  #app .tut-target { position: relative; z-index: 1; outline: 3px solid #FFE066; outline-offset: 4px; animation: tut-glow 1.5s ease-in-out infinite; }
+  #tut-card.tut-nudge { animation: tut-nudge .3s ease-in-out; }
+  @keyframes tut-nudge { 25%, 75% { transform: translateX(-4px); } 50% { transform: translateX(4px); } }
+  @keyframes tut-flash { 50% { outline: 2px solid #FFE066; } }
+  @media (prefers-reduced-motion: reduce) { #tut-card.tut-nudge { animation: tut-flash .3s ease-in-out; } }
   #app input.tut-target { outline-offset: -3px; }
-  @keyframes tut-glow { 0%, 100% { box-shadow: 0 0 0 6px rgba(14,132,149,.18); } 50% { box-shadow: 0 0 0 10px rgba(14,132,149,.38); } }
-  @media (prefers-reduced-motion: reduce) { #app .tut-target { animation: none; box-shadow: 0 0 0 6px rgba(14,132,149,.25); } }
+  @keyframes tut-glow { 0%, 100% { box-shadow: 0 0 0 8px rgba(0,0,0,.25), 0 0 0 6px rgba(255,224,102,.35); } 50% { box-shadow: 0 0 0 8px rgba(0,0,0,.25), 0 0 0 10px rgba(255,224,102,.6); } }
+  @media (prefers-reduced-motion: reduce) { #app .tut-target { animation: none; box-shadow: 0 0 0 8px rgba(0,0,0,.25), 0 0 0 6px rgba(255,224,102,.35); } }
   #tut-card { position: fixed; left: 10px; right: 10px; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); background: #fff; color: #14202b; padding: 12px; border: 1px solid #0e8495; border-radius: 14px; box-shadow: 0 6px 18px rgba(7,24,34,.25); pointer-events: auto; }
   .tut-card-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
   #tut-count { color: #0a5866; font-weight: 800; font-size: 14px; }
@@ -4243,6 +4247,39 @@ async function loadLbFounders(rows) {
 /* ===== 新用戶教學（純練習：唔寫行程、魚獲、相片、排行榜）===== */
 const TUTORIAL_SEEN_KEY = 'hkf-tutorial-seen';
 function tutorialOn() { return !!(state.tutorial && state.tutorial.on); }
+const tutorialLockEvents = ['click', 'mousedown', 'touchend', 'pointerup', 'keydown', 'focusin'];
+let tutorialLockInstalled = false;
+let tutorialNudgeTimer;
+function tutorialInteractionGuard(event) {
+  if (!tutorialOn() || state.tutorial.step === 'done') return;
+  if (event.type === 'keydown' && !['Enter', ' ', 'Spacebar'].includes(event.key)) return;
+  const el = event.target instanceof Element ? event.target : event.target.parentElement;
+  if (el && el.closest('.tut-target, #tut-layer, .modal-overlay.show')) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  if (event.type === 'focusin' && el && el.matches('input, select, textarea')) el.blur();
+  const card = document.getElementById('tut-card');
+  if (card) {
+    clearTimeout(tutorialNudgeTimer);
+    card.classList.remove('tut-nudge');
+    void card.offsetWidth;
+    card.classList.add('tut-nudge');
+    tutorialNudgeTimer = setTimeout(function () { card.classList.remove('tut-nudge'); }, 300);
+  }
+}
+function tutorialSetInteractionLock(on) {
+  if (on === tutorialLockInstalled) return;
+  tutorialLockInstalled = on;
+  tutorialLockEvents.forEach(function (name) {
+    if (on) document.addEventListener(name, tutorialInteractionGuard, {capture: true, passive: false});
+    else document.removeEventListener(name, tutorialInteractionGuard, true);
+  });
+  if (!on) {
+    clearTimeout(tutorialNudgeTimer);
+    const card = document.getElementById('tut-card');
+    if (card) card.classList.remove('tut-nudge');
+  }
+}
 function tutorialSeen() { try { return localStorage.getItem(TUTORIAL_SEEN_KEY) === '1'; } catch (e) { return false; } }
 function tutorialMarkSeen() { try { localStorage.setItem(TUTORIAL_SEEN_KEY, '1'); } catch (e) {} }
 function tutorialInstallGuards() {
@@ -4305,6 +4342,7 @@ function tutorialClearHighlight() {
   document.querySelectorAll('.tut-target').forEach(function (el) { el.classList.remove('tut-target'); });
 }
 function tutorialHide() {
+  tutorialSetInteractionLock(false);
   tutorialClearHighlight();
   const layer = document.getElementById('tut-layer');
   if (layer) layer.hidden = true;
@@ -4364,6 +4402,7 @@ function tutorialFullDim() {
 function tutorialShowDone() {
   if (!tutorialOn()) return;
   state.tutorial.step = 'done';
+  tutorialSetInteractionLock(false);
   const layer = tutorialEnsure();
   layer.hidden = false;
   layer.dataset.step = 'done';
@@ -4438,6 +4477,7 @@ function startTutorial() {
   let tripKey = null;
   try { tripKey = localStorage.getItem('hk_fishing_active_trip'); } catch (e) {}
   state.tutorial = { on: true, step: 1, sub: 'gps', gen: Date.now(), parked: false, parkedTrip: null, tripKey: tripKey };
+  tutorialSetInteractionLock(true);
   tutorialParkRealTrip();
   state.tripPicking = false;
   state.editingActiveTrip = false;
