@@ -1,6 +1,6 @@
 # v187 guest smoke: real index.html, logged out. All supabase.co requests are recorded and aborted (nothing reaches prod).
 # Proves: tide + weather render for guests; every other tab shows the login prompt; entering/using guest mode makes NO Supabase calls.
-import http.server, threading, functools, os, sys
+import http.server, threading, functools, os, sys, json
 from playwright.sync_api import sync_playwright
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 srv = http.server.ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(http.server.SimpleHTTPRequestHandler, directory=root))
@@ -14,7 +14,15 @@ with sync_playwright() as p:
     def route(r):
         u = r.request.url
         if 'supabase.co' in u: sbreq.append(u); return r.abort()
-        if 'open-meteo' in u: meteo.append(u)
+        if 'open-meteo' in u:
+            meteo.append(u)
+            # Fixed weather keeps this guest navigation test independent of external API availability.
+            current = {'time':'2026-11-02T12:00', 'temperature_2m':24, 'relative_humidity_2m':70,
+                       'precipitation':0, 'weather_code':1, 'wind_speed_10m':12, 'wind_direction_10m':90, 'pressure_msl':1015, 'cloud_cover':20}
+            data = {'current':current, 'hourly':{'time':[f'2026-11-02T{hour:02d}:00' for hour in range(24)],
+                    **{key:[value]*24 for key,value in current.items() if key != 'time'}}}
+            count = len(u.split('latitude=')[1].split('&')[0].split(','))
+            return r.fulfill(status=200, headers={'access-control-allow-origin':'*'}, content_type='application/json', body=json.dumps([data]*count if count > 1 else data))
         r.continue_()
     pg.route('**/*', route)
     pg.goto(f'http://127.0.0.1:{srv.server_port}/index.html'); pg.wait_for_timeout(3000)
@@ -22,7 +30,7 @@ with sync_playwright() as p:
     check(pg.locator('text=唔登入，先睇潮汐同天氣').count() == 1, 'login screen shows guest button')
     pg.click('text=唔登入，先睇潮汐同天氣'); pg.wait_for_timeout(1500)
     check(pg.evaluate("document.querySelector('#view-map').innerText.includes('潮')") and pg.locator('#view-map .guest-login-prompt').count() == 0, 'tide renders')
-    pg.evaluate("switchMapTab('weather')"); pg.wait_for_timeout(6000)
+    pg.evaluate("switchMapTab('weather')"); pg.wait_for_selector('.weather-card')
     check(pg.locator('#view-map .guest-login-prompt').count() == 0 and len(pg.evaluate("document.querySelector('#view-map').innerText")) > 50, 'weather renders')
     pg.screenshot(path='/tmp/guest-weather.png')
     pg.click('.weather-card-action >> nth=0'); pg.wait_for_timeout(800)
