@@ -1,6 +1,6 @@
 # v187 guest smoke: real index.html, logged out. All supabase.co requests are recorded and aborted (nothing reaches prod).
 # Proves: tide + weather render for guests; every other tab shows the login prompt; entering/using guest mode makes NO Supabase calls.
-import http.server, threading, functools, os, sys
+import http.server, threading, functools, os, sys, json
 from playwright.sync_api import sync_playwright
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 srv = http.server.ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(http.server.SimpleHTTPRequestHandler, directory=root))
@@ -14,8 +14,15 @@ with sync_playwright() as p:
     def route(r):
         u = r.request.url
         if 'supabase.co' in u: sbreq.append(u); return r.abort()
-        if 'open-meteo' in u: meteo.append(u)
-        r.continue_()
+        if '@supabase/supabase-js' in u:
+            return r.fulfill(content_type='application/javascript', body="""window.supabase={createClient(){return {auth:{getSession:async()=>({data:{session:null}}),getUser:async()=>({data:{user:null}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},rpc:async()=>({data:null}),from(){const b={then:r=>Promise.resolve({data:[],error:null}).then(r)};for(const m of ['select','insert','update','eq','order','limit','maybeSingle'])b[m]=()=>b;return b;}}}};""")
+        if 'open-meteo' in u:
+            meteo.append(u)
+            count=len(u.split('latitude=')[1].split('&')[0].split(','))
+            fixture={'current':{'time':'2026-11-15T12:00','temperature_2m':24,'weather_code':1,'wind_speed_10m':10},'hourly':{'time':[]}}
+            return r.fulfill(content_type='application/json',body=json.dumps([fixture]*count if count>1 else fixture))
+        if u.startswith(f'http://127.0.0.1:{srv.server_port}/'): return r.continue_()
+        return r.abort()  # Offline: never contact HKO/data.gov.hk or other external services.
     pg.route('**/*', route)
     pg.goto(f'http://127.0.0.1:{srv.server_port}/index.html'); pg.wait_for_timeout(3000)
     before = list(sbreq)
