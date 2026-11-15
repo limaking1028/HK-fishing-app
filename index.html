@@ -2294,7 +2294,7 @@ function renderRecordView() {
     + '<div id="astro-info" class="astro-card"></div>'
     + '<div class="form-row"><div class="form-group"><label class="form-label">釣法</label><select class="form-select" id="catch-method" onchange="onMethodChange(this.value)">'+blankChoiceOptions(FISHING_METHODS, state.selectedMethod)+'</select><input type="text" class="form-input" id="custom-method" placeholder="輸入釣法名稱..." value="'+(state.customMethod||'')+'" oninput="state.customMethod=this.value" style="margin-top:8px;display:'+(state.selectedMethod==='其他'?'block':'none')+';"></div><div class="form-group"><label class="form-label">釣餌</label><select class="form-select" id="catch-bait" onchange="onBaitChange(this.value)">'+blankChoiceOptions(BAIT_TYPES, state.selectedBait)+'</select><input type="text" class="form-input" id="custom-bait" placeholder="輸入釣餌名稱..." value="'+(state.customBait||'')+'" oninput="state.customBait=this.value" style="margin-top:8px;display:'+(state.selectedBait==='其他'?'block':'none')+';"></div></div>'
     + '<div class="form-group"><label class="form-label">備註</label><textarea class="form-textarea" id="catch-notes" placeholder="例如：黃昏流水好、風向、水溫等..."></textarea></div>'
-    + '<div class="form-group"><label class="form-label">魚獲照片 <span style="font-size:11px;color:var(--gray-4);font-weight:400;">（想上榜先要）</span></label><div class="photo-upload" onclick="document.getElementById(\'catch-photo\').click()"><div class="upload-icon">上載魚獲照片（上榜必備條件）</div><div class="upload-text">即時影相</div></div><input type="file" id="catch-photo" accept="image/*" capture="environment" style="display:none" onchange="previewPhoto(this)"><button type="button" class="login-link" onclick="document.getElementById(\'catch-photo-gallery\').click()">從相簿揀（拍攝超過 30 分鐘就唔計排行榜）</button><input type="file" id="catch-photo-gallery" accept="image/*" style="display:none" onchange="previewPhoto(this)"><div id="photo-preview-container"></div></div>'
+    + '<div class="form-group"><label class="form-label">魚獲照片</label><div class="photo-upload" onclick="document.getElementById(\'catch-photo\').click()"><div class="upload-icon">上載魚獲照片（上榜必備條件）</div></div><input type="file" id="catch-photo" accept="image/*" capture="environment" style="display:none" onchange="previewPhoto(this)"><button type="button" class="login-link" onclick="document.getElementById(\'catch-photo-gallery\').click()">從相簿揀（拍攝超過 30 分鐘就唔計排行榜）</button><input type="file" id="catch-photo-gallery" accept="image/*" style="display:none" onchange="previewPhoto(this)"><div id="photo-preview-container"></div></div>'
     + '<div class="form-group"><label class="form-label">磅／尺相</label><div class="photo-upload" id="proof-upload" onclick="document.getElementById(\'catch-proof\').click()"><div class="upload-icon">上載顯示重量照片（重量王者必備條件）</div></div><input type="file" id="catch-proof" accept="image/*" style="display:none" onchange="updateEligibilityHint();previewProof(this)"><div id="proof-name" style="font-size:12px;color:var(--gray-4);"></div></div>'
     + '<div id="test-mode-box"></div>'   // v160：管理員測試模式（普通用戶唔顯示）
     + '<div id="elig-box" class="elig-box"></div>'
@@ -4038,8 +4038,7 @@ function renderTripsView() {
       + '</div></div>';
   } else {
     html += '<div class="card" style="text-align:center;padding:24px 16px;">'
-      + '<div style="font-size:15px;color:var(--gray-6);margin-bottom:6px;font-weight:600;">準備好去釣魚？</div>'
-      + '<div style="font-size:13px;color:var(--gray-5);margin-bottom:18px;">開始行程後會自動計時，<br>釣到的魚會歸入這個行程</div>'
+      + '<div style="font-size:22px;color:var(--gray-6);margin-bottom:18px;font-weight:700;">準備好去釣魚？</div>'
       + '<button class="start-trip-btn" onclick="startTrip();">▶ 開始行程</button>'
     + '</div>';
   }
@@ -4047,8 +4046,7 @@ function renderTripsView() {
   if (trips.length > 0) {
     html += '<div class="section-title" style="margin-top:18px;">已結束行程（' + trips.length + '）</div>';
     trips.forEach(t => {
-      const sec = window.tripsLib.tripDurationSec(t);
-      html += renderTripCard(t, sec);
+      html += renderTripCard(t);
     });
   } else if (!active) {
     html += '<div style="text-align:center;color:var(--gray-4);font-size:13px;padding:20px 0;">還沒有歷史行程</div>';
@@ -4062,26 +4060,19 @@ function renderTripsView() {
   if (tutorialOn() && (state.tutorial.step === 1 || state.tutorial.step === 2 || state.tutorial.step === 3)) requestAnimationFrame(function () { tutorialPaint(); });
 }
 
-function renderTripCard(trip, durationSec) {
+function renderTripCard(trip) {
   const d = new Date(trip.startedAt);
-  const dateStr = d.toLocaleDateString('zh-HK', { month:'numeric', day:'numeric' });
+  const dateStr = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
   const timeStr = d.toTimeString().slice(0,5);
-  const statusText = window.tripsLib.tripStatusText(trip);
-  const isActive = !trip.endedAt;
-  const tags = [];
-  if (trip.method) tags.push('' + escapeHtml(trip.method));
-  if (trip.bait) tags.push('' + escapeHtml(trip.bait));
-  return '<div class="trip-card ' + (isActive ? '' : 'ended') + '" onclick="openTripDetail(\'' + trip.id + '\')">'
+  const statusText = trip.endedAt
+    ? Math.max(0, Math.floor((Date.now() - new Date(trip.endedAt).getTime()) / 86400000)) + '天前結束'
+    : window.tripsLib.tripStatusText(trip);
+  return '<div class="trip-card ' + (trip.endedAt ? 'ended' : '') + '" onclick="openTripDetail(\'' + trip.id + '\')">'
     + '<div class="trip-card-header">'
       + '<div class="trip-card-title">' + (trip.spot ? escapeHtml(trip.spot) : '未命名行程') + '</div>'
-      + '<div class="trip-card-time">' + statusText + '</div>'
+      + '<div class="trip-card-time" style="flex-shrink:0;margin-left:8px;">' + statusText + '</div>'
     + '</div>'
-    + '<div style="font-size:11px;color:var(--gray-4);margin-bottom:6px;">' + dateStr + ' ' + timeStr + ' · 時長 ' + window.tripsLib.formatDuration(durationSec) + '</div>'
-    + (tags.length ? '<div style="font-size:11px;color:var(--gray-5);margin-bottom:6px;">' + tags.join(' · ') + '</div>' : '')
-    + '<div class="trip-card-stats">'
-      + '<span>' + (trip.catchCount || 0) + ' 條</span>'
-      + '<span>' + fmtWeight(trip.totalWeight || 0) + '</span>'
-    + '</div>'
+    + '<div style="font-size:11px;color:var(--gray-4);">' + dateStr + ' ' + timeStr + '</div>'
   + '</div>';
 }
 
