@@ -1319,7 +1319,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v196</span></div>
+    <div class="header-title" id="header-title">釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v197</span></div>
     <div class="header-settings" onclick="openNameDialog()"><span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">改名</span></div>
   </header>
   <main id="main">
@@ -5193,10 +5193,46 @@ function shareScoreCardWhatsApp() {
     window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(msg), '_blank', 'noopener');
   }
 }
-function saveScoreCard() {
+async function saveScoreCard() {
   if (!scoreCardReady()) return; const sc = state.scoreCard;
+  if (window.authLib && authLib.isNativeIOS && authLib.isNativeIOS()) {
+    if (saveScoreCard.busy) return;
+    saveScoreCard.busy = true;
+    const plugins = window.Capacitor && window.Capacitor.Plugins;
+    const filesystem = plugins && plugins.Filesystem;
+    const share = plugins && plugins.Share;
+    let path;
+    try {
+      if (!filesystem || !share || !/^data:image\/png;base64,/.test(sc.dataUrl)) throw new Error('Native image sharing unavailable');
+      path = 'diaogang-score-' + Date.now() + '.png';
+      const saved = await filesystem.writeFile({path, directory: 'CACHE', data: sc.dataUrl.split(',')[1]});
+      await share.share({title: '釣港 成績卡', files: [saved.uri]});
+    } catch (e) {
+      showScoreCardSaveFallback(sc.dataUrl);
+    } finally {
+      // Share resolves when the sheet closes; the temporary file is no longer needed.
+      if (path && filesystem) { try { await filesystem.deleteFile({path, directory: 'CACHE'}); } catch (e) {} }
+      saveScoreCard.busy = false;
+    }
+    return;
+  }
   const a = document.createElement('a'); a.href = sc.dataUrl; a.download = 'diaogang-score.png';
   document.body.appendChild(a); a.click(); a.remove();
+}
+function showScoreCardSaveFallback(dataUrl) {
+  const previous = document.getElementById('score-card-save-fallback');
+  if (previous) previous.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'score-card-save-fallback'; overlay.className = 'modal-overlay show';
+  overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', '儲存成績卡圖片');
+  const sheet = document.createElement('div'); sheet.className = 'modal-sheet';
+  const hint = document.createElement('p'); hint.textContent = '未能開啟分享表，請長按下面張圖片，選擇「儲存圖片」。';
+  const image = document.createElement('img'); image.src = dataUrl; image.alt = '釣港成績卡，長按可儲存圖片';
+  image.style.cssText = 'display:block;width:100%;height:auto;margin:12px 0;-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto;';
+  const close = document.createElement('button'); close.type = 'button'; close.className = 'btn btn-outline'; close.textContent = '關閉';
+  close.addEventListener('click', () => overlay.remove());
+  sheet.append(hint, image, close); overlay.appendChild(sheet); document.body.appendChild(overlay); close.focus();
 }
 function closeShareModal() { document.getElementById('share-modal').classList.remove('show'); }
 
@@ -6503,7 +6539,7 @@ function switchView(name) {
   const titles = { record:'記錄魚獲', my:'我的魚獲', trips:'釣魚行程', leaderboard:'排行榜', map:'釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v196</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v197</span>';
   }
   renderView(name);
 }
