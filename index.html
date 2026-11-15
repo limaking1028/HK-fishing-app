@@ -1310,7 +1310,43 @@ button { touch-action: manipulation; }
   #tut-done { position: fixed; z-index: 5; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); background: #fff; border-radius: 16px; padding: 22px 16px; text-align: center; box-shadow: 0 12px 40px rgba(7,24,34,.3); pointer-events: auto; }
   #tut-done p { margin: 0 0 14px; font-size: 17px; font-weight: 800; line-height: 1.45; color: #14202b; }
   #tut-done button { width: 100%; }
-  </style>
+
+/* v203: settings is a full-screen page; action dialogs stay above it. */
+#name-modal[hidden] { display:none; }
+.settings-page { position:fixed;inset:0;z-index:900;background:#f3f5f6;display:flex;flex-direction:column;top:var(--hkf-banner-height,0px);height:calc(100vh - var(--hkf-banner-height,0px));height:calc(100dvh - var(--hkf-banner-height,0px));color:var(--gray-6); }
+.settings-bar { flex:none;display:grid;grid-template-columns:90px 1fr 90px;align-items:center;padding:calc(12px + env(safe-area-inset-top,0px)) 12px 12px;background:var(--ink-grad);color:white; }
+.settings-bar h1 { font-size:18px;text-align:center;margin:0;font-weight:650; }
+.settings-back { min-height:44px;border:0;background:transparent;color:white;text-align:left;font:inherit;font-size:15px;border-radius:8px; }
+.settings-content { flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:20px 16px calc(24px + env(safe-area-inset-bottom,0px)); }
+.settings-inner { max-width:520px;margin:0 auto; }
+.settings-group { margin:0 0 20px; }
+.settings-group h2 { color:#75828b;font-size:12px;font-weight:600;letter-spacing:.08em;margin:0 0 8px 12px; }
+.settings-card { background:white;border-radius:14px;overflow:hidden;border:1px solid #e8edef; }
+.settings-row { position:relative;display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:12px 14px;border:0;background:white;text-align:left;color:inherit;font:inherit;font-size:14px;cursor:pointer; }
+.settings-row + .settings-row { border-top:1px solid #edf0f1; }
+.settings-row svg { width:19px;height:19px;flex:none;color:#66828c; }
+.settings-label { flex:1;min-width:0; }
+.settings-value { max-width:44%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#84919a;font-size:13px; }
+.settings-chevron { font-size:21px;line-height:1;color:#abb6bd; }
+.settings-row:focus-visible,.settings-toggle:focus-within { outline:2px solid var(--teal);outline-offset:-3px; }
+.settings-row select { position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer; }
+.settings-row.indented { padding-left:45px; }
+.settings-toggle { position:relative;width:42px;height:25px;flex:none;border-radius:20px; }
+.settings-toggle input { position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;z-index:1;cursor:pointer; }
+.settings-switch-track { display:block;width:42px;height:25px;border-radius:20px;background:#c9d1d6;transition:background .15s;pointer-events:none; }
+.settings-switch-track::after { content:'';position:absolute;top:3px;left:3px;width:19px;height:19px;background:white;border-radius:50%;box-shadow:0 1px 3px #0002;transition:transform .15s; }
+.settings-toggle input:checked + .settings-switch-track { background:var(--teal); }
+.settings-toggle input:checked + .settings-switch-track::after { transform:translateX(17px); }
+.settings-toggle input:disabled + .settings-switch-track { opacity:.5; }
+.settings-note { color:#89959d;font-size:11px;line-height:1.5;margin:8px 12px 0; }
+#push-status { margin:0 14px;color:#75828b;font-size:12px;line-height:1.5; }
+#push-status:not(:empty) { padding:0 0 12px; }
+.settings-danger,.settings-danger svg { color:#cf4e50; }
+.settings-footer { text-align:center;color:#9aa6ad;font-size:11px;padding:2px 0 8px; }
+.settings-small-dialog { align-items:center; }
+.settings-small-dialog .modal-sheet { border-radius:18px;max-width:360px;margin:20px; }
+
+</style>
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
@@ -1324,8 +1360,8 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v199</span></div>
-    <div class="header-settings" onclick="openNameDialog()"><span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">改名</span></div>
+    <div class="header-title" id="header-title">釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v203</span></div>
+    <div class="header-settings" onclick="openNameDialog()"><span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">設定</span></div>
   </header>
   <main id="main">
     <!-- Route H: 進行中行程 banner（無行程時隱藏） — 永遠黏在 main 頂部，跨所有 view 顯示 -->
@@ -1355,52 +1391,22 @@ button { touch-action: manipulation; }
     </button>
   </nav>
 
-  <!-- 改名字 Modal -->
-  <div class="modal-overlay" id="name-modal">
-    <div class="modal-sheet" style="position:relative;">
-      <span class="modal-close" onclick="closeNameDialog()">關閉</span>
-      <div class="modal-title">設置你的釣友名稱</div>
-      <input type="text" class="modal-input" id="name-input" placeholder="輸入你的名稱（2–12 個字）" maxlength="24">
-      <div class="modal-btns">
-        <button class="btn btn-outline" onclick="closeNameDialog()">取消</button>
-        <button class="btn btn-primary" onclick="saveName()">保存</button>
-      </div>
-      <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
-        <button type="button" class="btn btn-outline" style="width:100%;" onclick="replayTutorial()">重睇教學</button>
-      </div>
-      <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
-        <div style="font-size:13px;color:var(--gray-5);margin-bottom:8px;font-weight:600;">預設重量單位</div>
-        <select class="modal-input" id="pref-weight-unit" onchange="setPrefWeightUnit(this.value)">
-          <option value="kg">公斤</option><option value="g">克</option><option value="jin">斤</option><option value="tael">兩</option>
-        </select>
-        <div style="font-size:11px;color:var(--gray-4);margin-top:4px;">用於輸入同顯示。1 斤 = 16 兩 = 604.79 克（香港市制）</div>
-      </div>
-      <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
-        <button class="btn btn-outline" style="width:100%;" onclick="openFeedback()">回報問題／意見</button>
-        <button class="btn btn-outline" style="width:100%;margin-top:8px;" onclick="openBlockList()">封鎖名單</button>
-      </div>
-      <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
-        <div style="font-size:13px;color:var(--gray-5);margin-bottom:8px;font-weight:600;">設定 / 更改密碼</div>
-        <input type="password" class="modal-input" id="settings-new-pw" placeholder="新密碼（最少 8 個字元）" autocomplete="new-password">
-        <button class="btn btn-outline" id="settings-pw-btn" style="width:100%;margin-top:8px;" onclick="changeMyPassword()">儲存密碼</button>
-        <div id="settings-pw-msg" role="status" aria-live="polite" style="font-size:13px;margin-top:8px;min-height:18px;font-weight:600;text-align:center;"></div>
-      </div>
-      <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
-        <button class="btn btn-outline" style="width:100%;color:#dc2626;border-color:#dc2626;" onclick="confirmClearAll()">清除所有記錄</button>
-        <button class="btn btn-outline" style="width:100%;margin-top:8px;color:#fff;background:#dc2626;border-color:#dc2626;" onclick="deleteAccount()">永久刪除帳戶</button>
-        <button class="btn btn-outline" style="width:100%;margin-top:8px;color:var(--gray-5);border-color:var(--gray-3);" onclick="closeNameDialog();sbLogout()">登出</button>
-      </div>
-      <!-- Route M: 隱私設定（隨時可改變主意）-->
-      <div style="border-top:1px solid var(--gray-2);margin-top:16px;padding-top:14px;">
-        <div style="font-size:13px;color:var(--gray-5);margin-bottom:8px;font-weight:600;">匿名統計(改進產品)</div>
-        <div style="font-size:12px;color:var(--gray-5);margin-bottom:10px;line-height:1.5;">
-          同意後,你的魚獲會被加上<span style="color:var(--gray-6);">潮汐/時間/月相/天氣</span>等隱性維度,用於日後個人化漁情洞察。
-          <br>原始資料仍只有你看到,可隨時撤回。
-        </div>
-        <button id="analytics-toggle-btn" class="btn btn-outline" style="width:100%;" onclick="toggleAnalyticsConsent()">
-          <span id="analytics-toggle-label">讀取中…</span>
-        </button>
-      </div>
+  <!-- v203: full-screen settings; existing data actions are reused. -->
+  <section id="name-modal" class="settings-page" aria-label="設定" hidden>
+    <header class="settings-bar"><button type="button" class="settings-back" onclick="closeNameDialog()">‹ 返回</button><h1>設定</h1><span></span></header>
+    <div class="settings-content" id="settings-content"><div class="settings-inner"><section class="settings-group"><h2>個人資料</h2><div class="settings-card"><button type="button" class="settings-row" onclick="openSettingsNameDialog()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg><span class="settings-label">釣友名稱</span><span class="settings-value" id="settings-current-name"></span><span class="settings-chevron" aria-hidden="true">›</span></button></div></section><section class="settings-group"><h2>使用偏好</h2><div class="settings-card"><div class="settings-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7h12l3 14H3L6 7Z"/><path d="M9 7V5a3 3 0 0 1 6 0v2M12 11v5"/></svg><span class="settings-label">預設重量單位</span><span class="settings-value" id="settings-current-unit"></span><span class="settings-chevron" aria-hidden="true">›</span><select id="pref-weight-unit" aria-label="預設重量單位" onchange="setPrefWeightUnit(this.value)"><option value="kg">公斤</option><option value="g">克</option><option value="jin">斤</option><option value="tael">兩</option></select></div></div></section><section class="settings-group"><h2>私隱</h2><div class="settings-card"><label class="settings-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/></svg><span class="settings-label">匿名統計</span><span class="settings-toggle"><input type="checkbox" role="switch" id="analytics-toggle-btn" onchange="toggleAnalyticsConsent()"><span class="settings-switch-track"></span></span></label><button type="button" class="settings-row" onclick="openBlockList()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/></svg><span class="settings-label">封鎖名單</span><span class="settings-chevron" aria-hidden="true">›</span></button></div><p class="settings-note">協助改進產品，可隨時關閉。</p></section><section class="settings-group"><h2>幫助</h2><div class="settings-card"><button type="button" class="settings-row" onclick="closeNameDialog();replayTutorial()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 5 2c-2 1-2 2-2 3M12 17h.01"/></svg><span class="settings-label">重睇教學</span><span class="settings-chevron" aria-hidden="true">›</span></button><button type="button" class="settings-row" onclick="openFeedback()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11a9 8 0 0 1-9 8H7l-5 3 2-6a8 8 0 0 1-1-5 9 8 0 0 1 18 0Z"/></svg><span class="settings-label">回報問題／意見</span><span class="settings-chevron" aria-hidden="true">›</span></button></div></section><section class="settings-group"><h2>帳戶</h2><div class="settings-card"><button type="button" class="settings-row" onclick="openSettingsPasswordDialog()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="9" r="5"/><path d="m12 13 8 8m-4-4 3-3m-6 0 3-3"/></svg><span class="settings-label">設定／更改密碼</span><span class="settings-chevron" aria-hidden="true">›</span></button><button type="button" class="settings-row" onclick="closeNameDialog();sbLogout()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3H4v18h5M9 12h12m-4-4 4 4-4 4"/></svg><span class="settings-label">登出</span><span class="settings-chevron" aria-hidden="true">›</span></button></div></section><section class="settings-group"><h2>資料管理</h2><div class="settings-card"><button type="button" class="settings-row settings-danger" onclick="confirmClearAll()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7"/></svg><span class="settings-label">清除所有記錄</span><span class="settings-chevron" aria-hidden="true">›</span></button><button type="button" class="settings-row settings-danger" onclick="deleteAccount()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7"/></svg><span class="settings-label">永久刪除帳戶</span><span class="settings-chevron" aria-hidden="true">›</span></button></div></section><footer class="settings-footer" id="settings-version"></footer></div></div>
+  </section>
+  <div class="modal-overlay settings-small-dialog" id="settings-name-dialog" role="dialog" aria-modal="true" aria-label="釣友名稱">
+    <div class="modal-sheet"><div class="modal-title">釣友名稱</div>
+      <input type="text" class="modal-input" id="name-input" placeholder="輸入你的名稱（2–12 個字）" maxlength="24" aria-label="釣友名稱">
+      <div class="modal-btns"><button type="button" class="btn btn-outline" onclick="closeSettingsNameDialog()">取消</button><button type="button" class="btn btn-primary" onclick="saveName()">保存</button></div>
+    </div>
+  </div>
+  <div class="modal-overlay settings-small-dialog" id="settings-password-dialog" role="dialog" aria-modal="true" aria-label="設定／更改密碼">
+    <div class="modal-sheet"><div class="modal-title">設定／更改密碼</div>
+      <input type="password" class="modal-input" id="settings-new-pw" placeholder="新密碼（最少 8 個字元）" autocomplete="new-password" aria-label="新密碼">
+      <div id="settings-pw-msg" role="status" aria-live="polite" style="font-size:13px;margin:8px 0;min-height:18px;"></div>
+      <div class="modal-btns"><button type="button" class="btn btn-outline" onclick="closeSettingsPasswordDialog()">取消</button><button type="button" class="btn btn-primary" id="settings-pw-btn" onclick="changeMyPassword()">儲存密碼</button></div>
     </div>
   </div>
 
@@ -1414,7 +1420,7 @@ button { touch-action: manipulation; }
       <div style="background:var(--gray-1);border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:12.5px;color:var(--gray-5);line-height:1.6;">
         <div style="margin-bottom:6px;"><strong style="color:var(--gray-6);">會收集:</strong> 時間、月相、潮汐、天氣、GPS 距離</div>
         <div style="margin-bottom:6px;"><strong style="color:var(--gray-6);">不會收集:</strong> 你的名字、照片、備註、聯絡方式</div>
-        <div><strong style="color:var(--gray-6);">隨時可改:</strong> 設定 → 改名字 → 下方開關</div>
+        <div><strong style="color:var(--gray-6);">隨時可改:</strong> 設定 → 私隱 → 匿名統計</div>
       </div>
       <div class="modal-btns" style="flex-direction:column;gap:10px;">
         <button class="btn btn-primary" style="background:var(--teal);color:white;" onclick="setAnalyticsConsentAndClose(true)">同意(推薦)</button>
@@ -4825,30 +4831,61 @@ function renderCatchCard(c, rankings) {
   return '<div class="catch-card"><div class="catch-card-top"><div class="catch-fish-icon">'+iconHtml+'</div><div class="catch-info"><div class="catch-species">'+escapeHtml(c.species)+'</div><div class="catch-meta">'+escapeHtml(c.spot)+' · '+formatDate(c.date)+' '+escapeHtml(c.time||'')+'</div></div><div class="catch-weight-badge"><div class="catch-weight">'+wd.value+'</div><div class="catch-weight-unit">'+wd.unit+'</div>'+((c.weightUnit && c.weightInput!=null && weightLib.isUnit(c.weightUnit) && c.weightUnit!==weightLib.getPref())?'<div class="catch-weight-unit" style="opacity:.7">（輸入 '+weightLib.format(c.weight,c.weightUnit).text+'）</div>':'')+'</div></div><div class="catch-card-bottom">'+rankBadges+unsyncedTag+(c.length?'<span class="catch-tag">'+c.length+'cm</span>':'')+'<span class="catch-tag">'+escapeHtml(c.method)+'</span><span class="catch-tag">'+escapeHtml(c.bait)+'</span>'+eligBadge(c)+'<span class="catch-tag share-btn" data-share-id="'+escapeHtml(c.id)+'">分享</span>'+(c.isMine && !c.imported?'<span class="catch-tag" style="color:#dc2626;" data-del-id="'+escapeHtml(c.id)+'">刪除</span>':'')+'</div>'+(c.notes?'<div style="padding:6px 14px 10px;font-size:13px;color:var(--gray-5);border-top:1px solid var(--gray-1);">'+escapeHtml(c.notes)+'</div>':'')+'</div>';
 }
 /* ===== 名稱管理 ===== */
+let settingsBackPending = false;
+function refreshSettingsUI() {
+  document.getElementById('settings-current-name').textContent = getUserName();
+  document.getElementById('settings-current-unit').textContent = weightLib.NAMES[weightLib.getPref()];
+  document.getElementById('pref-weight-unit').value = weightLib.getPref();
+  document.getElementById('settings-version').textContent = '釣港 ' + document.getElementById('app-version').textContent.trim();
+  refreshAnalyticsToggleUI();
+}
 function openNameDialog() {
   if (SB_ENABLED && !state.user) { renderLoginScreen(); return; }   // v187：訪客撳頭像 → 登入
-  document.getElementById('name-input').value = getUserName();
-  document.getElementById('pref-weight-unit').value = weightLib.getPref();
-  document.getElementById('name-modal').classList.add('show');
-  const sheet = document.querySelector('#name-modal .modal-sheet'); if (sheet) sheet.scrollTop = 0;
-  if (!(window.matchMedia && matchMedia('(pointer: coarse)').matches)) setTimeout(() => document.getElementById('name-input').focus(), 300);
-  refreshAnalyticsToggleUI();  // Route M: 確保 toggle 顯示當前狀態
+  if (settingsBackPending) return;
+  const page = document.getElementById('name-modal');
+  if (page.hidden && !history.state?.hkfSettings) history.pushState({...history.state, hkfSettings:true}, '');
+  page.hidden = false;
+  refreshSettingsUI();
+  document.getElementById('settings-content').scrollTop = 0;
+  document.querySelector('.settings-back').focus({preventScroll:true});
 }
+function hideSettingsPage() {
+  document.getElementById('name-modal').hidden = true;
+  closeSettingsNameDialog();
+  closeSettingsPasswordDialog();
+}
+function closeNameDialog() {
+  hideSettingsPage();
+  if (history.state?.hkfSettings && !settingsBackPending) { settingsBackPending = true; history.back(); }
+}
+window.addEventListener('popstate', () => { settingsBackPending = false; hideSettingsPage(); });
+function openSettingsNameDialog() {
+  document.getElementById('name-input').value = getUserName();
+  document.getElementById('settings-name-dialog').classList.add('show');
+  document.getElementById('name-input').focus();
+}
+function closeSettingsNameDialog() { document.getElementById('settings-name-dialog').classList.remove('show'); }
+function openSettingsPasswordDialog() {
+  document.getElementById('settings-password-dialog').classList.add('show');
+  document.getElementById('settings-new-pw').focus();
+}
+function closeSettingsPasswordDialog() { document.getElementById('settings-password-dialog').classList.remove('show'); }
 function setPrefWeightUnit(u) {
   if (!weightLib.isUnit(u)) return;
   weightLib.setPref(u);
   state.weightInputUnit = u;        // 新增魚獲預設用返呢個單位
   renderView(state.view);
   showToast('預設重量單位：' + weightLib.NAMES[u]);
+  refreshSettingsUI();
 }
 window.setPrefWeightUnit = setPrefWeightUnit;
-function closeNameDialog() { document.getElementById('name-modal').classList.remove('show'); }
 async function saveName() {
   const ok = await setUserName(document.getElementById('name-input').value);
   const name = getUserName();
   if (!ok) return; // 更新失敗時保持對話框開啟
   document.getElementById('header-username').textContent = getUserName();
-  closeNameDialog();
+  closeSettingsNameDialog();
+  refreshSettingsUI();
   renderAll();
   showToast('名稱已更新為「' + name + '」');
 }
@@ -4873,14 +4910,8 @@ function toggleAnalyticsConsent() {
   showToast(next ? '已開啟匿名統計' : '已關閉匿名統計');
 }
 function refreshAnalyticsToggleUI() {
-  const btn = document.getElementById('analytics-toggle-btn');
-  const label = document.getElementById('analytics-toggle-label');
-  if (!btn || !label) return;
-  const on = getAnalyticsConsent();
-  btn.style.background = on ? 'var(--teal)' : 'white';
-  btn.style.color = on ? 'white' : 'var(--gray-5)';
-  btn.style.borderColor = on ? 'var(--teal)' : 'var(--gray-3)';
-  label.textContent = on ? '已同意匿名統計' : '未同意(只存基本欄位)';
+  const toggle = document.getElementById('analytics-toggle-btn');
+  if (toggle) toggle.checked = getAnalyticsConsent();
 }
 function maybeShowConsentModal() {
   // 只在「從未做過選擇」時彈出;已選過的不再打擾
@@ -6475,7 +6506,7 @@ function switchView(name) {
   const titles = { record:'記錄魚獲', my:'我的魚獲', trips:'釣魚行程', leaderboard:'排行榜', map:'釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v199</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v203</span>';
   }
   renderView(name);
 }
