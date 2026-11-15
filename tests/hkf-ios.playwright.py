@@ -47,8 +47,29 @@ with sync_playwright() as p:
             shots=pathlib.Path(os.environ.get('HKF_SCREENSHOT_DIR',root.parent/'hkf-screenshots'));shots.mkdir(parents=True,exist_ok=True)
             page.screenshot(path=str(shots/'test-env-top-safe59.png'),animations='disabled')
             page.evaluate('startTutorial()')
-            page.wait_for_selector('#tut-bar')
-            assert page.locator('#tut-bar').bounding_box()['y']>=page.locator('#hkf-test-banner').bounding_box()['height']
+            page.wait_for_selector('#tut-card')
+            for safe in [0,59]:
+                page.evaluate("safe=>document.documentElement.style.setProperty('--hkf-safe-top',safe+'px')",safe)
+                page.evaluate('tutorialPaint()')
+                page.wait_for_timeout(100)
+                banner=page.locator('#hkf-test-banner').bounding_box()
+                card=page.locator('#tut-card').bounding_box()
+                assert card['y']>=banner['y']+banner['height']
+                # Force the current target into the bottom card: fallback must clear the banner/header.
+                page.evaluate("""() => {
+                    const target=tutorialTarget(), r=target.getBoundingClientRect();
+                    const c=document.getElementById('tut-card').getBoundingClientRect();
+                    target.style.transition='none';
+                    target.style.transform='translateY('+(c.top+10-r.top)+'px)';
+                    tutorialPlace(target);
+                }""")
+                card=page.locator('#tut-card').bounding_box()
+                header=page.locator('#header').bounding_box()
+                assert card['y']>=header['y']+header['height']>=banner['y']+banner['height']
+                assert page.evaluate("document.getElementById('tut-card').getBoundingClientRect().bottom <= tutorialTarget().getBoundingClientRect().top"), page.evaluate("({card:document.getElementById('tut-card').getBoundingClientRect().toJSON(),target:tutorialTarget().getBoundingClientRect().toJSON()})")
+                assert page.locator('#tut-bar').count()==0
+                page.evaluate("tutorialTarget().style.transform=''; tutorialTarget().style.transition=''; tutorialPaint()")
+                page.wait_for_timeout(100)
             page.screenshot(path=str(shots/'test-env-tutorial-safe59.png'),animations='disabled')
             print('PASS 0/59px safe-area banner, sticky header, content and tutorial offsets; screenshots saved')
         assert not errors,errors
