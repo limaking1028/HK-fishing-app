@@ -303,8 +303,6 @@ button { touch-action: manipulation; }
   .trip-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
   .trip-card-title { font-size: 15px; font-weight: 700; color: var(--dark); }
   .trip-card-time { font-size: 11px; color: var(--gray-4); }
-  .trip-card-stats { display: flex; gap: 12px; font-size: 12px; color: var(--gray-5); margin-top: 4px; }
-  .trip-card-stats span { display: inline-flex; align-items: center; gap: 3px; }
   .trip-empty {
     text-align: center; padding: 60px 20px; color: var(--gray-4);
   }
@@ -583,7 +581,6 @@ button { touch-action: manipulation; }
   .photo-upload { border: 2px dashed var(--gray-3); border-radius: var(--radius); padding: 24px 16px; text-align: center; cursor: pointer; transition: border-color 0.2s; position: relative; }
   .photo-upload:active { border-color: var(--teal); }
   .photo-upload .upload-icon { font-size: 16px; font-weight: 800; line-height: 1.2; }
-  .photo-upload .upload-text { font-size: 13px; color: var(--gray-4); margin-top: 6px; }
   .photo-preview { width: 100%; max-height: 240px; border-radius: var(--radius-sm); margin-top: 10px; }
   /* Route A1: 月相/日出日落 資訊卡 */
   .astro-card { background: linear-gradient(135deg, #1a1a2e, #16213e); color: #e0f5f8; border-radius: var(--radius-sm); padding: 10px 14px; margin: 8px 0 14px; font-size: 13px; line-height: 1.7; box-shadow: 0 2px 8px rgba(10, 30, 50, 0.15); }
@@ -1268,7 +1265,6 @@ button { touch-action: manipulation; }
   .trip-card { border-radius: var(--radius); padding: 14px 16px; }
   .trip-card-title { font-size: 16px; font-weight: 800; }
   .trip-card-time { font-size: 12px; color: var(--gray-5); }
-  .trip-card-stats { font-size: 13px; color: var(--gray-5); }
   .start-trip-btn { box-shadow: 0 8px 20px rgba(232,86,31,.32); border-radius: 14px; }
   .active-trip-banner { border-radius: 0 0 18px 18px; box-shadow: 0 8px 22px rgba(232,86,31,.28); }
 
@@ -4058,9 +4054,7 @@ function renderTripCard(trip) {
   const d = new Date(trip.startedAt);
   const dateStr = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
   const timeStr = d.toTimeString().slice(0,5);
-  const statusText = trip.endedAt
-    ? Math.max(0, Math.floor((Date.now() - new Date(trip.endedAt).getTime()) / 86400000)) + '天前結束'
-    : window.tripsLib.tripStatusText(trip);
+  const statusText = window.tripsLib.tripStatusText(trip);
   return '<div class="trip-card ' + (trip.endedAt ? 'ended' : '') + '" onclick="openTripDetail(\'' + trip.id + '\')">'
     + '<div class="trip-card-header">'
       + '<div class="trip-card-title">' + (trip.spot ? escapeHtml(trip.spot) : '未命名行程') + '</div>'
