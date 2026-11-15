@@ -1,4 +1,4 @@
-const CACHE = 'hk-fishing-v197';  // v192 跟 App 版本號；v182: 只快取魚種相（WebP），其他請求一律唔掂
+const CACHE = 'hk-fishing-v199';  // v192 跟 App 版本號；v182: 只快取魚種相（WebP），其他請求一律唔掂
 // v180：v102 起 SW 停用（舊版網絡優先快取 index/lib 引起問題）。今次重開，但只處理 photos/*.webp：
 //   install 時 precache 魚種相；fetch 只對魚種相 cache-first；其他請求唔 respondWith，行返瀏覽器正常網絡。
 //   activate 時刪走所有舊 cache（包括 v101–v179 留低嘅）。
@@ -49,7 +49,10 @@ self.addEventListener('notificationclick', e => {
     url.search = new URLSearchParams({view: 'leaderboard', lbType: board, lbPeriod: 'all'}).toString();
     const windows = await self.clients.matchAll({type: 'window', includeUncontrolled: true});
     const app = windows.find(w => new URL(w.url).origin === url.origin && new URL(w.url).pathname.startsWith(new URL(self.registration.scope).pathname));
-    if (app) { await app.navigate(url.href); await app.focus(); }
-    else await self.clients.openWindow(url.href);
+    if (app) {
+      try { await app.navigate(url.href); } catch (_) { /* The existing window may still be focusable. */ }
+      try { await app.focus(); return; } catch (_) { /* Closed/unfocusable window: open a new one. */ }
+    }
+    await self.clients.openWindow(url.href);
   })());
 });
