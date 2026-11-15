@@ -6,7 +6,7 @@ ios = (root/'ios').is_dir()
 base = subprocess.check_output(['git', 'show', ('origin/ios-capacitor' if ios else 'origin/main') + ':sw.js'], cwd=root).decode()
 current = (root/'sw.js').read_text()
 if ios:
-    assert current.startswith("const CACHE = 'hk-fishing-v201';")
+    assert current.startswith("const CACHE = 'hk-fishing-v202';")
     assert current.split('\n', 1)[1].startswith(base.split('\n', 1)[1]), 'Existing photo cache logic must be unchanged'
 else:
     assert current.startswith(base), 'Existing SW must be byte-for-byte unchanged'
