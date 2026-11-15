@@ -1289,15 +1289,19 @@ button { touch-action: manipulation; }
 
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
 
-  /* 新用戶教學：只照住要撳嘅一個掣 */
+  /* 新用戶教學：光圈跟隨目標元素，提示卡獨立顯示 */
   #tut-layer { position: fixed; inset: 0; z-index: 100000; pointer-events: none; }
-  #tut-layer[hidden] { display: none !important; }
-  #tut-d1, #tut-d2, #tut-d3, #tut-d4 { position: fixed; background: rgba(7,24,34,.62); pointer-events: auto; }
-  #tut-ring { position: fixed; border: 2px solid #fff; border-radius: 12px; box-shadow: 0 0 0 2px #0e8495; pointer-events: none; z-index: 2; }
-  #tut-hint { position: fixed; z-index: 3; max-width: 280px; background: #fff; color: #14202b; font-size: 15px; font-weight: 800; line-height: 1.35; padding: 8px 10px; border-radius: 10px; box-shadow: 0 6px 18px rgba(7,24,34,.25); pointer-events: none; }
-  #tut-bar { position: fixed; z-index: 4; top: calc(8px + env(safe-area-inset-top, 0px)); left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
-  #tut-count { background: #fff; color: #0a5866; font-weight: 800; font-size: 14px; border-radius: 999px; padding: 4px 10px; }
-  #tut-skip { pointer-events: auto; background: #fff; color: #0a5866; border: 0; font-weight: 800; font-size: 14px; font-family: inherit; border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+  #tut-layer[hidden], #tut-layer [hidden] { display: none !important; }
+  #app .tut-target { position: relative; z-index: 1; outline: 3px solid #0e8495; outline-offset: 4px; animation: tut-glow 1.5s ease-in-out infinite; }
+  #app input.tut-target { outline-offset: -3px; }
+  @keyframes tut-glow { 0%, 100% { box-shadow: 0 0 0 6px rgba(14,132,149,.18); } 50% { box-shadow: 0 0 0 10px rgba(14,132,149,.38); } }
+  @media (prefers-reduced-motion: reduce) { #app .tut-target { animation: none; box-shadow: 0 0 0 6px rgba(14,132,149,.25); } }
+  #tut-card { position: fixed; left: 10px; right: 10px; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); background: #fff; color: #14202b; padding: 12px; border: 1px solid #0e8495; border-radius: 14px; box-shadow: 0 6px 18px rgba(7,24,34,.25); pointer-events: auto; }
+  .tut-card-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+  #tut-count { color: #0a5866; font-weight: 800; font-size: 14px; }
+  #tut-hint { font-size: 15px; font-weight: 800; line-height: 1.35; }
+  #tut-skip { background: #fff; color: #0a5866; border: 0; font-weight: 800; font-size: 14px; font-family: inherit; border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+  #tut-dim { position: fixed; inset: 0; background: rgba(7,24,34,.62); pointer-events: auto; }
   #tut-done { position: fixed; z-index: 5; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); background: #fff; border-radius: 16px; padding: 22px 16px; text-align: center; box-shadow: 0 12px 40px rgba(7,24,34,.3); pointer-events: auto; }
   #tut-done p { margin: 0 0 14px; font-size: 17px; font-weight: 800; line-height: 1.45; color: #14202b; }
   #tut-done button { width: 100%; }
@@ -1315,7 +1319,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v199</span></div>
+    <div class="header-title" id="header-title">釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v201</span></div>
     <div class="header-settings" onclick="openNameDialog()"><span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">改名</span></div>
   </header>
   <main id="main">
@@ -4295,81 +4299,79 @@ function tutorialEnsure() {
   layer = document.createElement('div');
   layer.id = 'tut-layer';
   layer.hidden = true;
-  layer.innerHTML = '<div id="tut-d1"></div><div id="tut-d2"></div><div id="tut-d3"></div><div id="tut-d4"></div>'
-    + '<div id="tut-ring"></div><div id="tut-hint" role="status"></div>'
-    + '<div id="tut-bar"><span id="tut-count"></span><button type="button" id="tut-skip">略過教學</button></div>'
+  layer.innerHTML = '<div id="tut-dim" hidden></div>'
+    + '<div id="tut-card"><div class="tut-card-row"><span id="tut-count"></span><button type="button" id="tut-skip">略過教學</button></div><div id="tut-hint" role="status"></div></div>'
     + '<div id="tut-done" hidden><p id="tut-done-msg">教學完成，可以正式記錄魚獲啦！</p><button type="button" class="btn btn-primary" id="tut-done-btn">知道</button></div>';
   document.body.appendChild(layer);
   document.getElementById('tut-skip').onclick = function () { skipTutorial(); };
   document.getElementById('tut-done-btn').onclick = function () { tutorialFinish(); };
-  if (!window._tutScroll) {
-    window._tutScroll = true;
-    const main = document.getElementById('main');
-    if (main) main.addEventListener('scroll', function () {
-      if (!tutorialOn() || state.tutorial.step === 'done') return;
-      const el = tutorialTarget(); if (el) tutorialPlace(el);
-    }, { passive: true });
-    window.addEventListener('resize', function () { if (tutorialOn() && state.tutorial.step !== 'done') tutorialPaint(); });
-  }
+  const resize = function () {
+    if (!tutorialOn() || state.tutorial.step === 'done') return;
+    requestAnimationFrame(function () { tutorialPlace(tutorialTarget()); });
+  };
+  window.addEventListener('resize', resize);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
   return layer;
 }
-function tutorialHide() { const layer = document.getElementById('tut-layer'); if (layer) layer.hidden = true; }
+function tutorialClearHighlight() {
+  document.querySelectorAll('.tut-target').forEach(function (el) { el.classList.remove('tut-target'); });
+}
+function tutorialHide() {
+  tutorialClearHighlight();
+  const layer = document.getElementById('tut-layer');
+  if (layer) layer.hidden = true;
+}
 function tutorialPaint(tries) {
-  if (!tutorialOn()) return;
+  if (!tutorialOn()) { tutorialHide(); return; }
   tries = tries || 0;
   const layer = tutorialEnsure();
   layer.hidden = false;
   layer.dataset.step = String(state.tutorial.step);
   layer.dataset.sub = state.tutorial.sub || '';
   if (state.tutorial.step === 'done') { tutorialShowDone(); return; }
+  tutorialClearHighlight();
+  document.getElementById('tut-dim').hidden = true;
   document.getElementById('tut-done').hidden = true;
-  document.getElementById('tut-bar').style.display = 'flex';
+  document.getElementById('tut-card').hidden = false;
   document.getElementById('tut-count').textContent = state.tutorial.step + '/8';
+  document.getElementById('tut-hint').textContent = tutorialHint();
   const el = tutorialTarget();
   if (!el) { if (tries < 25) setTimeout(function () { tutorialPaint(tries + 1); }, 60); return; }
+  el.classList.add('tut-target');
   try { el.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (e) {}
   requestAnimationFrame(function () {
     if (!tutorialOn() || state.tutorial.step === 'done') return;
-    const now = tutorialTarget() || el;
+    const now = tutorialTarget();
+    if (!now) return;
+    tutorialClearHighlight();
+    now.classList.add('tut-target');
     const r = now.getBoundingClientRect();
     if (r.width < 2 || r.height < 2) { if (tries < 25) setTimeout(function () { tutorialPaint(tries + 1); }, 60); return; }
     tutorialPlace(now);
   });
 }
+// Only position the hint card after layout/resize; the highlight belongs to the element.
 function tutorialPlace(el) {
   if (!el || !tutorialOn() || state.tutorial.step === 'done') return;
+  const card = document.getElementById('tut-card');
+  const vv = window.visualViewport;
+  const top = vv ? vv.offsetTop : 0;
+  const bottom = top + (vv ? vv.height : window.innerHeight);
+  const header = document.getElementById('header').getBoundingClientRect();
+  const nav = document.getElementById('bottom-nav').getBoundingClientRect();
+  const safe = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom')) || 0;
+  const lower = nav.top < bottom && nav.bottom > top ? nav.top : bottom - safe;
+  const upper = Math.max(top + 8, Math.min(header.bottom + 8, bottom - card.offsetHeight - 8));
+  let y = Math.max(top + 8, lower - card.offsetHeight - 10);
   const r = el.getBoundingClientRect();
-  if (r.width < 2 || r.height < 2) return;
-  const pad = 6, vw = window.innerWidth, vh = window.innerHeight;
-  let t = Math.max(0, r.top - pad), l = Math.max(0, r.left - pad);
-  let w = r.width + pad * 2, h = r.height + pad * 2;
-  if (t + h > vh) h = Math.max(8, vh - t);
-  if (l + w > vw) w = Math.max(8, vw - l);
-  const d1 = document.getElementById('tut-d1'), d2 = document.getElementById('tut-d2'), d3 = document.getElementById('tut-d3'), d4 = document.getElementById('tut-d4');
-  d1.style.cssText = 'display:block;top:0;left:0;width:100%;height:' + t + 'px';
-  d2.style.cssText = 'display:block;top:' + t + 'px;left:0;width:' + l + 'px;height:' + h + 'px';
-  d3.style.cssText = 'display:block;top:' + t + 'px;left:' + (l + w) + 'px;right:0;height:' + h + 'px';
-  d4.style.cssText = 'display:block;top:' + (t + h) + 'px;left:0;width:100%;bottom:0';
-  const ring = document.getElementById('tut-ring');
-  ring.style.cssText = 'display:block;left:' + l + 'px;top:' + t + 'px;width:' + w + 'px;height:' + h + 'px';
-  const hint = document.getElementById('tut-hint');
-  hint.style.display = 'block';
-  hint.textContent = tutorialHint();
-  const hintW = Math.min(280, vw - 16);
-  hint.style.maxWidth = hintW + 'px';
-  const navH = 78;
-  const below = t + h + 8;
-  let hy = (below + 46 < vh - navH) ? below : Math.max(52, t - 46);
-  let hx = Math.min(Math.max(8, l), Math.max(8, vw - hintW - 8));
-  hint.style.left = hx + 'px';
-  hint.style.top = hy + 'px';
+  if (r.bottom + 8 > y && r.top - 8 < y + card.offsetHeight) y = upper;
+  card.style.bottom = 'auto';
+  card.style.top = y + 'px';
 }
 function tutorialFullDim() {
-  const d1 = document.getElementById('tut-d1');
-  d1.style.cssText = 'display:block;top:0;left:0;width:100%;height:100%';
-  ['tut-d2', 'tut-d3', 'tut-d4'].forEach(function (id) { document.getElementById(id).style.display = 'none'; });
-  document.getElementById('tut-ring').style.display = 'none';
-  document.getElementById('tut-hint').style.display = 'none';
+  tutorialClearHighlight();
+  document.getElementById('tut-dim').hidden = false;
+  document.getElementById('tut-card').hidden = true;
 }
 function tutorialShowDone() {
   if (!tutorialOn()) return;
@@ -4377,7 +4379,6 @@ function tutorialShowDone() {
   const layer = tutorialEnsure();
   layer.hidden = false;
   layer.dataset.step = 'done';
-  document.getElementById('tut-bar').style.display = 'none';
   document.getElementById('tut-done').hidden = false;
   tutorialFullDim();
 }
@@ -6524,7 +6525,7 @@ function switchView(name) {
   const titles = { record:'記錄魚獲', my:'我的魚獲', trips:'釣魚行程', leaderboard:'排行榜', map:'釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v199</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v201</span>';
   }
   renderView(name);
 }

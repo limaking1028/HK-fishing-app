@@ -39,7 +39,6 @@ body{padding-top:var(--hkf-banner-height)}
 #app{min-height:calc(100vh - var(--hkf-banner-height));min-height:calc(100dvh - var(--hkf-banner-height))}
 #header{top:var(--hkf-banner-height);padding:12px 16px}
 .login-screen{top:var(--hkf-banner-height)}
-#tut-bar{top:calc(var(--hkf-banner-height) + 8px)}
 </style></head>`);
       s = s.replace(/(<body[^>]*>)/, '$1<div id="hkf-test-banner" role="status">測試環境</div>');
     }
@@ -62,7 +61,7 @@ body{padding-top:var(--hkf-banner-height)}
     }
     s = storage(s);
   } else if (file === 'sw.js') {
-    s = replace(s, "const CACHE = 'hk-fishing-v199';", `const CACHE_PREFIX = 'hkf:${manifest.env}:${manifest.ref}:';\nconst CACHE = CACHE_PREFIX + 'photos-v199';`);
+    s = replace(s, "const CACHE = 'hk-fishing-v201';", `const CACHE_PREFIX = 'hkf:${manifest.env}:${manifest.ref}:';\nconst CACHE = CACHE_PREFIX + 'photos-v199';`);
     s = replace(s, 'keys.filter(k => k !== CACHE)', 'keys.filter(k => k.startsWith(CACHE_PREFIX) && k !== CACHE)');
     s = replace(s, 'caches.match(e.request, { ignoreSearch: true })', 'caches.open(CACHE).then(c => c.match(e.request, { ignoreSearch: true }))');
   } else if (file.endsWith('.js')) s = storage(s);
