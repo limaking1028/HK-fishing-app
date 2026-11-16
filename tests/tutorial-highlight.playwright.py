@@ -31,13 +31,13 @@ def check_target(pg, step, sub=None):
         visible:!card.hidden && c.top >= (vv ? vv.offsetTop : 0) && c.bottom <= (vv ? vv.offsetTop + vv.height : innerHeight),
         overlap:r && r.left < c.right && r.right > c.left && r.top < c.bottom && r.bottom > c.top,
         dim:document.getElementById('tut-dim').hidden,
-        outline:getComputedStyle(target).outlineWidth, animation:getComputedStyle(target).animationName};
+        color:getComputedStyle(target).outlineColor, outline:getComputedStyle(target).outlineWidth, animation:getComputedStyle(target).animationName};
     }''')
     assert actual['step'] == step, actual
     if sub:
         assert actual['sub'] == sub, actual
     assert actual['count'] == 1 and actual['correct'] and not actual['old'], actual
-    assert actual['outline'] == '3px', actual
+    assert actual['outline'] == '3px' and actual['color'] == 'rgb(255, 224, 102)', actual
     assert actual['hint'] and actual['visible'] and actual['dim'] and not actual['overlap'], actual
     pg.evaluate('''() => {
       document.getElementById('main').scrollBy(0, 45);
@@ -56,6 +56,67 @@ def check_target(pg, step, sub=None):
         Path(SHOT_DIR).mkdir(parents=True, exist_ok=True)
         pg.screenshot(path=f'{SHOT_DIR}/{pg.viewport_size["width"]}-{step}-{sub or "main"}.png')
 
+def check_touch_gestures(pg):
+    pg.wait_for_timeout(350)
+    result = pg.evaluate("""() => {
+      const nav = document.querySelector('#bottom-nav [data-view="leaderboard"]');
+      const card = document.getElementById('tut-card');
+      const before = JSON.stringify([state.view, state.tutorial.step, state.tutorial.sub]);
+      function send(type, y) {
+        const touch = new Touch({identifier:1, target:nav, clientX:200, clientY:y});
+        const event = new TouchEvent(type, {bubbles:true, cancelable:true,
+          touches:type === 'touchend' ? [] : [touch], changedTouches:[touch]});
+        return nav.dispatchEvent(event);
+      }
+      const startAllowed = send('touchstart', 200);
+      const moveAllowed = send('touchmove', 260);
+      const scrollEndAllowed = send('touchend', 260);
+      const scrollNudge = card.classList.contains('tut-nudge');
+      const scrollUnchanged = JSON.stringify([state.view, state.tutorial.step, state.tutorial.sub]) === before;
+      send('touchstart', 200);
+      const tapAllowed = send('touchend', 200);
+      const tapNudge = card.classList.contains('tut-nudge');
+      const tapUnchanged = JSON.stringify([state.view, state.tutorial.step, state.tutorial.sub]) === before;
+      return {startAllowed, moveAllowed, scrollEndAllowed, scrollNudge, scrollUnchanged,
+        tapAllowed, tapNudge, tapUnchanged};
+    }""")
+    assert result == dict(startAllowed=True, moveAllowed=True, scrollEndAllowed=True,
+                          scrollNudge=False, scrollUnchanged=True, tapAllowed=False,
+                          tapNudge=True, tapUnchanged=True), result
+    pg.wait_for_timeout(350)
+
+def check_lock(pg):
+    before = pg.evaluate('({view:state.view, step:state.tutorial.step, sub:state.tutorial.sub})')
+    nav = pg.locator('#bottom-nav [data-view="leaderboard"]')
+    pg.evaluate("window.__nudges = 0; document.getElementById('tut-card').addEventListener('animationstart', () => window.__nudges++, {once:true})")
+    nav.click(force=True)
+    pg.wait_for_function('window.__nudges > 0')
+    assert pg.evaluate('({view:state.view, step:state.tutorial.step, sub:state.tutorial.sub})') == before
+    pg.evaluate("""() => {
+      const input = document.createElement('input'); input.id = 'outside-input';
+      document.body.appendChild(input); input.focus();
+    }""")
+    assert not pg.locator('#outside-input').evaluate('el => el === document.activeElement')
+    for name in ['click', 'mousedown', 'touchend', 'pointerup']:
+        assert pg.locator('#outside-input').evaluate('(el, name) => !el.dispatchEvent(new Event(name, {bubbles:true, cancelable:true}))', name)
+    for key in ['Enter', ' ']:
+        assert pg.locator('#outside-input').evaluate('(el, key) => !el.dispatchEvent(new KeyboardEvent("keydown", {key, bubbles:true, cancelable:true}))', key)
+    pg.evaluate("document.getElementById('outside-input').remove()")
+    # Visible dialogs stay operable, including nested controls.
+    assert pg.evaluate("""() => {
+      const modal = document.createElement('div'); modal.className = 'modal-overlay show';
+      modal.innerHTML = '<button>OK</button>'; document.body.appendChild(modal);
+      const allowed = modal.firstChild.dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable:true}));
+      modal.remove(); return allowed;
+    }""")
+    # A real wheel scroll still reaches the page during the lock.
+    pg.evaluate("document.body.style.minHeight = '2400px'; window.scrollTo(0, 0)")
+    pg.mouse.move(200, 300)
+    pg.mouse.wheel(0, 150)
+    pg.wait_for_timeout(400)
+    assert pg.evaluate('window.scrollY > 0')
+    pg.evaluate("document.body.style.minHeight = ''; tutorialPaint()")
+
 def clean(pg):
     assert pg.evaluate("!document.querySelector('.tut-target') && document.getElementById('tut-layer').hidden")
 
@@ -68,10 +129,12 @@ with sync_playwright() as p:
         pg.on('pageerror', lambda e: errors.append(str(e)))
         # Including supabase.co: neither the real SDK nor any external API is contacted.
         pg.route('**/*', lambda r: r.continue_() if r.request.url.startswith(URL + '/') else r.abort())
-        pg.add_init_script("localStorage.setItem('sw-cleared-v106','1'); localStorage.setItem('hkf-tutorial-seen','1');")
+        pg.add_init_script("localStorage.setItem('hk-fishing-analytics-consent','no'); localStorage.setItem('sw-cleared-v106','1'); localStorage.setItem('hkf-tutorial-seen','1');")
         pg.goto(URL + '/index.html')
-        pg.evaluate("state.user={id:'tutorial-test'}; state.catches=[]; state.trips=[]; showApp(); startTutorial();")
+        pg.evaluate("state.user={id:'tutorial-test'}; state.catches=[]; state.trips=[]; showApp(); setupGlobalHandlers(); startTutorial();")
         check_target(pg, 1)
+        check_touch_gestures(pg)
+        check_lock(pg)
         pg.locator('.start-trip-btn').click()
         check_target(pg, 2, 'gps')
         pg.evaluate('tutorialGpsSettled(null)')
@@ -115,11 +178,15 @@ with sync_playwright() as p:
         check_target(pg, 1)
         pg.locator('#tut-skip').click()
         clean(pg)
+        pg.locator('#bottom-nav [data-view="leaderboard"]').click()
+        assert pg.evaluate("state.view === 'leaderboard' && !tutorialLockInstalled")
         # Reduced motion applies to the actual highlight, too.
         pg.emulate_media(reduced_motion='reduce')
         pg.evaluate('startTutorial()')
         check_target(pg, 1)
         assert pg.evaluate("getComputedStyle(tutorialTarget()).animationName") == 'none'
+        check_touch_gestures(pg)
+        check_lock(pg)
         pg.evaluate('tutorialHide()')
         clean(pg)
         assert not errors, errors
