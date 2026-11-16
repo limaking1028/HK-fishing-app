@@ -38,10 +38,27 @@ with sync_playwright() as p:
  rect=page.bounding_box();assert rect['x']==0 and rect['y']==0 and rect['width']==390 and rect['height']==844
  assert pg.locator('#settings-version').inner_text()=='釣港 v203'
  if ios:
-  pg.evaluate("document.documentElement.style.setProperty('--hkf-banner-height','87px')")
-  safe=page.bounding_box();assert safe['y']==87 and safe['height']==757
-  pg.evaluate("document.documentElement.style.removeProperty('--hkf-banner-height')")
+  # Real env() emulation plus the transform's matching variables: safe area counted once.
+  cdp=ctx.new_cdp_session(pg)
+  cdp.send('Emulation.setSafeAreaInsetsOverride',{'insets':{'top':47}})
+  pg.evaluate("document.documentElement.style.setProperty('--hkf-safe-top','47px');document.documentElement.style.setProperty('--hkf-banner-height','75px')")
+  safe=page.bounding_box();assert safe['y']==75 and safe['height']==769
+  back_top=page.locator('.settings-back').bounding_box()['y']
+  assert abs(back_top-(75+12))<=2,back_top
+  assert pg.evaluate("getComputedStyle(document.querySelector('.settings-bar')).paddingTop")=='12px'
+  # Production has no transform variables and retains the native safe-area padding.
+  pg.evaluate("document.documentElement.style.removeProperty('--hkf-safe-top');document.documentElement.style.removeProperty('--hkf-banner-height')")
+  assert pg.evaluate("getComputedStyle(document.querySelector('.settings-bar')).paddingTop")=='59px'
+  cdp.send('Emulation.setSafeAreaInsetsOverride',{'insets':{'top':0}})
+  assert pg.evaluate("getComputedStyle(document.querySelector('.settings-bar')).paddingTop")=='12px'
+  cdp.detach()
 
+ # Keep reader focus, suppress pointer-only outline, and retain a visible keyboard outline.
+ assert page.locator('.settings-back').evaluate('(el)=>document.activeElement===el')
+ pg.keyboard.press('Tab');pg.keyboard.press('Shift+Tab')
+ assert page.locator('.settings-back').evaluate("el=>el.matches(':focus-visible')")
+ assert page.locator('.settings-back').evaluate("el=>getComputedStyle(el).outlineWidth")=='2px'
+ assert page.locator('.settings-back').evaluate("el=>getComputedStyle(el).outlineOffset")=='2px'
  page.locator('.settings-back').click();pg.wait_for_timeout(100);assert page.is_hidden()
  entry.click();pg.evaluate('history.back()');pg.wait_for_timeout(100);assert page.is_hidden()
  entry.click();pg.get_by_role('button',name='釣友名稱').click()
