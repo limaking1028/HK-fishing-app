@@ -31,6 +31,15 @@ with sync_playwright() as p:
  assert '釣友阿明' in entry.inner_text() and '設定' in entry.inner_text() and '改名' not in entry.inner_text()
  assert entry.locator('#founder-badge').count()==1
  entry.click();page=pg.locator('#name-modal');assert page.is_visible()
+ # This is the first pointer action in a fresh context; do not prime keyboard modality.
+ back=page.locator('.settings-back')
+ assert not back.evaluate("el=>el.matches(':focus-visible')")
+ assert back.evaluate("el=>getComputedStyle(el).outlineStyle")=='none'
+ assert back.evaluate("el=>getComputedStyle(el).boxShadow")=='none'
+ assert page.locator('.settings-bar h1').evaluate('(el)=>document.activeElement===el')
+ assert page.locator('.settings-bar h1').evaluate("el=>getComputedStyle(el).outlineStyle")=='none'
+ assert page.locator('.settings-bar h1').evaluate("el=>getComputedStyle(el).boxShadow")=='none'
+
  assert page.locator('.settings-back').inner_text()=='‹ 返回'
  headings=page.locator('h2').all_text_contents()
  expected=['個人資料','使用偏好']+(['通知'] if ios else [])+['私隱','幫助','帳戶','資料管理']
@@ -53,12 +62,13 @@ with sync_playwright() as p:
   assert pg.evaluate("getComputedStyle(document.querySelector('.settings-bar')).paddingTop")=='12px'
   cdp.detach()
 
- # Keep reader focus, suppress pointer-only outline, and retain a visible keyboard outline.
- assert page.locator('.settings-back').evaluate('(el)=>document.activeElement===el')
+ # Reader focus starts on the page heading; keyboard navigation still highlights Back.
+ assert page.locator('.settings-bar h1').evaluate('(el)=>document.activeElement===el')
  pg.keyboard.press('Tab');pg.keyboard.press('Shift+Tab')
  assert page.locator('.settings-back').evaluate("el=>el.matches(':focus-visible')")
  assert page.locator('.settings-back').evaluate("el=>getComputedStyle(el).outlineWidth")=='2px'
  assert page.locator('.settings-back').evaluate("el=>getComputedStyle(el).outlineOffset")=='2px'
+ assert page.locator('.settings-back').evaluate("el=>getComputedStyle(el).boxShadow")=='none'
  page.locator('.settings-back').click();pg.wait_for_timeout(100);assert page.is_hidden()
  entry.click();pg.evaluate('history.back()');pg.wait_for_timeout(100);assert page.is_hidden()
  entry.click();pg.get_by_role('button',name='釣友名稱').click()
