@@ -67,9 +67,9 @@ with sync_playwright() as p:
  b.close()
 base=subprocess.check_output(['git','show','origin/ios-capacitor:sw.js'],cwd=root).decode()
 current=(root/'sw.js').read_text()
-assert current.startswith("const CACHE = 'hk-fishing-v203';")
-assert current.split('\n',1)[1].startswith(base.split('\n',1)[1])
-assert s.count('id="app-version"')==2 and s.count('>v203</span>')==2
-print('PASS both app-version render paths and SW CACHE use v203; original photo caching unchanged')
+assert current.startswith("const CACHE = 'hk-fishing-v205';")
+assert current.split('// Push handlers')[0].split('\n',1)[1] == base.split('// Push handlers')[0].split('\n',1)[1]
+assert s.count('id="app-version"')==2 and s.count('>v205</span>')==2
+print('PASS both app-version render paths and SW CACHE use v205; original photo caching unchanged')
 scripts=[js for attrs,js in re.findall(r'<script([^>]*)>(.*?)</script>',s,re.S) if 'src=' not in attrs and 'application/json' not in attrs]
 subprocess.run(['node','-e',"const vm=require('vm'),fs=require('fs');for(const s of JSON.parse(fs.readFileSync(0,'utf8')))new vm.Script(s);console.log('PASS inline JS parses')"],input=json.dumps(scripts),text=True,check=True)

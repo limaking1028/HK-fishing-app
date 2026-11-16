@@ -36,7 +36,7 @@ with sync_playwright() as p:
  expected=['個人資料','使用偏好']+(['通知'] if ios else [])+['私隱','幫助','帳戶','資料管理']
  assert headings==expected,headings
  rect=page.bounding_box();assert rect['x']==0 and rect['y']==0 and rect['width']==390 and rect['height']==844
- assert pg.locator('#settings-version').inner_text()=='釣港 v203'
+ assert pg.locator('#settings-version').inner_text()=='釣港 v205'
  if ios:
   pg.evaluate("document.documentElement.style.setProperty('--hkf-banner-height','87px')")
   safe=page.bounding_box();assert safe['y']==87 and safe['height']==757
@@ -67,7 +67,7 @@ with sync_playwright() as p:
  page.locator('.settings-back').click();pg.wait_for_timeout(100);entry.click();assert pg.evaluate("document.getElementById('settings-content').scrollTop")==0
  # Full settings-page screenshot, fixture user and preferences. Exactly 390 CSS px wide.
  pg.set_viewport_size({'width':390,'height':1400});pg.evaluate("document.getElementById('settings-content').scrollTop=0")
- path=root/'docs/screenshots'/('settings-page-v203-'+('ios' if ios else 'web')+'-390.png');path.parent.mkdir(parents=True,exist_ok=True)
+ path=root/'docs/screenshots'/('settings-page-v205-'+('ios' if ios else 'web')+'-390.png');path.parent.mkdir(parents=True,exist_ok=True)
  frame=pg.locator('#settings-version').bounding_box()
  pg.set_viewport_size({'width':390,'height':int(frame['y']+frame['height']+33)})
  pg.wait_for_timeout(3200) # Let normal success toasts disappear before the review screenshot.
