@@ -61,5 +61,40 @@ with sync_playwright() as p:
   assert url=='https://fixture.invalid/app/'+expected,url
  assert not errors,errors
  print('PASS SW map/tide/trips URL and unknown-view leaderboard fallback; no extra data')
+ # M3: emulate a v200-only database; only the new-column select fails.
+ pg.evaluate("""() => {
+   window.legacyRow={enabled:true,record_broken:true,overtaken:true};window.selects=[];window.legacyWrites=[];
+   window.registerCalls=0;window.failOld=false;window.failNew=true;
+   Capacitor.Plugins.PushNotifications.register=async()=>{registerCalls++;nativeListeners.registration({value:'legacy-fixture-only'})};
+   fakeSb.from=table=>{let fields='';const b={select(value){fields=value;selects.push(value);return b},eq(){return b},
+     maybeSingle:async()=>fields.includes('tide_window')&&failNew ? {error:{message:'new columns unavailable'}} : failOld ? {error:{message:'old columns unavailable'}} : {data:fields.includes('tide_window')?{...legacyRow,...Object.fromEntries(['tide_window','lb_chance','trip_open','weekly_summary','inactive'].map(k=>[k,true]))}:legacyRow},
+     upsert(row){legacyWrites.push(structuredClone(row));legacyRow={enabled:row.enabled,record_broken:row.record_broken,overtaken:row.overtaken};return Promise.resolve({data:row})},update(){return b},then(r){r({data:null})}};return b};
+   pushLib.login('prefs-fixture');
+ }""")
+ pg.wait_for_timeout(100)
+ assert pg.evaluate('registerCalls')>=1 and pg.locator('#push-enabled').is_enabled() and pg.locator('#push-enabled').is_checked()
+ assert all(pg.locator('#push-'+k).is_checked() and pg.locator('#push-'+k).is_disabled() for k in newkeys)
+ assert all(pg.locator('#push-'+k).is_enabled() for k in types[:2])
+ assert pg.locator('#push-status').inner_text()=='新通知類型稍後開放'
+ pg.evaluate("pushLib.change('tide_window',false)");assert pg.evaluate('legacyWrites.length')==0
+ pg.locator('#push-enabled').uncheck();pg.wait_for_timeout(50);before=pg.evaluate('registerCalls')
+ pg.locator('#push-enabled').check();pg.wait_for_timeout(80);assert pg.evaluate('registerCalls')>before
+ pg.locator('#push-overtaken').uncheck();pg.wait_for_timeout(50)
+ for row in pg.evaluate('legacyWrites'):
+  assert not any(k in row for k in newkeys)
+  assert {'enabled','record_broken','overtaken'}<=set(row)
+ assert pg.evaluate('legacyRow.overtaken') is False
+ pg.evaluate("window.goodLegacyFrom=fakeSb.from;fakeSb.from=table=>{const b=goodLegacyFrom(table);b.upsert=async()=>({error:{message:'legacy write failure'}});return b}")
+ pg.evaluate("pushLib.change('record_broken',false)")
+ assert pg.locator('#push-status').inner_text()=='通知設定未能完成，請稍後再試。'
+ pg.evaluate('fakeSb.from=goodLegacyFrom')
+
+ pg.evaluate('failOld=true;pushLib.refresh()');pg.wait_for_timeout(80)
+ assert pg.locator('#push-status').inner_text()=='通知設定未能完成，請稍後再試。'
+ assert pg.locator('#push-enabled').is_disabled()
+ pg.evaluate('failOld=false;failNew=false;pushLib.refresh()');pg.wait_for_timeout(80)
+ assert all(pg.locator('#push-'+k).is_enabled() for k in newkeys)
+ assert pg.locator('#push-status').inner_text() not in ['新通知類型稍後開放','通知設定未能完成，請稍後再試。']
+ print('PASS M3 legacy fallback preserves master/old switches and granted token registration, upserts only old fields; both-select failure is visible and modern refresh exits legacy mode')
  browser.close()
 server.shutdown()
