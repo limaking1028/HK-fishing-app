@@ -1298,8 +1298,8 @@ button { touch-action: manipulation; }
   @keyframes tut-flash { 50% { outline: 2px solid #FFE066; } }
   @media (prefers-reduced-motion: reduce) { #tut-card.tut-nudge { animation: tut-flash .3s ease-in-out; } }
   #app input.tut-target { outline-offset: -3px; }
-  @keyframes tut-glow { 0%, 100% { box-shadow: 0 0 0 8px rgba(0,0,0,.25), 0 0 0 6px rgba(255,224,102,.35); } 50% { box-shadow: 0 0 0 8px rgba(0,0,0,.25), 0 0 0 10px rgba(255,224,102,.6); } }
-  @media (prefers-reduced-motion: reduce) { #app .tut-target { animation: none; box-shadow: 0 0 0 8px rgba(0,0,0,.25), 0 0 0 6px rgba(255,224,102,.35); } }
+  @keyframes tut-glow { 0%, 100% { box-shadow: 0 0 0 6px rgba(255,224,102,.35), 0 0 0 7px rgba(0,0,0,.25); } 50% { box-shadow: 0 0 0 10px rgba(255,224,102,.6), 0 0 0 11px rgba(0,0,0,.25); } }
+  @media (prefers-reduced-motion: reduce) { #app .tut-target { animation: none; box-shadow: 0 0 0 6px rgba(255,224,102,.35), 0 0 0 7px rgba(0,0,0,.25); } }
   #tut-card { position: fixed; left: 10px; right: 10px; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); background: #fff; color: #14202b; padding: 12px; border: 1px solid #0e8495; border-radius: 14px; box-shadow: 0 6px 18px rgba(7,24,34,.25); pointer-events: auto; }
   .tut-card-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
   #tut-count { color: #0a5866; font-weight: 800; font-size: 14px; }
@@ -4262,8 +4262,31 @@ function tutorialOn() { return !!(state.tutorial && state.tutorial.on); }
 const tutorialLockEvents = ['click', 'mousedown', 'touchend', 'pointerup', 'keydown', 'focusin'];
 let tutorialLockInstalled = false;
 let tutorialNudgeTimer;
+let tutorialTouchStart = null;
+let tutorialTouchMoved = false;
+function tutorialTrackTouch(event) {
+  if (event.type === 'touchcancel') {
+    tutorialTouchStart = null;
+    tutorialTouchMoved = true;
+    return;
+  }
+  if (event.type === 'touchstart') {
+    const touch = event.touches[0];
+    tutorialTouchStart = touch ? { id: touch.identifier, x: touch.clientX, y: touch.clientY } : null;
+    tutorialTouchMoved = event.touches.length > 1;
+  } else if (tutorialTouchStart) {
+    const touch = Array.from(event.changedTouches || []).find(function (t) { return t.identifier === tutorialTouchStart.id; });
+    if (touch && Math.hypot(touch.clientX - tutorialTouchStart.x, touch.clientY - tutorialTouchStart.y) > 10) tutorialTouchMoved = true;
+  }
+}
 function tutorialInteractionGuard(event) {
   if (!tutorialOn() || state.tutorial.step === 'done') return;
+  if (event.type === 'touchend') {
+    tutorialTrackTouch(event);
+    tutorialTouchStart = null;
+    if (tutorialTouchMoved) return;
+  }
+  if (event.type === 'pointerup' && event.pointerType === 'touch' && tutorialTouchMoved) return;
   if (event.type === 'keydown' && !['Enter', ' ', 'Spacebar'].includes(event.key)) return;
   const el = event.target instanceof Element ? event.target : event.target.parentElement;
   if (el && el.closest('.tut-target, #tut-layer, .modal-overlay.show')) return;
@@ -4286,6 +4309,12 @@ function tutorialSetInteractionLock(on) {
     if (on) document.addEventListener(name, tutorialInteractionGuard, {capture: true, passive: false});
     else document.removeEventListener(name, tutorialInteractionGuard, true);
   });
+  ['touchstart', 'touchmove', 'touchcancel'].forEach(function (name) {
+    if (on) document.addEventListener(name, tutorialTrackTouch, {capture: true, passive: true});
+    else document.removeEventListener(name, tutorialTrackTouch, true);
+  });
+  tutorialTouchStart = null;
+  tutorialTouchMoved = false;
   if (!on) {
     clearTimeout(tutorialNudgeTimer);
     const card = document.getElementById('tut-card');

@@ -56,6 +56,35 @@ def check_target(pg, step, sub=None):
         Path(SHOT_DIR).mkdir(parents=True, exist_ok=True)
         pg.screenshot(path=f'{SHOT_DIR}/{pg.viewport_size["width"]}-{step}-{sub or "main"}.png')
 
+def check_touch_gestures(pg):
+    pg.wait_for_timeout(350)
+    result = pg.evaluate("""() => {
+      const nav = document.querySelector('#bottom-nav [data-view="leaderboard"]');
+      const card = document.getElementById('tut-card');
+      const before = JSON.stringify([state.view, state.tutorial.step, state.tutorial.sub]);
+      function send(type, y) {
+        const touch = new Touch({identifier:1, target:nav, clientX:200, clientY:y});
+        const event = new TouchEvent(type, {bubbles:true, cancelable:true,
+          touches:type === 'touchend' ? [] : [touch], changedTouches:[touch]});
+        return nav.dispatchEvent(event);
+      }
+      const startAllowed = send('touchstart', 200);
+      const moveAllowed = send('touchmove', 260);
+      const scrollEndAllowed = send('touchend', 260);
+      const scrollNudge = card.classList.contains('tut-nudge');
+      const scrollUnchanged = JSON.stringify([state.view, state.tutorial.step, state.tutorial.sub]) === before;
+      send('touchstart', 200);
+      const tapAllowed = send('touchend', 200);
+      const tapNudge = card.classList.contains('tut-nudge');
+      const tapUnchanged = JSON.stringify([state.view, state.tutorial.step, state.tutorial.sub]) === before;
+      return {startAllowed, moveAllowed, scrollEndAllowed, scrollNudge, scrollUnchanged,
+        tapAllowed, tapNudge, tapUnchanged};
+    }""")
+    assert result == dict(startAllowed=True, moveAllowed=True, scrollEndAllowed=True,
+                          scrollNudge=False, scrollUnchanged=True, tapAllowed=False,
+                          tapNudge=True, tapUnchanged=True), result
+    pg.wait_for_timeout(350)
+
 def check_lock(pg):
     before = pg.evaluate('({view:state.view, step:state.tutorial.step, sub:state.tutorial.sub})')
     nav = pg.locator('#bottom-nav [data-view="leaderboard"]')
@@ -104,6 +133,7 @@ with sync_playwright() as p:
         pg.goto(URL + '/index.html')
         pg.evaluate("state.user={id:'tutorial-test'}; state.catches=[]; state.trips=[]; showApp(); setupGlobalHandlers(); startTutorial();")
         check_target(pg, 1)
+        check_touch_gestures(pg)
         check_lock(pg)
         pg.locator('.start-trip-btn').click()
         check_target(pg, 2, 'gps')
@@ -155,6 +185,7 @@ with sync_playwright() as p:
         pg.evaluate('startTutorial()')
         check_target(pg, 1)
         assert pg.evaluate("getComputedStyle(tutorialTarget()).animationName") == 'none'
+        check_touch_gestures(pg)
         check_lock(pg)
         pg.evaluate('tutorialHide()')
         clean(pg)
