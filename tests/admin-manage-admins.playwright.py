@@ -21,7 +21,7 @@ const R = {
 };
 window.supabase = { createClient: () => ({
   auth: { getSession: async () => ({data:{session:{user:{id:'%s'}}}}), onAuthStateChange: () => ({data:{subscription:{unsubscribe(){}}}}), signOut: async()=>({}) },
-  rpc: async (n, a) => { __calls.push([n, a]); if (!R[n]) return {data:null, error:{message:'Could not find '+n}}; try { return {data:R[n](a||{}), error:null}; } catch (e) { return {data:null, error:{message:String(e)}}; } },
+  rpc: async (n, a) => { __calls.push([n, a]); if (!R[n]) return {data:null, error:{message:'Could not find the function public.'+n}}; try { return {data:R[n](a||{}), error:null}; } catch (e) { return {data:null, error:{message:String(e)}}; } },
   from: () => { const q = new Proxy({}, {get:(t,k)=> k==='then' ? (r=>r({data:[],error:null})) : (()=>q)}); return q; },
 })};
 """ % (FOUND, ME, FOUND, ME, B, FOUND, ME, FOUND, ME)

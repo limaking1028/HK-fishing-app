@@ -17,11 +17,23 @@ async function equalSecret(a: string, b: string) {
   return x.reduce((acc, n, i) => acc | (n ^ y[i]), 0) === 0;
 }
 type Device = {id: string; token: string; token_type: string};
-type Job = {id: string; user_id: string; type: string; title: string; body: string; data: {lbType?: string}; claim_id: string; attempts: number; delivered_token_ids: string[]};
+type Job = {id: string; user_id: string; type: string; title: string; body: string; data: Record<string, unknown>; claim_id: string; attempts: number; delivered_token_ids: string[]};
 const checked = async (p: PromiseLike<{data: unknown; error: unknown}>) => { const r = await p; if (r.error) throw new Error('database operation failed'); return r.data; };
+function pushRoute(data: Record<string, unknown>): Record<string, string> {
+    data = data || {};
+    const view = ['leaderboard','map','trips','my'].includes(String(data.view)) ? String(data.view) : 'leaderboard';
+    const out: Record<string, string> = {view: String(view)};
+    if (view === 'leaderboard') {
+      out.lbType = ['biggest','quantity','species'].includes(String(data.lbType)) ? String(data.lbType) : 'biggest';
+      out.lbPeriod = ['all','month'].includes(String(data.lbPeriod)) ? String(data.lbPeriod) : 'all';
+    } else if (view === 'map') {
+      out.mapTab = 'tide';
+      if (['QUB','TPK','CCH','TAO','SPW','TBT','SAI','KCQ','LAM','CHK','TCT','PEN'].includes(String(data.station))) out.station = String(data.station);
+    }
+    return out;
+  }
 export function payload(job: Job) {
-  const lbType = ['biggest', 'quantity', 'species'].includes(job.data?.lbType || '') ? job.data.lbType : 'biggest';
-  return {title: job.title, body: job.body, data: {view: 'leaderboard', lbType, lbPeriod: 'all'}};
+  return {title:job.title, body:job.body, data:pushRoute(job.data)};
 }
 export function webEndpoint(endpoint: string) {
   const u = new URL(endpoint);
