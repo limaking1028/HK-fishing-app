@@ -8,6 +8,18 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
 server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(Quiet,directory=str(root)))
 threading.Thread(target=server.serve_forever,daemon=True).start()
 origin=f'http://127.0.0.1:{server.server_port}'
+def visible_event_labels_fit(chart):
+ failures=chart.evaluate("""e=>{const clip=e.getBoundingClientRect();return [...e.querySelectorAll('.tide-event-label')].map(label=>{
+   const symbol=e.querySelector('.tide-event-symbol[data-event="'+label.dataset.event+'"]');
+   const marker=symbol.getBoundingClientRect(), x=(marker.left+marker.right)/2;
+   const visible=x>=clip.left && x<=clip.right, visibility=getComputedStyle(label).visibility;
+   const r=label.getBoundingClientRect(), t=label.nextElementSibling.getBoundingClientRect();
+   const valid=visible ? visibility==='visible' && r.left>=clip.left && r.right<=clip.right && t.left>=clip.left && t.right<=clip.right : visibility==='hidden';
+   return valid?null:{code:e.closest('.tide-card').dataset.station,clip:clip.toJSON(),marker:marker.toJSON(),label:r.toJSON(),text:t.toJSON(),visibility,scroll:e.scrollLeft};
+ }).filter(Boolean)}""")
+ assert not failures,failures
+ return True
+
 with sync_playwright() as p:
  browser=p.chromium.launch()
  for width,height in [(375,667),(390,844)]:
@@ -79,9 +91,11 @@ with sync_playwright() as p:
    card.locator(f'[data-day="{day}"]').click()
    assert pg.evaluate("ms=>new Date(Number(ms)).getDate()",ex.get_attribute('data-selected'))==15+day
    tick=chart.locator('.tide-date-tick').nth(day)
+   assert tick.is_visible()
    assert tick.text_content()==f'11/{15+day}（{"日一二三四五六"[(day)%7]}）'
    r=tick.bounding_box();clip=chart.bounding_box()
    assert r['x']>=clip['x'] and r['x']+r['width']<=clip['x']+clip['width'],(r,clip)
+   assert visible_event_labels_fit(chart), 'visible labels must fit the day viewport'
 
   assert card.locator('.tide-hours .rising').count()>0 and card.locator('.tide-hours .falling').count()>0
   assert '漲' in card.locator('.tide-hours .rising').first.inner_text()
@@ -111,12 +125,27 @@ with sync_playwright() as p:
      return x>=0 && x+w<=width && (a.x+a.width<=b.x || a.x>=b.x+b.width || a.y+a.height<=b.y || a.y>=b.y+b.height);
    })}))""")
    assert len(geometry)==12 and all(item['valid'] for item in geometry),(day_index,geometry)
-  if os.environ.get('SHOT_DIR') and width==390:
+   for day in [0,1,2]:
+    pg.evaluate("day=>document.querySelectorAll('.tide-explorer').forEach(e=>e.querySelector('[data-day=\"'+day+'\"]').click())",day)
+    pg.evaluate("()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))")
+    for station_chart in pg.locator('.tide-chart').all():
+     assert visible_event_labels_fit(station_chart),(day_index,day,station_chart.evaluate("e=>e.closest('.tide-card').dataset.station"))
+
+  if width==390:
    pg.evaluate("tidesLib.setNowForTest(new Date(2026,10,16,11,30).getTime());renderMapTideList(document.getElementById('view-map'));openThreeDayTide('TBT')")
    tomorrow=pg.locator('.tide-card[data-station="TBT"]')
    tomorrow.locator('[data-day="1"]').click()
-   Path(os.environ['SHOT_DIR']).mkdir(parents=True,exist_ok=True)
-   pg.screenshot(path=f'{os.environ["SHOT_DIR"]}/tomorrow-390.png')
+   assert visible_event_labels_fit(tomorrow.locator('.tide-chart'))
+   for text in ['01:32 2.40','21:55 1.76']:
+    label=tomorrow.locator('.tide-chart text').filter(has_text=text).first
+    r=label.bounding_box();clip=tomorrow.locator('.tide-chart').bounding_box()
+    assert label.is_visible() and r['x']>=clip['x'] and r['x']+r['width']<=clip['x']+clip['width'],text
+
+   if os.environ.get('SHOT_DIR'):
+    tomorrow.evaluate("e=>e.scrollIntoView({block:'start'})")
+    pg.evaluate("()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))")
+    Path(os.environ['SHOT_DIR']).mkdir(parents=True,exist_ok=True)
+    pg.screenshot(path=f'{os.environ["SHOT_DIR"]}/tomorrow-390.png')
   # Stress the event-label geometry on the specified >3m / negative-height dates.
   for code,month,day in [('TBT',10,25),('SPW',5,16)]:
    pg.evaluate(f"tidesLib.setNowForTest(new Date(2026,{month},{day},23,30).getTime());renderMapTideList(document.getElementById('view-map'))")
@@ -176,7 +205,8 @@ with sync_playwright() as p:
    pg.evaluate("safe=>document.documentElement.style.setProperty('--hkf-safe-top',safe+'px')",safe)
    pg.evaluate("openThreeDayTide('TBT')")
    rects=pg.evaluate("""()=>({card:document.querySelector('.tide-card[data-station="TBT"]').getBoundingClientRect().top,header:document.getElementById('header').getBoundingClientRect().bottom,banner:document.getElementById('hkf-test-banner').getBoundingClientRect().bottom})""")
-   assert rects['card']>=rects['header']>=rects['banner'],rects
+   # Scroll alignment may quantize by one 1/64 CSS-pixel layout unit.
+   assert rects['card']+1/64>=rects['header']>=rects['banner'],rects
   print('PASS generated iOS test bundle: popup destination clears header/banner at 0/59px safe area')
   c.close()
  browser.close()
