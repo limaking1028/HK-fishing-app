@@ -13,23 +13,25 @@ with sync_playwright() as p:
     errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
     def route(r):
         u = r.request.url
+        if 'data.weather.gov.hk' in u or 'data.gov.hk' in u: return r.abort()
         if 'supabase.co' in u: sbreq.append(u); return r.abort()
-        if '@supabase/supabase-js' in u:
-            return r.fulfill(content_type='application/javascript', body="""window.supabase={createClient(){return {auth:{getSession:async()=>({data:{session:null}}),getUser:async()=>({data:{user:null}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},rpc:async()=>({data:null}),from(){const b={then:r=>Promise.resolve({data:[],error:null}).then(r)};for(const m of ['select','insert','update','eq','order','limit','maybeSingle'])b[m]=()=>b;return b;}}}};""")
         if 'open-meteo' in u:
             meteo.append(u)
-            count=len(u.split('latitude=')[1].split('&')[0].split(','))
-            fixture={'current':{'time':'2026-11-15T12:00','temperature_2m':24,'weather_code':1,'wind_speed_10m':10},'hourly':{'time':[]}}
-            return r.fulfill(content_type='application/json',body=json.dumps([fixture]*count if count>1 else fixture))
-        if u.startswith(f'http://127.0.0.1:{srv.server_port}/'): return r.continue_()
-        return r.abort()  # Offline: never contact HKO/data.gov.hk or other external services.
+            # Fixed weather keeps this guest navigation test independent of external API availability.
+            current = {'time':'2026-11-02T12:00', 'temperature_2m':24, 'relative_humidity_2m':70,
+                       'precipitation':0, 'weather_code':1, 'wind_speed_10m':12, 'wind_direction_10m':90, 'pressure_msl':1015, 'cloud_cover':20}
+            data = {'current':current, 'hourly':{'time':[f'2026-11-02T{hour:02d}:00' for hour in range(24)],
+                    **{key:[value]*24 for key,value in current.items() if key != 'time'}}}
+            count = len(u.split('latitude=')[1].split('&')[0].split(','))
+            return r.fulfill(status=200, headers={'access-control-allow-origin':'*'}, content_type='application/json', body=json.dumps([data]*count if count > 1 else data))
+        r.continue_()
     pg.route('**/*', route)
     pg.goto(f'http://127.0.0.1:{srv.server_port}/index.html'); pg.wait_for_timeout(3000)
     before = list(sbreq)
     check(pg.locator('text=唔登入，先睇潮汐同天氣').count() == 1, 'login screen shows guest button')
     pg.click('text=唔登入，先睇潮汐同天氣'); pg.wait_for_timeout(1500)
     check(pg.evaluate("document.querySelector('#view-map').innerText.includes('潮')") and pg.locator('#view-map .guest-login-prompt').count() == 0, 'tide renders')
-    pg.evaluate("switchMapTab('weather')"); pg.wait_for_timeout(6000)
+    pg.evaluate("switchMapTab('weather')"); pg.wait_for_selector('.weather-card')
     check(pg.locator('#view-map .guest-login-prompt').count() == 0 and len(pg.evaluate("document.querySelector('#view-map').innerText")) > 50, 'weather renders')
     pg.screenshot(path='/tmp/guest-weather.png')
     pg.click('.weather-card-action >> nth=0'); pg.wait_for_timeout(800)
