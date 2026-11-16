@@ -1312,9 +1312,12 @@ button { touch-action: manipulation; }
   .tide-explorer-days,.tide-explorer-interval { display:flex; flex-wrap:wrap; align-items:center; gap:5px; font-size:11px; }
   .tide-explorer-days [data-now] { margin-left:auto; }
   .tide-explorer-readout { font-size:12px; font-weight:700; color:var(--teal-dark); padding:9px 0; min-height:36px; }
-  .tide-chart { overflow-x:auto; touch-action:pan-y; overscroll-behavior-x:contain; scrollbar-width:thin; }
+  .tide-chart-frame { display:flex; align-items:flex-start; }
+  .tide-y-axis { position:relative; flex:0 0 48px; height:196px; font-size:11px; color:var(--gray-5); }
+  .tide-y-axis span { position:absolute; right:5px; transform:translateY(-50%); white-space:nowrap; }
+  .tide-chart { min-width:0; flex:1; overflow-x:auto; touch-action:pan-y; overscroll-behavior-x:contain; scrollbar-width:thin; }
   .tide-chart-rail { position:relative; }
-  .tide-read-line { position:absolute; top:18px; bottom:26px; width:2px; background:#2563eb; pointer-events:none; }
+  .tide-read-line { position:absolute; top:18px; bottom:48px; width:2px; background:#2563eb; pointer-events:none; }
   .tide-hours { position:relative; display:flex; overflow-x:auto; touch-action:pan-x; gap:6px; padding:8px 0; }
   .tide-hours button { flex:0 0 88px; display:flex; flex-direction:column; align-items:center; font-size:11px; border-top:3px solid; }
   .tide-hours .rising { border-top-color:#f97316; }
@@ -5951,7 +5954,7 @@ function renderMapTideList(view) {
       <button class="tide-card-action" onclick="showStationOnMap('${st.code}')">在地圖上顯示位置</button>
     </div>`;
   }).join('');
-  const tideNotice = window.tidesLib.isDataValid(now) ? ''
+  const tideNotice = window.tidesLib.isHourlyLoading() ? '<div class="lb-tip" style="margin:10px 12px;">潮汐數據載入中…</div>' : window.tidesLib.isDataValid(now) ? ''
     : window.tidesLib.getDayEvents('QUB', now).length ? '<div class="lb-tip" style="margin:10px 12px;">逐小時資料未能載入，暫用高低潮插值估算。</div>'
     : '<div style="margin:10px 12px;padding:10px 12px;background:#fff4e8;border:1px solid #f5a623;border-radius:10px;font-size:12px;color:#8a5a1c;line-height:1.5;">潮汐數據只涵蓋至 ' + window.tidesLib.getDataYear() + ' 年，目前日期暫無潮汐預報。請更新 App 版本。</div>';
   view.innerHTML = '<div class="map-subtabs">'
@@ -6284,7 +6287,12 @@ function buildTideStationPopup(code) {
 function openThreeDayTide(code) {
   state.mapTab = 'tide'; switchView('map');
   const card = document.querySelector('.tide-card[data-station="'+code+'"]');
-  if (card) card.scrollIntoView({block:'start'});
+  if (card) {
+    const header = document.getElementById('header');
+    card.style.scrollMarginTop = ((header ? header.getBoundingClientRect().bottom : 0)+8)+'px';
+    const reset = card.querySelector('[data-now]'); if (reset) reset.click();
+    card.scrollIntoView({block:'start'});
+  }
 }
 function refreshTideMarkers() {
   if (!window.tidesLib || !mapInstance) return;

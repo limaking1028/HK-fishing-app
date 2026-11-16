@@ -36,6 +36,19 @@ with sync_playwright() as p:
   official=(row[10]+row[11])/200
   assert abs(float(expected)-official)<=0.01000001
   assert pg.evaluate('document.documentElement.scrollWidth<=innerWidth'), 'page must not overflow sideways'
+  # Fixed Y-axis is outside the scroller and stays visible when the rail moves.
+  axis=card.locator('.tide-y-axis')
+  assert axis.locator('span').count()==3
+  assert all(re.search(r'-?\d+\.\d 米',t) for t in axis.locator('span').all_text_contents())
+  left=axis.bounding_box()['x']; chart.evaluate('e=>e.scrollLeft+=100')
+  assert axis.bounding_box()['x']==left
+  assert chart.locator('text').filter(has_text='現在').count()==0
+  visible_ticks=chart.evaluate("""e=>{const r=e.getBoundingClientRect();return [...e.querySelectorAll('.tide-time-tick')].filter(t=>{const b=t.getBoundingClientRect();return b.left>=r.left && b.right<=r.right}).length}""")
+  assert visible_ticks>=4,visible_ticks
+  assert chart.locator('.tide-date-tick').count()==3
+  assert chart.locator('.tide-date-tick').first.text_content()=='11/15（日）'
+  card.locator('[data-now]').click()
+  assert pg.evaluate("ms=>new Date(Number(ms)).getMinutes()",card.locator('.tide-hours [aria-pressed="true"]').get_attribute('data-ms'))==0
   assert card.locator('.tide-forecast-row').count()==5
   assert chart.evaluate("e=>getComputedStyle(e).touchAction")=='pan-y'
   assert card.locator('.tide-hours').evaluate('e=>e.scrollWidth>e.clientWidth')
@@ -82,8 +95,27 @@ with sync_playwright() as p:
   pg.emulate_media(reduced_motion='reduce');card.locator('[data-now]').click()
   assert ex.get_attribute('data-selected')==str(pg.evaluate('tidesLib.now()'))
   assert not any('data.weather.gov.hk' in u or 'data.gov.hk' in u for u in requests)
-  if os.environ.get('SHOT_DIR'):
-   Path(os.environ['SHOT_DIR']).mkdir(parents=True,exist_ok=True);card.scroll_into_view_if_needed();pg.screenshot(path=f'{os.environ["SHOT_DIR"]}/{width}-tides.png')
+  # Stress the event-label geometry on the specified >3m / negative-height dates.
+  for code,month,day in [('TBT',10,25),('SPW',5,16)]:
+   pg.evaluate(f"tidesLib.setNowForTest(new Date(2026,{month},{day},23,30).getTime());renderMapTideList(document.getElementById('view-map'))")
+   stressed=pg.locator(f'.tide-card[data-station="{code}"]')
+   assert stressed.locator('.tide-chart').evaluate("""e=>[...e.querySelectorAll('.tide-event-label')].every(label=>{
+     const symbol=[...e.querySelectorAll('.tide-event-symbol')].find(s=>s.dataset.event===label.dataset.event);
+     const a=label.getBoundingClientRect(), b=symbol.getBoundingClientRect();
+     return a.right<=b.left || a.left>=b.right || a.bottom<=b.top || a.top>=b.bottom;
+   })"""), (code,'event label intersects its symbol')
+   values=[float(t.split()[0]) for t in stressed.locator('.tide-y-axis span').all_text_contents()]
+   assert max(values)>3 if code=='TBT' else min(values)<0
+   # Render and click the actual popup button, even in the guest offline fixture.
+   pg.evaluate("""code=>{const popup=document.createElement('div');popup.id='test-tide-popup';popup.style.cssText='position:fixed;top:70px;left:20px;width:260px;z-index:1000;background:white';popup.innerHTML=buildTideStationPopup(code);document.body.appendChild(popup)}""",code)
+   pg.locator('#test-tide-popup .tide-popup-action').click()
+   pg.evaluate("document.getElementById('test-tide-popup').remove()")
+   stressed=pg.locator(f'.tide-card[data-station="{code}"]')
+   assert stressed.bounding_box()['y']>=pg.locator('#header').bounding_box()['y']+pg.locator('#header').bounding_box()['height']-1
+   assert stressed.locator('.tide-explorer').get_attribute('data-selected')==str(pg.evaluate('tidesLib.now()'))
+   if os.environ.get('SHOT_DIR') and width==390:
+    Path(os.environ['SHOT_DIR']).mkdir(parents=True,exist_ok=True)
+    pg.screenshot(path=f'{os.environ["SHOT_DIR"]}/{"tsim-bei-tsui" if code=="TBT" else "popup-destination"}-390.png')
   assert not errors,errors
   print(f'PASS {width}x{height}: 12 guest cards, hourly height, drag, reset, strip, intervals, day chips, cross-year, gestures CSS, reduced-motion, attribution')
   c.close()
@@ -95,5 +127,35 @@ with sync_playwright() as p:
  assert pg.locator('.tide-explorer').first.get_attribute('data-source')=='cosine'
  assert '估算' in pg.locator('.tide-explorer-readout').first.inner_text()
  print('PASS failed local files: cosine fallback explicitly labelled on all cards')
- c.close();browser.close()
+ c.close()
+ # Cold start: fetch is deliberately pending, not failed; coverage must stay 2027.
+ c=browser.new_context(service_workers='block');pg=c.new_page()
+ pg.route('**/*',lambda r:r.continue_() if r.request.url.startswith(origin+'/') else r.abort())
+ pg.add_init_script("""const tideFetch=window.fetch;window.fetch=(...args)=>String(args[0]).includes('tide-hourly-')?new Promise(resolve=>setTimeout(resolve,2000)).then(()=>tideFetch(...args)):tideFetch(...args);""")
+ pg.goto(origin+'/index.html')
+ pg.evaluate("tidesLib.setNowForTest(new Date(2026,10,25,11,30).getTime());showApp();enterGuestMode();switchMapTab('tide')")
+ assert pg.evaluate('tidesLib.isHourlyLoading()')
+ assert pg.evaluate('tidesLib.getDataYear()')==2027
+ assert '未能載入' not in pg.locator('#view-map').inner_text()
+ assert pg.locator('.tide-card-est').count()==4
+ pg.evaluate('async()=>await tidesLib.ready')
+ assert not pg.evaluate('tidesLib.isHourlyLoading()')
+ assert pg.locator('.tide-card-est').count()==4
+ print('PASS delayed JSON: loading state, no failure/extra estimate badges, coverage stays 2027')
+ c.close()
+ if os.environ.get('HKF_TIDE_GENERATED_TEST'):
+  # Run against the generated test bundle to include the real yellow banner/safe-area CSS.
+  c=browser.new_context(viewport={'width':390,'height':844},timezone_id='Asia/Hong_Kong',service_workers='block');pg=c.new_page()
+  pg.route('**/*',lambda r:r.continue_() if r.request.url.startswith(origin+'/') else r.abort())
+  pg.goto(origin+'/www/index.html')
+  pg.evaluate("async()=>{await tidesLib.ready;tidesLib.setNowForTest(new Date(2026,10,25,23,30).getTime());showApp();enterGuestMode();switchMapTab('tide')}")
+  assert pg.locator('#hkf-test-banner').count()==1
+  for safe in [0,59]:
+   pg.evaluate("safe=>document.documentElement.style.setProperty('--hkf-safe-top',safe+'px')",safe)
+   pg.evaluate("openThreeDayTide('TBT')")
+   rects=pg.evaluate("""()=>({card:document.querySelector('.tide-card[data-station="TBT"]').getBoundingClientRect().top,header:document.getElementById('header').getBoundingClientRect().bottom,banner:document.getElementById('hkf-test-banner').getBoundingClientRect().bottom})""")
+   assert rects['card']>=rects['header']>=rects['banner'],rects
+  print('PASS generated iOS test bundle: popup destination clears header/banner at 0/59px safe area')
+  c.close()
+ browser.close()
 server.shutdown()
