@@ -1329,7 +1329,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v198</span></div>
+    <div class="header-title" id="header-title">釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v205</span></div>
     <div class="header-settings" onclick="openNameDialog()"><span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">改名</span></div>
   </header>
   <main id="main">
@@ -1377,6 +1377,11 @@ button { touch-action: manipulation; }
         <label style="display:block"><input type="checkbox" id="push-enabled" onchange="pushLib.change('enabled',this.checked)"> 開啟通知</label>
         <label style="display:block"><input type="checkbox" id="push-record_broken" onchange="pushLib.change('record_broken',this.checked)"> 破紀錄</label>
         <label style="display:block"><input type="checkbox" id="push-overtaken" onchange="pushLib.change('overtaken',this.checked)"> 被人超越</label>
+        <label style="display:block"><input type="checkbox" id="push-tide_window" onchange="pushLib.change('tide_window',this.checked)"> 潮汐好時機</label>
+        <label style="display:block"><input type="checkbox" id="push-lb_chance" onchange="pushLib.change('lb_chance',this.checked)"> 上榜機會</label>
+        <label style="display:block"><input type="checkbox" id="push-trip_open" onchange="pushLib.change('trip_open',this.checked)"> 行程未結束</label>
+        <label style="display:block"><input type="checkbox" id="push-weekly_summary" onchange="pushLib.change('weekly_summary',this.checked)"> 每週小結</label>
+        <label style="display:block"><input type="checkbox" id="push-inactive" onchange="pushLib.change('inactive',this.checked)"> 好耐冇開提醒</label>
         <div id="push-status" role="status" aria-live="polite"></div>
       </fieldset>
       <input type="text" class="modal-input" id="name-input" placeholder="輸入你的名稱（2–12 個字）" maxlength="24">
@@ -6509,7 +6514,7 @@ function switchView(name) {
   const titles = { record:'記錄魚獲', my:'我的魚獲', trips:'釣魚行程', leaderboard:'排行榜', map:'釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v198</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v205</span>';
   }
   renderView(name);
 }
@@ -7171,7 +7176,7 @@ async function completeSignInInner(userProfile) {
   maybeShowConsentModal();   // v175：登入後先問
   safeSwitchView('my');
   if (window.pushLib) {
-    pushLib.init({sb, navigate(board) { state.lbType = board; state.lbPeriod = 'all'; safeSwitchView('leaderboard'); }});
+    pushLib.init({sb, navigate(data) { if (data.view === 'leaderboard') { state.lbType = data.lbType; state.lbPeriod = data.lbPeriod; } else if (data.view === 'map') { state.mapTab = 'tide'; } safeSwitchView(data.view); }});
     pushLib.login(userProfile.id);
   }
 }

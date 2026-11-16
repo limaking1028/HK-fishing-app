@@ -73,3 +73,11 @@ Deno.test('authorization refusal skips a job without provider delivery or retry'
     names.forEach((name,i) => originalEnv[i] === undefined ? Deno.env.delete(name) : Deno.env.set(name, originalEnv[i]!));
   }
 });
+Deno.test('four-view payload allowlist strips private/unknown fields and restricts stations/periods',()=>{
+ const job={id:'fixture',user_id:'fixture',type:'tide_window',title:'釣港',body:'測試',claim_id:'fixture',attempts:1,delivered_token_ids:[]};
+ assert.deepEqual(payload({...job,data:{view:'map',mapTab:'anything',station:'TAO',latitude:22.3,privateNote:'fixture'}}).data,{view:'map',mapTab:'tide',station:'TAO'});
+ assert.deepEqual(payload({...job,data:{view:'map',station:'UNKNOWN'}}).data,{view:'map',mapTab:'tide'});
+ for(const view of ['trips','my'])assert.deepEqual(payload({...job,data:{view,weight:42,lbType:'quantity'}}).data,{view});
+ assert.deepEqual(payload({...job,data:{view:'leaderboard',lbType:'species',lbPeriod:'month',longitude:114}}).data,{view:'leaderboard',lbType:'species',lbPeriod:'month'});
+ assert.deepEqual(payload({...job,data:{view:'unknown',lbPeriod:'week'}}).data,{view:'leaderboard',lbType:'biggest',lbPeriod:'all'});
+});

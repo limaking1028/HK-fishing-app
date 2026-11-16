@@ -1,0 +1,203 @@
+// Local in-memory PostgreSQL only; no network/database credentials.
+// deno run --allow-read --allow-env supabase/functions/send-push/migration.test.js
+import {PGlite} from 'npm:@electric-sql/pglite@0.3.14';
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const root=new URL('../../../', import.meta.url).pathname;
+const db=new PGlite();
+const uid=i=>`00000000-0000-4000-8000-${String(i).padStart(12,'0')}`;
+const q=sql=>db.exec(sql);
+const rows=async sql=>(await db.query(sql)).rows;
+const scalar=async sql=>Object.values((await rows(sql))[0])[0];
+await q(`create role anon; create role authenticated; create role service_role bypassrls;
+create schema auth;
+create function auth.uid() returns uuid language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claim.sub',true),''),nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'sub')::uuid $$;
+create table public.users(id uuid primary key,public_id uuid default gen_random_uuid());
+create table auth.users(id uuid primary key,banned_until timestamptz);
+create function public.is_admin() returns boolean language sql stable as $$ select auth.uid()='${uid(9)}'::uuid $$;
+create function public.is_banned(p_uid uuid) returns boolean language sql stable as $$ select exists(select 1 from auth.users where id=p_uid and banned_until>now()) $$;
+create table public.catches(id uuid primary key,user_id uuid,species text,weight_kg numeric,date date default current_date,created_at timestamptz default now(),trip_id uuid,spot text default 'PRIVATE',photo_url text,proof_path text,leaderboard_eligible boolean default true,admin_excluded boolean default false,is_test boolean default false);
+create table public.fishing_trips(id uuid primary key,user_id uuid,started_at timestamptz,ended_at timestamptz);
+create table public.lb_catch_approval(catch_id uuid primary key,species text,weight_kg numeric,proof_path text,photo_url text);
+create table public.lb_review(trip_id uuid,species text,status text,primary key(trip_id,species));
+create table public.lb_species_review(user_id uuid,species text,status text,catch_id uuid,primary key(user_id,species));
+create table public.founders_excluded(user_id uuid primary key);
+create table public.species_limits(species text primary key,max_kg numeric);
+create table public.app_config(key text primary key,value jsonb);
+create function public.lb_period_start(text) returns date language sql as $$ select '-infinity'::date $$;
+create table public.delete_marker(id uuid);
+create function public.delete_my_account() returns void language plpgsql security definer as $$ begin insert into public.delete_marker values(auth.uid()); delete from public.users where id=auth.uid(); end $$;
+grant usage on schema public,auth to authenticated; grant execute on function auth.uid() to authenticated;
+create function public.push_test_now() returns timestamptz language sql as $$ select current_setting('test.now')::timestamptz $$;
+select set_config('test.now','2026-11-15T01:00:00Z',false);`);
+let w=fs.readFileSync(root+'v178/migration-v178-test-accounts-off-board.sql','utf8');
+w=w.slice(w.indexOf('CREATE OR REPLACE FUNCTION'),w.lastIndexOf('commit;'));
+await q(w);
+let stats=fs.readFileSync(root+'v172/migration-v172-species-review.sql','utf8');
+stats=stats.slice(stats.indexOf('CREATE OR REPLACE FUNCTION public.lb_stats_rows'),stats.indexOf('CREATE OR REPLACE FUNCTION public.lb_my_rank'));
+await q(stats);
+let migration=fs.readFileSync(root+'migration-v200-push-notifications.sql','utf8').replaceAll('now()','public.push_test_now()');
+await q(migration); await q(migration); console.log('PASS repeatable migration, original ranking functions compile');
+await q(`alter table public.users add column last_login_at timestamptz,add column created_at timestamptz default '2026-01-01',add column display_name text default 'PRIVATE_OTHER_NAME';
+alter table public.fishing_trips add column spot text,add column latitude numeric,add column longitude numeric;
+create table public.app_usage(user_id uuid,day date,hour int,seconds int);
+create or replace function public.lb_period_start(p text) returns date language sql as $$ select case when p='month' then date_trunc('month',public.push_test_now() at time zone 'Asia/Hong_Kong')::date else '-infinity'::date end $$;`);
+const more=fs.readFileSync(root+'migration-v205-push-more-types.sql','utf8').replaceAll('now()','public.push_test_now()');
+await q(more);await q(more);
+const types=['record_broken','overtaken','tide_window','lb_chance','trip_open','weekly_summary','inactive'];
+const literal=s=>"'"+String(s).replaceAll("'","''")+"'";
+for(let i=1;i<=30;i++) await q(`insert into public.users(id) values('${uid(i)}');insert into auth.users(id) values('${uid(i)}');insert into notification_prefs(user_id) values('${uid(i)}');insert into device_tokens(user_id,platform,token_type,token,last_seen_at) values('${uid(i)}','ios','apns',repeat('${i}',32),'2026-10-01');`);
+const clock=async at=>q(`select set_config('test.now',${literal(at)},false)`);
+async function reset(ids=[1]) {
+ await clock('2026-11-16T12:00:00Z');
+ await q(`truncate notification_outbox,notification_dedupe,lb_notify_state,lb_catch_approval,lb_species_review,lb_review,catches,fishing_trips,app_usage,founders_excluded;
+ update auth.users set banned_until=null;update device_tokens set enabled=true,last_seen_at='2026-10-01';update public.users set last_login_at=null;
+ update notification_prefs set enabled=false,${types.map(t=>t+'=true').join(',')};
+ update notification_prefs set enabled=true where user_id in (${ids.map(i=>literal(uid(i))).join(',')});`);
+}
+const enqueue=async(type,key,who=1,expiry=null)=>scalar(`select push_enqueue_generic('${uid(who)}','${type}',${literal(key)},'釣港','測試', '{"view":"trips","latitude":22.456}',public.push_test_now(),${expiry?literal(expiry)+'::timestamptz':'null'})`);
+const claim=async()=>rows('select * from push_claim_outbox()');
+const trip=async(id,who,start="2026-11-16T00:00:00Z",spot='PRIVATE_STREET',lat=null,lng=null,ended=null)=>q(`insert into fishing_trips(id,user_id,started_at,spot,latitude,longitude,ended_at) values('${uid(id)}','${uid(who)}',${literal(start)},${literal(spot)},${lat??'null'},${lng??'null'},${ended?literal(ended):'null'});`);
+const fish=async(id,who,sp='泥鯭',value=1,test=false,eligible=true,time='2026-11-16T01:00:00Z')=>q(`insert into catches(id,user_id,trip_id,species,weight_kg,proof_path,date,created_at,is_test,leaderboard_eligible) values('${uid(id)}','${uid(who)}','${uid(1000+who)}',${literal(sp)},${value},'proof','2026-11-16',${literal(time)},${test},${eligible});`);
+const approve=async id=>q(`insert into lb_catch_approval select id,species,weight_kg,proof_path,photo_url from catches where id='${uid(id)}';`);
+await reset();
+assert.equal(await scalar("select push_type_enabled(p,'unknown') from notification_prefs p limit 1"),false);
+for(const type of types){
+ await q(`update notification_prefs set ${type}=false where user_id='${uid(1)}'`);
+ assert.equal(await enqueue(type,'off:'+type),null);
+ await q(`update notification_prefs set ${type}=true where user_id='${uid(1)}'`);
+ assert(await enqueue(type,'on:'+type));
+}
+assert.equal(await scalar('select count(*)::int from notification_outbox'),7);
+assert.equal(await scalar("select count(*)::int from notification_outbox where data ? 'latitude'"),0);
+console.log('PASS repeatable v205, seven independent preferences, unknown types false, data allowlist');
+await reset();
+for(const t of ['lb_chance','record_broken','tide_window','overtaken'])await enqueue(t,t);
+let jobs=await claim();assert.deepEqual(jobs.map(j=>j.type).sort(),['overtaken','record_broken']);
+assert.equal((await claim()).length,0);
+assert.equal(await scalar("select count(*)::int from notification_outbox where status='skipped' and skip_reason='daily_cap'"),2);
+await enqueue('trip_open','excess-immediate');await claim();
+assert.equal(await scalar("select send_after::text from notification_outbox where type='trip_open'"),'2026-11-16 23:00:00+00');
+console.log('PASS one claim reserves only highest-priority two; next claim cannot overbook; cap skips scheduled/defer immediate to HK 07:00');
+// A partial delivery retried on a new day must still reserve that day's slot.
+await reset();await enqueue('record_broken','partial');await enqueue('overtaken','sent-before');await claim();
+await q(`update notification_outbox set status='pending',sent_at=public.push_test_now(),delivered_token_ids=array[gen_random_uuid()] where type='record_broken';update notification_outbox set status='sent',sent_at=public.push_test_now() where type='overtaken';`);
+await clock('2026-11-17T12:00:00Z');await enqueue('tide_window','new-day');assert.equal((await claim()).length,2);
+await enqueue('trip_open','no-third-slot');assert.equal((await claim()).length,0);
+console.log('PASS cross-day partial retry preserves the daily two-job reservation');
+await reset();await enqueue('record_broken','old-backlog');await q("update notification_outbox set send_after='2026-11-16T23:00:00Z'");
+await clock('2026-11-17T12:00:00Z');await enqueue('record_broken','fresh-record');await enqueue('trip_open','free-slot');
+const deDuped=await claim();assert.equal(deDuped.length,2);assert.deepEqual(deDuped.map(j=>j.type).sort(),['record_broken','trip_open']);
+assert.equal(await scalar("select count(*)::int from notification_outbox where skip_reason='daily_dedupe'"),1);
+console.log('PASS immediate rollover keeps the old per-board daily dedupe without wasting the second slot');
+
+
+await reset();await clock('2026-11-16T14:30:00Z');await enqueue('record_broken','evening');assert.equal((await claim()).length,1);
+await clock('2026-11-16T15:30:00Z');await enqueue('trip_open','night');assert.equal((await claim()).length,0);
+assert.equal(await scalar("select send_after::text from notification_outbox where type='trip_open'"),'2026-11-16 23:00:00+00');
+await clock('2026-11-16T22:30:00Z');assert.equal((await claim()).length,0);
+await reset();await enqueue('tide_window','expire',1,'2026-11-16T15:00:00Z');await clock('2026-11-16T15:30:00Z');await claim();
+assert.equal(await scalar("select skip_reason from notification_outbox where type='tide_window'"),'expired');
+console.log('PASS HK 22:30 sends; 23:30/06:30 cannot claim; immediate quiet delay and scheduled expiration');
+await reset();await trip(1001,1);await scalar('select push_schedule_trip_open()');await scalar('select push_schedule_trip_open()');
+assert.equal(await scalar("select count(*)::int from notification_outbox where type='trip_open'"),1);
+await q(`update device_tokens set last_seen_at='2026-11-01' where user_id='${uid(1)}'`);
+await scalar("select push_inactive_enqueue(false,'')");await scalar("select push_inactive_enqueue(false,'')");
+assert.equal(await scalar("select count(*)::int from notification_outbox where type='inactive'"),1);
+await q(`update public.users set last_login_at='2026-11-16T12:00:00Z' where id='${uid(1)}'`);await clock('2026-11-25T12:00:00Z');await scalar("select push_inactive_enqueue(false,'')");
+assert.equal(await scalar("select count(*)::int from notification_outbox where type='inactive'"),2);
+await q(`insert into app_usage values('${uid(1)}','2026-11-24',23,10)`);
+assert.equal(await scalar(`select push_last_seen('${uid(1)}')>'2026-11-24T15:59:00Z'`),true);
+console.log('PASS trip once, inactive once per absence then re-engages/repeats, usage day-end beats older login/token');
+await reset([1,2,3,4,5]);await q(`insert into founders_excluded values('${uid(2)}');update auth.users set banned_until='infinity' where id='${uid(3)}';update device_tokens set enabled=false where user_id='${uid(4)}';`);
+for(const i of [2,3,4])for(const type of types)assert.equal(await enqueue(type,'blocked:'+type,i),null);
+await trip(1001,1);await fish(2001,1,'泥鯭',1);await fish(2002,1,'三鬚',2,false,true,'2026-11-16T01:02:00Z');await fish(2003,1,'PRIVATE_TEST_SPECIES',99,true,true,'2026-11-16T01:04:00Z');
+await fish(2005,5,'PRIVATE_TEST_SPECIES',99,true,true);
+await q(`insert into notification_dedupe(user_id,type,dedupe_key,created_at,meta) values('${uid(1)}','weekly_summary','week:2026-45','2026-11-08','{"month":"2026-11","ranks":{"quantity":5}}')`);
+await q('delete from notification_outbox;');await scalar('select push_schedule_weekly()');await scalar('select push_schedule_weekly()');
+const summary=(await rows("select * from notification_outbox where type='weekly_summary'"));assert.equal(summary.length,1);
+assert(summary[0].body.includes('2 條（2 種）'));assert(summary[0].body.includes('升咗去第 1 名'));
+assert(!summary[0].body.includes('PRIVATE'));assert.equal(summary[0].user_id,uid(1));
+console.log('PASS banned/excluded/no-token filtered for all types; weekly excludes test fish, compares own ranks and dedupes ISO week');
+// M1: a monthly rank alone must not produce a zero-activity weekly summary.
+await reset();await clock('2026-11-15T10:00:00Z');await trip(1001,1,'2026-11-01');await fish(2101,1,'泥鯭',1,false,true,'2026-11-01T01:00:00Z');
+await q("update catches set date='2026-11-01';delete from notification_outbox;delete from notification_dedupe;");
+assert.equal(await scalar(`select count(*)::int from push_monthly_ranks() where user_id='${uid(1)}'`),1);
+await scalar('select push_schedule_weekly()');assert.equal(await scalar("select count(*)::int from notification_outbox where type='weekly_summary'"),0);
+console.log('PASS M1 monthly-ranked user with no trips or catches this week receives no weekly summary');
+// M2: October rank 5 cannot be compared to November rank 1 on its first Sunday.
+await reset();await clock('2026-11-01T10:00:00Z');await trip(1001,1,'2026-11-01');await fish(2102,1,'泥鯭',1,false,true,'2026-11-01T01:00:00Z');
+await q(`update catches set date='2026-11-01';delete from notification_outbox;delete from notification_dedupe;
+insert into notification_dedupe(user_id,type,dedupe_key,created_at,meta) values('${uid(1)}','weekly_summary','week:2026-43','2026-10-25','{"month":"2026-10","ranks":{"quantity":5}}')`);
+await scalar('select push_schedule_weekly()');const november=await rows("select body from notification_outbox where type='weekly_summary'");
+assert.equal(november.length,1);assert(!november[0].body.includes('升咗'));
+assert.equal(await scalar("select meta->>'month' from notification_dedupe where type='weekly_summary' and dedupe_key<>'week:2026-43'"),'2026-11');
+console.log('PASS M2 cross-month rank comparison suppressed; current summary records month and same-month improvement still passes');
+// L1: only six-to-24-hour open trips are eligible, never abandoned months-old trips.
+await reset();await trip(1001,1,'2026-05-01');await trip(1101,1,'2026-11-16T05:00:00Z');await scalar('select push_schedule_trip_open()');
+const timely=await rows("select dedupe_key from notification_outbox where type='trip_open'");
+assert.deepEqual(timely.map(r=>r.dedupe_key),['trip:'+uid(1101)]);
+console.log('PASS L1 seven-hour open trip reminds once; half-year-old open trip never queues');
+
+await reset([1,2,3,4]);
+await trip(1001,1,'2026-11-15','大澳（PRIVATE_COORDS）',22.45,114.18);
+await trip(1002,2,'2026-11-15','秘點（PRIVATE_COORDS）',22.45,114.18);
+await trip(1003,3,'2026-11-15','PRIVATE_STREET');
+await trip(1004,4,'2026-11-10','大澳',22.25,113.86);await trip(1104,4,'2026-11-15','碼頭',22.45,114.18);
+const stations=[{code:'QUB',lat:22.2885,lng:114.213},{code:'TAO',lat:22.2525,lng:113.8608},{code:'TPK',lat:22.4508,lng:114.1842}].map(s=>({...s,good:true,start:'06:10',end:'08:10',phrase:'大致天晴、東風3至4級'}));
+const stationArg=literal(JSON.stringify(stations)),spotArg=literal(JSON.stringify([{p:['大澳'],s:'TAO'}]));
+await scalar(`select push_tide_candidates_enqueue('2026-11-17',${stationArg},${spotArg})`);
+let tides=await rows("select user_id,body,data from notification_outbox where type='tide_window' order by user_id");
+assert.equal(tides.length,4);assert(tides[0].body.includes('大澳漲潮'));assert.equal(tides[0].data.station,'TAO');
+assert(tides[1].body.includes('你嘅秘點'));assert.equal(tides[1].data.station,'TPK');
+assert(tides[2].body.includes('鰂魚涌一帶'));assert.equal(tides[2].data.station,'QUB');
+assert(tides[3].body.includes('碼頭'));assert.equal(tides[3].data.station,'TPK');
+assert(!JSON.stringify(tides).match(/PRIVATE|22\.45|114\.18|latitude|longitude/));
+console.log('PASS official/private/street display names, latest trip, keyword > coordinates > QUB; no private data in payload');
+await reset([2]);await trip(1001,1);await fish(2001,1);await fish(2002,2,'泥鯭',1,false,false);
+await scalar('select push_schedule_lb_chance()');await scalar('select push_schedule_lb_chance()');
+let chance=await rows("select * from notification_outbox where type='lb_chance'");assert.equal(chance.length,1);assert(chance[0].body.includes('9 個位'));assert.equal(chance[0].data.lbPeriod,'month');
+await reset([1,11]);
+await q('alter table catches disable trigger zz_push_before;alter table catches disable trigger zz_push_after;alter table lb_catch_approval disable trigger zz_push_before;alter table lb_catch_approval disable trigger zz_push_after;');
+let fishId=3000;
+for(let who=1;who<=11;who++){
+ await trip(1000+who,who,'2026-11-15');
+ const n=who<=10?14-who:3;
+ for(let j=0;j<n;j++)await fish(++fishId,who,'泥鯭',30-who,false,true,`2026-11-16T01:${String(j*2).padStart(2,'0')}:00Z`);
+ await approve(fishId);
+ if(who<=10)await q(`insert into lb_species_review values('${uid(who)}','泥鯭','approved','${uid(fishId)}')`);
+}
+await q('alter table catches enable trigger zz_push_before;alter table catches enable trigger zz_push_after;alter table lb_catch_approval enable trigger zz_push_before;alter table lb_catch_approval enable trigger zz_push_after;delete from notification_outbox;delete from notification_dedupe;');
+await scalar('select push_schedule_lb_chance()');
+chance=await rows("select * from notification_outbox where type='lb_chance'");assert.equal(chance.length,1);assert.equal(chance[0].user_id,uid(11));assert.equal(chance[0].data.lbType,'quantity');assert(chance[0].body.includes('再釣 2 條'));
+console.log('PASS chance vacant-slot and near-threshold rules, one board per user, top-ten user suppressed');
+await reset([11]);
+await q('alter table catches disable trigger zz_push_before;alter table catches disable trigger zz_push_after;alter table lb_catch_approval disable trigger zz_push_before;alter table lb_catch_approval disable trigger zz_push_after;');
+let nextId=5000;const publicSpecies=['泥鯭','三鬚','石狗公','黑鱲','烏頭'];
+for(let who=1;who<=11;who++){
+ await trip(1000+who,who,'2026-11-15');const count=who<=10?10:4;
+ for(let j=0;j<count;j++)await fish(++nextId,who,publicSpecies[j%5],20-who,false,true,`2026-11-16T01:${String(j*2).padStart(2,'0')}:00Z`);
+ await approve(nextId);
+ for(let j=0;j<(who<=10?5:4);j++)await q(`insert into lb_species_review values('${uid(who)}',${literal(publicSpecies[j])},'approved','${uid(nextId)}')`);
+}
+await q('alter table catches enable trigger zz_push_before;alter table catches enable trigger zz_push_after;alter table lb_catch_approval enable trigger zz_push_before;alter table lb_catch_approval enable trigger zz_push_after;delete from notification_outbox;delete from notification_dedupe;');
+await scalar('select push_schedule_lb_chance()');const speciesChance=await rows("select * from notification_outbox where type='lb_chance'");
+assert.equal(speciesChance.length,1);assert.equal(speciesChance[0].data.lbType,'species');assert(speciesChance[0].body.includes('再釣 2 種'));
+console.log('PASS species near-threshold rule selected when quantity gap is too large');
+
+await reset([5]);await q(`select set_config('request.jwt.claim.sub','${uid(9)}',false)`);await trip(1005,5);await fish(9999,5,'PRIVATE_TEST_SPECIES',99,true,true);await approve(9999);
+await q('delete from notification_outbox;');await scalar('select push_schedule_lb_chance()');assert.equal(await scalar("select count(*)::int from notification_outbox where type='lb_chance'"),0);
+assert.equal(await scalar(`select count(*)::int from push_monthly_ranks() where user_id='${uid(5)}'`),0);
+assert.equal(await scalar("select current_setting('request.jwt.claim.sub')"),uid(9));
+console.log('PASS admin claims restored; test-only catches never create chance notifications or monthly ranks');
+
+await q(`insert into notification_dedupe(user_id,type,dedupe_key) values('${uid(1)}','inactive','fixture-delete')`);
+assert.equal(await scalar(`select count(*)::int from notification_dedupe where user_id='${uid(1)}'`),1);
+// Read ACLs rather than connecting as a real user/database.
+await q(`select set_config('request.jwt.claim.sub','${uid(1)}',false);set role authenticated`);
+for(const sql of ['select * from notification_dedupe','select push_schedule_trip_open()','select push_claim_outbox()']){let denied=false;try{await q(sql)}catch{denied=true}assert(denied)}
+await q('reset role');await q('select delete_my_account()');
+assert.equal(await scalar(`select count(*)::int from notification_dedupe where user_id='${uid(1)}'`),0);
+assert.equal(await scalar(`select count(*)::int from delete_marker where id='${uid(1)}'`),1);
+console.log('PASS internal ACL/RLS and same delete-account wrapper cleans dedupe while retaining installed behavior');
+await db.close();
