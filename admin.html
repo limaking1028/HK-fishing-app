@@ -604,6 +604,7 @@ function loading(tab){ // 骨架形狀跟返每頁實際版面
   return '<div aria-busy="true" aria-label="載入中">'+(map[tab]||map.overview)+'</div>';
 }
 async function go(tab,keep){
+  if(tab==='trips'&&S.tab!=='trips')S.tripUser=null;
   if(keep!=='keep')S.detail=null;
   S.tab=tab;history.replaceState(null,'','#'+tab);renderNav();
   const m=$('main');m.classList.add('enter');clearTimeout(S.enterT);m.innerHTML=header(TABS.find(t=>t[0]===tab)[1])+loading(tab);
@@ -639,9 +640,60 @@ async function vCatches(more=false){
 }
 function userLink(row){return '<a href="#users" data-user="'+esc(row.user_id)+'" onclick="event.preventDefault();openUser(this.dataset.user)">'+esc(row.display_name||'（未命名）')+'</a>';}
 function drawCatches(){const rows=S.catchRows||[];$('main').innerHTML=header('魚獲')+filterBar('catches')+'<section class="card">'+(rows.length?'<div class="tw"><table class="t"><thead><tr><th>時間</th><th>用戶</th><th>魚種</th><th>重量 kg</th><th>釣點</th><th>相片</th><th>上榜／原因</th><th>行程內</th></tr></thead><tbody>'+rows.map(c=>'<tr><td data-l="時間">'+esc(fmt(c.created_at))+'</td><td data-l="用戶">'+userLink(c)+'</td><td data-l="魚種">'+esc(c.species||'—')+'</td><td data-l="重量 kg">'+esc(c.weight_kg??'—')+'</td><td data-l="釣點">'+esc(c.spot||'—')+'</td><td data-l="相片">'+(safeImg(c.photo_url)?'<button type="button" class="btn sm" data-url="'+esc(c.photo_url)+'" onclick="zoom(this.dataset.url)">查看相片</button>':'—')+'</td><td data-l="上榜／原因">'+(c.excluded?'管理員已排除 · ':'')+esc(c.eligible?'符合':rt(c.reason)||'未能上榜')+'</td><td data-l="行程內">'+(c.trip_id?'是':'否')+'</td></tr>').join('')+'</tbody></table></div>':empty('fish','冇符合篩選嘅魚獲'))+(S.catchMore?'<button type="button" class="btn" onclick="loadDrill(this,\'catches\')">載入更多</button>':'')+'</section>';}
-async function vTrips(more=false){const offset=more?(S.tripRows||[]).length:0;let rows;try{rows=await rpc('admin_trips_list',{p_limit:50,p_offset:offset});}catch(e){if(more){toast(e.message);return;}throw e;}S.tripRows=more?S.tripRows.concat(rows):rows;
- $('main').innerHTML=header('行程')+filterBar('trips')+'<section class="card">'+(S.tripRows.length?'<div class="tw"><table class="t"><thead><tr><th>用戶</th><th>開始時間</th><th>結束時間</th><th>魚獲數</th></tr></thead><tbody>'+S.tripRows.map(t=>'<tr><td data-l="用戶">'+userLink(t)+'</td><td data-l="開始時間">'+esc(fmt(t.started_at))+'</td><td data-l="結束時間">'+(t.ended_at?esc(fmt(t.ended_at)):'未結束')+'</td><td data-l="魚獲數">'+t.catch_count+'</td></tr>').join('')+'</tbody></table></div>':empty('trip','未有行程'))+(rows.length===50?'<button type="button" class="btn" onclick="loadDrill(this,\'trips\')">載入更多</button>':'')+'</section>';
+/* 行程：先選用戶，再載入該用戶的行程。 */
+let tripSearchTimer=null;
+async function vTrips(more=false){
+  if(more&&!S.tripUser&&(S.tripSearch||'')!==S.tripUsersQuery)return vTrips();
+  const user=S.tripUser||null,query=S.tripSearch||'',offset=more?(user?S.userTripRows||[]:S.tripUsers||[]).length:0;
+  const request=S.tripRequest=(S.tripRequest||0)+1;
+  let rows;
+  try{
+    rows=await rpc(user?'admin_user_trips':'admin_trip_users',user?
+      {p_user:user.id,p_limit:50,p_offset:offset}:{p_search:query.trim()||null,p_limit:50,p_offset:offset});
+  }catch(e){
+    if(request!==S.tripRequest||S.tab!=='trips')return;
+    if(more){toast(missingRPC(e)?'請先部署 migration-v200-admin-trip-users.sql':e.message);return;}
+    if(!missingRPC(e))throw e;
+    $('main').innerHTML=header('行程')+(user?tripUserActions():'')+'<section class="card">'+empty('trip','行程功能尚未部署','請先部署 migration-v200-admin-trip-users.sql')+'</section>';return;
+  }
+  if(request!==S.tripRequest||S.tab!=='trips'||(S.tripUser?.id||null)!==(user?.id||null))return;
+  if(user){S.userTripRows=more?(S.userTripRows||[]).concat(rows):rows;S.userTripMore=rows.length===50;drawUserTrips();}
+  else{
+    const input=$('trip-search'),focused=input&&document.activeElement===input,pos=focused?input.selectionStart:null;
+    S.tripUsers=more?(S.tripUsers||[]).concat(rows):rows;S.tripUsersMore=rows.length===50;S.tripUsersQuery=query;drawTripUsers();
+    if(focused){const next=$('trip-search');next.focus({preventScroll:true});next.setSelectionRange(pos,pos);}
+  }
 }
+function drawTripUsers(){
+  const rows=S.tripUsers||[];
+  $('main').innerHTML=header('行程')+'<section class="card" style="margin-bottom:12px"><label class="f" for="trip-search">搜尋用戶名</label><input id="trip-search" type="search" value="'+esc(S.tripSearch||'')+'" placeholder="輸入用戶名" oninput="tripSearchChanged(this.value)"><p class="hint">只顯示有行程的用戶，按最近行程排序。</p></section>'
+    +'<section class="card">'+(rows.length?'<div class="tw"><table class="t"><thead><tr><th>用戶名</th><th>行程總數</th><th>進行中</th><th>最近行程</th></tr></thead><tbody>'+rows.map(u=>'<tr><td class="first" data-l="用戶名"><a href="#trips" data-user="'+esc(u.user_id)+'" data-name="'+esc(u.display_name||'未命名用戶')+'" onclick="event.preventDefault();openTripUser(this.dataset.user,this.dataset.name)">'+esc(u.display_name||'未命名用戶')+'</a></td><td data-l="行程總數">'+esc(u.trip_count)+'</td><td data-l="進行中">'+esc(u.open_count)+'</td><td data-l="最近行程">'+esc(fmt(u.last_trip_at))+'</td></tr>').join('')+'</tbody></table></div>':empty('users',S.tripSearch?'搵唔到用戶':'未有行程'))
+    +(S.tripUsersMore?'<button type="button" class="btn" onclick="loadDrill(this,\'trips\')">載入更多</button>':'')+'</section>';
+}
+function tripSearchChanged(value){
+  S.tripSearch=value;S.tripRequest=(S.tripRequest||0)+1;clearTimeout(tripSearchTimer);
+  tripSearchTimer=setTimeout(()=>{if(S.tab==='trips'&&!S.tripUser)vTrips().catch(tripLoadError);},350);
+}
+function openTripUser(id,name){
+  clearTimeout(tripSearchTimer);S.tripListScroll=window.scrollY;S.tripUser={id,name};S.userTripRows=[];
+  $('main').innerHTML=header(name+'的行程')+tripUserActions()+loading('trips');window.scrollTo({top:0,behavior:'instant'});
+  vTrips().catch(tripLoadError);
+}
+function tripUserActions(){return '<div class="filterbar"><button type="button" class="btn sm" onclick="tripUsersBack()">'+ic('undo')+'返回用戶列表</button><button type="button" class="btn sm" onclick="openUser(S.tripUser.id)">'+ic('users')+'用戶詳情</button></div>';}
+function tripUsersBack(){
+  S.tripUser=null;S.tripRequest=(S.tripRequest||0)+1;
+  if((S.tripSearch||'')!==S.tripUsersQuery){vTrips().catch(tripLoadError);return;}
+  drawTripUsers();
+  requestAnimationFrame(()=>{window.scrollTo({top:S.tripListScroll||0,behavior:'instant'});});
+}
+function drawUserTrips(){
+  const rows=S.userTripRows||[];
+  $('main').innerHTML=header(S.tripUser.name+'的行程')+tripUserActions()+'<section class="card">'
+    +(rows.length?'<div class="tw"><table class="t"><thead><tr><th>開始時間</th><th>結束時間</th><th>魚獲數</th></tr></thead><tbody>'+rows.map(t=>'<tr><td data-l="開始時間">'+esc(fmt(t.started_at))+'</td><td data-l="結束時間">'+(t.ended_at?esc(fmt(t.ended_at)):'<span class="pill brand">進行中</span>')+'</td><td data-l="魚獲數">'+esc(t.catch_count)+'</td></tr>').join('')+'</tbody></table></div>':empty('trip','此用戶未有行程'))
+    +(S.userTripMore?'<button type="button" class="btn" onclick="loadDrill(this,\'trips\')">載入更多</button>':'')+'</section>';
+}
+function tripLoadError(e){if(S.tab!=='trips')return;$('main').innerHTML=header('行程')+(S.tripUser?tripUserActions():'')+'<section class="card err" role="alert"><h2>載入失敗</h2><p>'+esc(e.message)+'</p><button type="button" class="btn" onclick="vTrips().catch(tripLoadError)">再試一次</button></section>';}
+
 async function loadDrill(btn,tab){btn.disabled=true;try{await (tab==='catches'?vCatches(true):vTrips(true));}finally{btn.disabled=false;}}
 
 /* ---------- 總覽 ---------- */
