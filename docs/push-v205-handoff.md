@@ -1,12 +1,22 @@
 # 推送第 2 批 v205 交回報告
 
+## R2 可選小修（N1／N2 均已完成，仍為 v205）
+
+- **N1**：兩邊 `lib/push.js:90–96` 只接受 code 42703／PGRST204／PGRST200 或 message 同時包含 column＋does not exist 才回退舊模式；網絡／其他錯誤仍經外層顯示失敗，不做舊欄位查詢。
+- **N2**：兩邊 `lib/push.js:132` 的舊模式成功訊息改為「通知設定已儲存。新通知類型稍後開放。」；105行在升級回正常模式時也清除此舊成功提示。
+- 兩邊 `tests/push-prefs.playwright.py` 新增第一次 Failed to fetch（無 code）、下一次現代欄位查詢恢復的案例，驗證沒有 legacy 查詢、恢復後五個新開關可用；原 M3 假錯誤明確帶 42703，另覆蓋 PGRST204／PGRST200／缺欄位 message。N2 儲存成功與升級清除訊息均有斷言。
+- 全套 Node：Web 8/8、iOS 29/29。全套 Playwright 已跑，Web 10/13、iOS 15/18 套通過；兩邊 best-record-label／share-link-base 均為「同 base 一樣 FAIL」（exit 0），guest-tide-weather 仍是同 base 的舊載入超時。沒有把 exit 0 誤報成 PASS。
+- iOS APP_ENV=test／prod 各8次指定命令，共16次，全部通過；包含 build、hkf-build、hkf-ios、tutorial-highlight、push-sw、score-card-save、settings-page、push-prefs。
+- 兩份 lib/push.js diff 無輸出（exit 0）。本次沒有修改 SQL、sw.js、CACHE、任何版本或 photos-v199；Edge／SQL 沿用上次驗證，本次依 R2 文件只重跑前端／Node／iOS 雙環境測試。
+- 不合併、不部署、不連接或執行遠端 SQL、不啟用 cron、不跑 Codemagic；只在原分支增加 commit，沒有 force push 或修改 PR base。
+
 ## M1–M3／L1–L2 驗收修正（版本保持 v205）
 
 | 項目 | 檔案／行 | 最終行為 |
 |---|---|---|
 | M1 | migration-v205-push-more-types.sql:256；push-schedule/migration.test.js | 本週 trips=0 且 catches=0 就不排週報，即使有月榜名次；新案例通過。 |
 | M2 | 同 SQL:257、263；同 SQL 測試 | meta 同時存 month/ranks，只讀相同 YYYY-MM；十月第5到十一月第1不說升咗，同月升名次案例仍通過。 |
-| M3 | 兩邊 lib/push.js:76–130；兩邊 tests/push-prefs.playwright.py | 新欄位 select 失敗才嘗試舊欄位；legacy 下五個新欄位 true/disabled，原總開關／舊兩種類型與已授權 register 正常。legacy upsert 只帶舊欄位及原有 user_id/updated_at；新類型 change 不寫入。舊 select 或寫入也失敗會顯示錯誤，升級後 refresh 可退出 legacy。 |
+| M3 | 兩邊 lib/push.js:76–130；兩邊 tests/push-prefs.playwright.py | 只有指定的缺欄位／schema 錯誤才嘗試舊欄位；legacy 下五個新欄位 true/disabled，原總開關／舊兩種類型與已授權 register 正常。legacy upsert 只帶舊欄位及原有 user_id/updated_at；新類型 change 不寫入。舊 select 或寫入也失敗會顯示錯誤，升級後 refresh 可退出 legacy。 |
 | L1 | SQL:214；同 SQL 測試 | 半年前未結束行程不排，7小時行程會排；去重不變。 |
 | L2 | 兩邊 tests/push-sw.playwright.py:6–10 | stacked ref 不存在時回退 origin/main／origin/ios-capacitor；比較斷言原封不動。另以未改產品檔的測試 harness 模擬父 PR 已合併並刪除 ref，兩邊完整 push-sw 都通過。 |
 
