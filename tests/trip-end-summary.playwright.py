@@ -1,4 +1,4 @@
-# 結束行程後轉去「🏁 行程已結束」總結頁（記錄頁 banner 結束 + 行程詳情結束 + 0 條魚）；390x844，Supabase 全部 block，測試用假資料
+# 結束行程後轉去「行程已結束」總結頁（記錄頁 banner 結束 + 行程詳情結束 + 0 條魚）；390x844，Supabase 全部 block，測試用假資料
 # SHOT_DIR=目錄 SHOT_TAG=前綴 會出截圖；BEFORE=1 只截圖唔 check（用嚟影修改前）
 import http.server, threading, functools, os, sys
 from playwright.sync_api import sync_playwright
@@ -54,7 +54,7 @@ def run(p, entry, withCatch, withTally=False):
     act = pg.evaluate("[...document.querySelectorAll('.view.active')].map(v=>v.id)")
     check(act == ['view-trips'], name + ': 得一個 active view = view-trips ' + str(act))
     txt = pg.inner_text('#view-trips')
-    check('🏁' in txt and '行程已結束' in txt, name + ': 標題「🏁 行程已結束」')
+    check('行程已結束' in txt, name + ': 標題「行程已結束」')
     check('總時長' in txt and '總魚獲' in txt and '總重量' in txt and (('個魚種' in txt) == withCatch), name + ': 總時長／總魚獲／總重量（有魚先有魚種數）')
     if withCatch:
         check('黑鱲' in txt and '連尖' in txt and '魚獲清單' in txt, name + ': 魚獲清單有黑鱲、連尖')
