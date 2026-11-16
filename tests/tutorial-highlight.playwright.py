@@ -117,13 +117,41 @@ def check_lock(pg):
     assert pg.evaluate('window.scrollY > 0')
     pg.evaluate("document.body.style.minHeight = ''; tutorialPaint()")
 
+def check_blocked_uploads(pg, action):
+    choosers = []
+    handler = lambda chooser: choosers.append(chooser)
+    pg.on('filechooser', handler)
+    try:
+        getattr(pg.locator('#view-record button[onclick*="catch-photo-gallery"]'), action)()
+        pg.wait_for_timeout(50)
+        assert pg.locator('#tut-card').evaluate("el => el.classList.contains('tut-nudge')")
+        assert not choosers and pg.evaluate('state.tutorial.step') == 6
+        for input_id in ['catch-proof', 'catch-photo-gallery']:
+            pg.wait_for_timeout(350)
+            pg.evaluate('(id) => document.getElementById(id).click()', input_id)
+            pg.wait_for_timeout(50)
+            assert not choosers and pg.evaluate('state.tutorial.step') == 6
+            assert pg.locator('#tut-card').evaluate("el => el.classList.contains('tut-nudge')")
+    finally:
+        pg.remove_listener('filechooser', handler)
+    pg.wait_for_timeout(350)
+
+def choose_upload(pg, selector, input_id, action, photo):
+    with pg.expect_file_chooser() as pending:
+        getattr(pg.locator(selector).first, action)()
+    chooser = pending.value
+    assert chooser.element.get_attribute('id') == input_id
+    assert not pg.locator('#tut-card').evaluate("el => el.classList.contains('tut-nudge')")
+    chooser.set_files(photo)
+
 def clean(pg):
     assert pg.evaluate("!document.querySelector('.tut-target') && document.getElementById('tut-layer').hidden")
 
 with sync_playwright() as p:
     browser = p.chromium.launch(**({'executable_path':os.environ['CHROMIUM']} if os.environ.get('CHROMIUM') else {}))
-    for width, height in [(375, 667), (390, 844)]:
-        ctx = browser.new_context(viewport={'width':width,'height':height}, is_mobile=True, has_touch=True, service_workers='block')
+    for width, height, touch in [(375, 667, False), (390, 844, True)]:
+        ctx = browser.new_context(viewport={'width':width,'height':height}, is_mobile=touch, has_touch=touch, service_workers='block')
+        action = 'tap' if touch else 'click'
         pg = ctx.new_page()
         errors = []
         pg.on('pageerror', lambda e: errors.append(str(e)))
@@ -163,9 +191,10 @@ with sync_playwright() as p:
         pg.evaluate("tutorialTarget().style.transform = ''; tutorialPaint()")
         pg.wait_for_timeout(100)
         photo={'name':'practice.svg','mimeType':'image/svg+xml','buffer':b'<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10" fill="teal"/></svg>'}
-        pg.locator('#catch-photo').set_input_files(photo)
+        check_blocked_uploads(pg, action)
+        choose_upload(pg, '#view-record .photo-upload', 'catch-photo', action, photo)
         check_target(pg, 7)
-        pg.locator('#catch-proof').set_input_files(photo)
+        choose_upload(pg, '#proof-upload', 'catch-proof', action, photo)
         check_target(pg, 8)
         pg.locator('#view-record button[onclick="submitCatch()"]').click()
         pg.wait_for_timeout(100)
@@ -190,7 +219,7 @@ with sync_playwright() as p:
         pg.evaluate('tutorialHide()')
         clean(pg)
         assert not errors, errors
-        print(f'PASS {width}x{height}: steps 1–8 / GPS-method-bait / scroll / DOM replacement / keyboard resize / done / skip / hide / reduced motion')
+        print(f'PASS {width}x{height}: {action} filechoosers 6→7→8 / blocked gallery and wrong-step input / steps 1–8 / GPS-method-bait / scroll / DOM replacement / keyboard resize / done / skip / hide / reduced motion')
         ctx.close()
     browser.close()
 server.shutdown()
