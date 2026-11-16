@@ -1323,7 +1323,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v204</span></div>
+    <div class="header-title" id="header-title">釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v206</span></div>
     <div class="header-settings" onclick="openNameDialog()"><span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">改名</span></div>
   </header>
   <main id="main">
@@ -4279,6 +4279,18 @@ function tutorialTrackTouch(event) {
     if (touch && Math.hypot(touch.clientX - tutorialTouchStart.x, touch.clientY - tutorialTouchStart.y) > 10) tutorialTouchMoved = true;
   }
 }
+// Upload boxes open sibling file inputs via .click(); allow only this step's input.
+function tutorialStepInputs() {
+  const s = state.tutorial;
+  if (s && s.step === 6) return ['catch-photo'];
+  if (s && s.step === 7) return ['catch-proof'];
+  return [];
+}
+function tutorialAllowed(el) {
+  if (!el) return false;
+  if (el.closest('.tut-target, #tut-layer, .modal-overlay.show')) return true;
+  return el.matches('input[type="file"]') && tutorialStepInputs().includes(el.id);
+}
 function tutorialInteractionGuard(event) {
   if (!tutorialOn() || state.tutorial.step === 'done') return;
   if (event.type === 'touchend') {
@@ -4289,7 +4301,7 @@ function tutorialInteractionGuard(event) {
   if (event.type === 'pointerup' && event.pointerType === 'touch' && tutorialTouchMoved) return;
   if (event.type === 'keydown' && !['Enter', ' ', 'Spacebar'].includes(event.key)) return;
   const el = event.target instanceof Element ? event.target : event.target.parentElement;
-  if (el && el.closest('.tut-target, #tut-layer, .modal-overlay.show')) return;
+  if (tutorialAllowed(el)) return;
   event.preventDefault();
   event.stopImmediatePropagation();
   if (event.type === 'focusin' && el && el.matches('input, select, textarea')) el.blur();
@@ -6594,7 +6606,7 @@ function switchView(name) {
   const titles = { record:'記錄魚獲', my:'我的魚獲', trips:'釣魚行程', leaderboard:'排行榜', map:'釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v204</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v206</span>';
   }
   renderView(name);
 }
