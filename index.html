@@ -1314,9 +1314,11 @@ button { touch-action: manipulation; }
 /* v203: settings is a full-screen page; action dialogs stay above it. */
 #name-modal[hidden] { display:none; }
 .settings-page { position:fixed;inset:0;z-index:900;background:#f3f5f6;display:flex;flex-direction:column;top:var(--hkf-banner-height,0px);height:calc(100vh - var(--hkf-banner-height,0px));height:calc(100dvh - var(--hkf-banner-height,0px));color:var(--gray-6); }
-.settings-bar { flex:none;display:grid;grid-template-columns:90px 1fr 90px;align-items:center;padding:calc(12px + env(safe-area-inset-top,0px)) 12px 12px;background:var(--ink-grad);color:white; }
+.settings-bar { flex:none;display:grid;grid-template-columns:90px 1fr 90px;align-items:center;padding:calc(12px + env(safe-area-inset-top,0px) - var(--hkf-safe-top,0px)) 12px 12px;background:var(--ink-grad);color:white; }
 .settings-bar h1 { font-size:18px;text-align:center;margin:0;font-weight:650; }
 .settings-back { min-height:44px;border:0;background:transparent;color:white;text-align:left;font:inherit;font-size:15px;border-radius:8px; }
+.settings-back:focus:not(:focus-visible) { outline:none; }
+.settings-back:focus-visible { outline:2px solid #fff;outline-offset:2px; }
 .settings-content { flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:20px 16px calc(24px + env(safe-area-inset-bottom,0px)); }
 .settings-inner { max-width:520px;margin:0 auto; }
 .settings-group { margin:0 0 20px; }
