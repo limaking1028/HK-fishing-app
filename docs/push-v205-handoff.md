@@ -1,5 +1,23 @@
 # 推送第 2 批 v205 交回報告
 
+## M1–M3／L1–L2 驗收修正（版本保持 v205）
+
+| 項目 | 檔案／行 | 最終行為 |
+|---|---|---|
+| M1 | migration-v205-push-more-types.sql:256；push-schedule/migration.test.js | 本週 trips=0 且 catches=0 就不排週報，即使有月榜名次；新案例通過。 |
+| M2 | 同 SQL:257、263；同 SQL 測試 | meta 同時存 month/ranks，只讀相同 YYYY-MM；十月第5到十一月第1不說升咗，同月升名次案例仍通過。 |
+| M3 | 兩邊 lib/push.js:76–130；兩邊 tests/push-prefs.playwright.py | 新欄位 select 失敗才嘗試舊欄位；legacy 下五個新欄位 true/disabled，原總開關／舊兩種類型與已授權 register 正常。legacy upsert 只帶舊欄位及原有 user_id/updated_at；新類型 change 不寫入。舊 select 或寫入也失敗會顯示錯誤，升級後 refresh 可退出 legacy。 |
+| L1 | SQL:214；同 SQL 測試 | 半年前未結束行程不排，7小時行程會排；去重不變。 |
+| L2 | 兩邊 tests/push-sw.playwright.py:6–10 | stacked ref 不存在時回退 origin/main／origin/ios-capacitor；比較斷言原封不動。另以未改產品檔的測試 harness 模擬父 PR 已合併並刪除 ref，兩邊完整 push-sw 都通過。 |
+
+額外只整理 Web 通知 fieldset 的兩處縮排。sw.js、所有版本位置及 photos-v199 本次完全不變；不 force push、不改 PR base。
+
+本次重跑：12 個 Edge 測試通過；新 v205 SQL（含 M1、M2、L1）與原 v200 SQL 測試全部通過；兩邊 M3／push-sw 及分支 fallback 模擬通過。Node 為 Web 8/8、iOS 29/29。iOS APP_ENV=test/prod 的16次指定命令均通過。
+
+全套 Playwright 以輸出斷言判定，不只看 exit code：Web 13套／iOS 18套均已跑；各自有3個與base一致的失敗：best-record-label、share-link-base 印 RESULT FAIL 但 exit 0，guest-tide-weather 為舊載入超時。其餘 Web 10套／iOS 15套通過。舊報告將前兩個 exit 0 誤列 PASS，現已更正成「同 base 一樣 FAIL」，本批不修改這兩個舊測試或相關產品功能。
+
+兩份 lib/push.js 已直接 diff，exit 0、沒有輸出。沒有 merge、部署、遠端 SQL、啟用 cron 或執行 Codemagic。仍未做真機／遠端資料庫驗證。
+
 ## 依賴與範圍
 
 - Web：`codex/push-2-web` → `codex/push-1-web`，base `1403acd9d136dcedb14d7088453a94097910442c`，依賴 #73。
@@ -68,9 +86,9 @@
 | `push_claim_outbox(integer) [替換]` | 交易 advisory lock 配合每人 window 排序，同批／後續 claim 均最多每日兩個，處理 expiry、配額、退避及舊每日去重。 |
 | `push_delivery_allowed(...) [替換]` | 真正發送前重驗 claim、裝置、偏好與 expiry；跨入夜靜的即時 job 改回 pending 至 07:00。 |
 | `push_monthly_ranks()` | 清除並還原 auth claims 後沿用既有 lb_* 取得三個月榜私有投影，不更動公開排行榜 API。 |
-| `push_schedule_trip_open()` | 對超過六小時未結束行程排一次提醒，以行程 UUID 去重。 |
+| `push_schedule_trip_open()` | 只對開啟 6–24 小時的未結束行程排一次提醒，以行程 UUID 去重。 |
 | `push_schedule_lb_chance()` | 最近 60 日非測試魚獲用戶，依月榜空位／11–20 名接近門檻規則，每人選一榜並每 ISO 週去重。 |
-| `push_schedule_weekly()` | 計本週自己的行程／非測試魚獲／魚種，將自己月榜排名與上次 meta 比較，每週一次。 |
+| `push_schedule_weekly()` | 計本週自己的行程／非測試魚獲／魚種，只對本週有行程／魚獲的用戶，將自己月榜排名與同月份的上次 meta 比較，每週一次。 |
 | `push_tide_candidates_enqueue(...)` | 在 SQL 用最新行程按關鍵字→最近座標→QUB 選站，套官方／秘點／站名一帶規則，私有座標不回傳。 |
 | `push_inactive_enqueue(boolean,text)` | 最後開 app 已滿七日才排週末提醒，同一最後開 app 日期只一次。 |
 | `delete_my_account() [原 wrapper 增補]` | 同一個 wrapper 先清 dedupe，再清既有推送資料並呼叫原保留函數，沒有多包一層。 |
@@ -266,14 +284,14 @@ index 1bdb9d3..dcb8327 100644
 Node 全套：8/8 通過。
 
 - PASS `weather-score-hko.playwright.py`
-- PASS `best-record-label.playwright.py`
+- 同 base 一樣 FAIL（exit code 0）`best-record-label.playwright.py`
 - PASS `admin-manage-admins.playwright.py`：stale fixture/emoji expectation fixed; product code untouched
 - PASS `weather-retry.playwright.py`
 - PASS `push-prefs.playwright.py`
 - PASS `login-plan-a.playwright.py`
 - PASS `trip-end-summary.playwright.py`：stale fixture/emoji expectation fixed; product code untouched
 - PASS `push-sw.playwright.py`
-- PASS `share-link-base.playwright.py`
+- 同 base 一樣 FAIL（exit code 0）`share-link-base.playwright.py`
 - PASS `admin-founder-revoke.playwright.py`
 - PASS `species-scroll-weight.playwright.py`
 - BASELINE ENV FAIL `guest-tide-weather.playwright.py`：same failure reproduced on unchanged dependency base; live-weather loading timeout
@@ -285,7 +303,7 @@ Node 全套：29/29 通過。
 - PASS `hkf-ios.playwright.py`
 - PASS `ios-auth-web.playwright.py`
 - PASS `weather-score-hko.playwright.py`
-- PASS `best-record-label.playwright.py`
+- 同 base 一樣 FAIL（exit code 0）`best-record-label.playwright.py`
 - PASS `ios-iphone-only.playwright.py`
 - PASS `score-card-save.playwright.py`
 - PASS `tutorial-highlight.playwright.py`
@@ -295,7 +313,7 @@ Node 全套：29/29 通過。
 - PASS `settings-page.playwright.py`
 - PASS `trip-end-summary.playwright.py`
 - PASS `push-sw.playwright.py`
-- PASS `share-link-base.playwright.py`
+- 同 base 一樣 FAIL（exit code 0）`share-link-base.playwright.py`
 - PASS `admin-founder-revoke.playwright.py`
 - PASS `species-scroll-weight.playwright.py`
 - BASELINE ENV FAIL `guest-tide-weather.playwright.py`：same failure reproduced on unchanged dependency base; live-weather loading timeout

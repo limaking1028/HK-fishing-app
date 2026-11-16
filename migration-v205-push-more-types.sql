@@ -211,7 +211,7 @@ create or replace function public.push_schedule_trip_open() returns integer
 language plpgsql security definer set search_path = public as $$
 declare t record; n integer:=0;
 begin
- for t in select id,user_id from public.fishing_trips where ended_at is null and user_id is not null and started_at<=now()-interval '6 hours' loop
+ for t in select id,user_id from public.fishing_trips where ended_at is null and user_id is not null and started_at<=now()-interval '6 hours' and started_at>=now()-interval '24 hours' loop
   if public.push_enqueue_generic(t.user_id,'trip_open','trip:'||t.id,'釣港','你嘅行程已經開咗 6 個鐘，記得記低魚獲同按結束行程 🎣','{"view":"trips"}',now(),null) is not null then n:=n+1; end if;
  end loop;
  return n;
@@ -253,14 +253,14 @@ begin
   select count(*)::int into trip_n from public.fishing_trips where user_id=u.id and started_at>=week_start and started_at<=now();
   select count(*)::int,count(distinct species)::int into fish_n,species_n from public.catches where user_id=u.id and not is_test and date>=(week_start at time zone 'Asia/Hong_Kong')::date and date<=hk::date;
   select coalesce(jsonb_object_agg(r->>'board',(r->>'pos')::int),'{}') into mine from jsonb_array_elements(ranks) r where (r->>'user_id')::uuid=u.id;
-  if trip_n=0 and fish_n=0 and mine='{}'::jsonb then continue; end if;
-  select meta->'ranks' into previous from public.notification_dedupe where user_id=u.id and type='weekly_summary' and dedupe_key<>key order by created_at desc,dedupe_key desc limit 1;
+  if trip_n=0 and fish_n=0 then continue; end if;
+  select meta->'ranks' into previous from public.notification_dedupe where user_id=u.id and type='weekly_summary' and dedupe_key<>key and meta->>'month'=to_char(hk,'YYYY-MM') order by created_at desc,dedupe_key desc limit 1;
   msg:='今個禮拜你出咗 '||trip_n||' 次釣，記低 '||fish_n||' 條（'||species_n||' 種）。';
   select e.key board,e.value::int pos into improved from jsonb_each_text(mine) e
    where (previous->>e.key)::int>e.value::int order by (previous->>e.key)::int-e.value::int desc,e.key limit 1;
   if found then msg:=msg||'本月'||case improved.board when 'quantity' then '數量王者' when 'species' then '品種王者' else '重量王者' end||'你升咗去第 '||improved.pos||' 名！'; end if;
   result:=public.push_enqueue_generic(u.id,'weekly_summary',key,'釣港',msg,'{"view":"trips"}',(hk::date+time '18:00') at time zone 'Asia/Hong_Kong',(hk::date+time '23:00') at time zone 'Asia/Hong_Kong');
-  if result is not null then update public.notification_dedupe set meta=jsonb_build_object('ranks',mine) where user_id=u.id and type='weekly_summary' and dedupe_key=key; n:=n+1; end if;
+  if result is not null then update public.notification_dedupe set meta=jsonb_build_object('month',to_char(hk,'YYYY-MM'),'ranks',mine) where user_id=u.id and type='weekly_summary' and dedupe_key=key; n:=n+1; end if;
  end loop;
  return n;
 end $$;

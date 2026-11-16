@@ -113,12 +113,32 @@ await reset([1,2,3,4,5]);await q(`insert into founders_excluded values('${uid(2)
 for(const i of [2,3,4])for(const type of types)assert.equal(await enqueue(type,'blocked:'+type,i),null);
 await trip(1001,1);await fish(2001,1,'泥鯭',1);await fish(2002,1,'三鬚',2,false,true,'2026-11-16T01:02:00Z');await fish(2003,1,'PRIVATE_TEST_SPECIES',99,true,true,'2026-11-16T01:04:00Z');
 await fish(2005,5,'PRIVATE_TEST_SPECIES',99,true,true);
-await q(`insert into notification_dedupe(user_id,type,dedupe_key,created_at,meta) values('${uid(1)}','weekly_summary','week:2026-45','2026-11-08','{"ranks":{"quantity":5}}')`);
+await q(`insert into notification_dedupe(user_id,type,dedupe_key,created_at,meta) values('${uid(1)}','weekly_summary','week:2026-45','2026-11-08','{"month":"2026-11","ranks":{"quantity":5}}')`);
 await q('delete from notification_outbox;');await scalar('select push_schedule_weekly()');await scalar('select push_schedule_weekly()');
 const summary=(await rows("select * from notification_outbox where type='weekly_summary'"));assert.equal(summary.length,1);
 assert(summary[0].body.includes('2 條（2 種）'));assert(summary[0].body.includes('升咗去第 1 名'));
 assert(!summary[0].body.includes('PRIVATE'));assert.equal(summary[0].user_id,uid(1));
 console.log('PASS banned/excluded/no-token filtered for all types; weekly excludes test fish, compares own ranks and dedupes ISO week');
+// M1: a monthly rank alone must not produce a zero-activity weekly summary.
+await reset();await clock('2026-11-15T10:00:00Z');await trip(1001,1,'2026-11-01');await fish(2101,1,'泥鯭',1,false,true,'2026-11-01T01:00:00Z');
+await q("update catches set date='2026-11-01';delete from notification_outbox;delete from notification_dedupe;");
+assert.equal(await scalar(`select count(*)::int from push_monthly_ranks() where user_id='${uid(1)}'`),1);
+await scalar('select push_schedule_weekly()');assert.equal(await scalar("select count(*)::int from notification_outbox where type='weekly_summary'"),0);
+console.log('PASS M1 monthly-ranked user with no trips or catches this week receives no weekly summary');
+// M2: October rank 5 cannot be compared to November rank 1 on its first Sunday.
+await reset();await clock('2026-11-01T10:00:00Z');await trip(1001,1,'2026-11-01');await fish(2102,1,'泥鯭',1,false,true,'2026-11-01T01:00:00Z');
+await q(`update catches set date='2026-11-01';delete from notification_outbox;delete from notification_dedupe;
+insert into notification_dedupe(user_id,type,dedupe_key,created_at,meta) values('${uid(1)}','weekly_summary','week:2026-43','2026-10-25','{"month":"2026-10","ranks":{"quantity":5}}')`);
+await scalar('select push_schedule_weekly()');const november=await rows("select body from notification_outbox where type='weekly_summary'");
+assert.equal(november.length,1);assert(!november[0].body.includes('升咗'));
+assert.equal(await scalar("select meta->>'month' from notification_dedupe where type='weekly_summary' and dedupe_key<>'week:2026-43'"),'2026-11');
+console.log('PASS M2 cross-month rank comparison suppressed; current summary records month and same-month improvement still passes');
+// L1: only six-to-24-hour open trips are eligible, never abandoned months-old trips.
+await reset();await trip(1001,1,'2026-05-01');await trip(1101,1,'2026-11-16T05:00:00Z');await scalar('select push_schedule_trip_open()');
+const timely=await rows("select dedupe_key from notification_outbox where type='trip_open'");
+assert.deepEqual(timely.map(r=>r.dedupe_key),['trip:'+uid(1101)]);
+console.log('PASS L1 seven-hour open trip reminds once; half-year-old open trip never queues');
+
 await reset([1,2,3,4]);
 await trip(1001,1,'2026-11-15','大澳（PRIVATE_COORDS）',22.45,114.18);
 await trip(1002,2,'2026-11-15','秘點（PRIVATE_COORDS）',22.45,114.18);

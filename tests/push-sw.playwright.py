@@ -3,7 +3,11 @@ import functools, http.server, pathlib, threading, subprocess
 from playwright.sync_api import sync_playwright
 root = pathlib.Path(__file__).resolve().parents[1]
 ios = (root/'ios').is_dir()
-base = subprocess.check_output(['git', 'show', ('origin/codex/settings-page-ios' if ios else 'origin/codex/push-1-web') + ':sw.js'], cwd=root).decode()
+stacked_base = 'origin/codex/settings-page-ios' if ios else 'origin/codex/push-1-web'
+try:
+    base = subprocess.check_output(['git', 'show', stacked_base + ':sw.js'], cwd=root, stderr=subprocess.DEVNULL).decode()
+except subprocess.CalledProcessError:
+    base = subprocess.check_output(['git', 'show', ('origin/ios-capacitor' if ios else 'origin/main') + ':sw.js'], cwd=root).decode()
 current = (root/'sw.js').read_text()
 assert current.startswith("const CACHE = 'hk-fishing-v205';")
 assert current.split('// Push handlers')[0].split('\n',1)[1] == base.split('// Push handlers')[0].split('\n',1)[1], 'Photo cache logic unchanged'
