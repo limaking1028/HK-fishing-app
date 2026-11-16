@@ -403,6 +403,18 @@ dialog.lb .x{position:absolute;top:-8px;right:-4px;background:#fff;color:#000;bo
 .reason-link{display:block;width:100%;text-align:left;font:inherit;color:inherit;background:transparent;border:0;cursor:pointer;padding:8px 0}
 .filterbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px}
 .t th button{border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;text-align:left;padding:6px 0}
+
+.trip-record{margin-bottom:12px}
+.trip-record summary{cursor:pointer;list-style-position:inside}
+.trip-record-title{display:inline;overflow-wrap:anywhere}
+.trip-summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:12px}
+.trip-detail-label{display:inline-block;color:var(--brand);margin-top:14px}
+.trip-detail-body{display:grid;gap:22px;padding-top:16px}
+.trip-detail-body h3{font-size:14px;margin:0 0 8px}
+.trip-photo-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.trip-photo-row .btn{padding:4px}
+.trip-photo-row img{width:100px;height:76px;object-fit:cover;border-radius:6px}
+.trip-tally{margin-top:12px}
 </style>
 </head>
 <body>
@@ -646,10 +658,12 @@ async function vTrips(more=false){
   if(more&&!S.tripUser&&(S.tripSearch||'')!==S.tripUsersQuery)return vTrips();
   const user=S.tripUser||null,query=S.tripSearch||'',offset=more?(user?S.userTripRows||[]:S.tripUsers||[]).length:0;
   const request=S.tripRequest=(S.tripRequest||0)+1;
-  let rows;
+  let rows,summaryMissing=false;
   try{
-    rows=await rpc(user?'admin_user_trips':'admin_trip_users',user?
-      {p_user:user.id,p_limit:50,p_offset:offset}:{p_search:query.trim()||null,p_limit:50,p_offset:offset});
+    if(user){
+      try{rows=await rpc('admin_user_trip_summaries',{p_user:user.id,p_limit:50,p_offset:offset});summaryMissing=false;}
+      catch(e){if(!missingRPC(e))throw e;rows=await rpc('admin_user_trips',{p_user:user.id,p_limit:50,p_offset:offset});summaryMissing=true;}
+    }else rows=await rpc('admin_trip_users',{p_search:query.trim()||null,p_limit:50,p_offset:offset});
   }catch(e){
     if(request!==S.tripRequest||S.tab!=='trips')return;
     if(more){toast(missingRPC(e)?'請先部署 migration-v200-admin-trip-users.sql':e.message);return;}
@@ -657,7 +671,7 @@ async function vTrips(more=false){
     $('main').innerHTML=header('行程')+(user?tripUserActions():'')+'<section class="card">'+empty('trip','行程功能尚未部署','請先部署 migration-v200-admin-trip-users.sql')+'</section>';return;
   }
   if(request!==S.tripRequest||S.tab!=='trips'||(S.tripUser?.id||null)!==(user?.id||null))return;
-  if(user){S.userTripRows=more?(S.userTripRows||[]).concat(rows):rows;S.userTripMore=rows.length===50;drawUserTrips();}
+  if(user){S.tripSummaryMissing=summaryMissing;if(!more)S.tripDetails={};S.userTripRows=more?(S.userTripRows||[]).concat(rows):rows;S.userTripMore=rows.length===50;drawUserTrips();}
   else{
     const input=$('trip-search'),focused=input&&document.activeElement===input,pos=focused?input.selectionStart:null;
     S.tripUsers=more?(S.tripUsers||[]).concat(rows):rows;S.tripUsersMore=rows.length===50;S.tripUsersQuery=query;drawTripUsers();
@@ -686,12 +700,65 @@ function tripUsersBack(){
   drawTripUsers();
   requestAnimationFrame(()=>{window.scrollTo({top:S.tripListScroll||0,behavior:'instant'});});
 }
+function tripValue(v,unit){return v==null||v===''?'未記錄':esc(v)+(unit?' '+esc(unit):'');}
+function tripDuration(seconds){if(seconds==null||!Number.isFinite(Number(seconds)))return '未記錄';const m=Math.floor(Number(seconds)/60);return Math.floor(m/60)+' 小時 '+m%60+' 分鐘';}
+function tripWeight(v){return v==null?'未記錄':tripValue(Math.round(Number(v)*1000)/1000,'kg');}
+function tripField(label,value){return '<div><span class="hint">'+esc(label)+'</span><div>'+value+'</div></div>';}
 function drawUserTrips(){
   const rows=S.userTripRows||[];
-  $('main').innerHTML=header(S.tripUser.name+'的行程')+tripUserActions()+'<section class="card">'
-    +(rows.length?'<div class="tw"><table class="t"><thead><tr><th>開始時間</th><th>結束時間</th><th>魚獲數</th></tr></thead><tbody>'+rows.map(t=>'<tr><td data-l="開始時間">'+esc(fmt(t.started_at))+'</td><td data-l="結束時間">'+(t.ended_at?esc(fmt(t.ended_at)):'<span class="pill brand">進行中</span>')+'</td><td data-l="魚獲數">'+esc(t.catch_count)+'</td></tr>').join('')+'</tbody></table></div>':empty('trip','此用戶未有行程'))
-    +(S.userTripMore?'<button type="button" class="btn" onclick="loadDrill(this,\'trips\')">載入更多</button>':'')+'</section>';
+  $('main').innerHTML=header(S.tripUser.name+'的行程')+tripUserActions()
+    +(S.tripSummaryMissing?'<p class="alert info">詳細摘要尚未部署，請部署 migration-v201-admin-trip-details.sql；仍可查看原有行程資料。</p>':'')
+    +(rows.length?rows.map((t,i)=>{const cached=S.tripDetails&&S.tripDetails[t.id];return '<details class="card trip-record" data-trip-index="'+i+'"'+(cached&&cached.open?' open':'')+' ontoggle="toggleTripDetail(this)"><summary><div class="trip-record-title"><b>'+esc(t.spot||'未記錄釣點')+'</b> <span class="pill '+(t.ended_at?'':'brand')+'">'+(t.ended_at?'已結束':'進行中')+'</span></div><div class="trip-summary-grid">'
+      +tripField('開始時間',esc(fmt(t.started_at)))+tripField('結束時間',t.ended_at?esc(fmt(t.ended_at)):'進行中')+tripField('行程時長',tripDuration(t.duration_seconds))
+      +tripField('地區',tripValue(t.spot_area))+tripField('釣法',tripValue(t.method))+tripField('魚餌',tripValue(t.bait))
+      +tripField('逐筆魚獲',tripValue(t.catch_count,'條'))+tripField('逐筆魚獲總重量',tripWeight(t.total_weight_kg))+tripField('快速計數（另列）',tripValue(t.tally_qty,'條'))
+      +'</div><span class="trip-detail-label">'+(cached&&cached.open?'收起詳情':'查看詳情')+'</span></summary><div class="trip-detail-body" id="trip-detail-'+i+'">'+(cached?tripDetailHtml(cached,t,i):'')+'</div></details>';}).join(''):'<section class="card">'+empty('trip','此用戶未有行程')+'</section>')
+    +(S.userTripMore?'<button type="button" class="btn" onclick="loadDrill(this,\'trips\')">載入更多行程</button>':'');
 }
+function toggleTripDetail(el){
+  if(S.tab!=='trips'||!S.tripUser)return;
+  const i=Number(el.dataset.tripIndex),t=(S.userTripRows||[])[i];if(!t)return;
+  S.tripDetails=S.tripDetails||{};const c=S.tripDetails[t.id]||(S.tripDetails[t.id]={open:false});c.open=el.open;
+  el.querySelector('.trip-detail-label').textContent=el.open?'收起詳情':'查看詳情';
+  if(el.open&&!c.data&&!c.loading&&!c.error)fetchTripDetail(i,false);
+}
+async function fetchTripDetail(i,more){
+  const t=(S.userTripRows||[])[i],user=S.tripUser;if(!t||!user)return;
+  const cache=S.tripDetails||(S.tripDetails={}),c=cache[t.id]||(cache[t.id]={open:true});if(c.loading)return;
+  c.loading=true;c.error=null;renderTripDetail(i,c,t);
+  try{
+    const d=await rpc('admin_trip_detail',{p_user:user.id,p_trip:t.id,p_limit:50,p_offset:more&&c.data?c.data.catches.length:0});
+    if(S.tab!=='trips'||S.tripUser?.id!==user.id||S.tripDetails!==cache)return;
+    if(!d||d.id!==t.id||d.user_id!==user.id)throw new Error('行程資料不符');
+    c.data=more&&c.data?{...d,catches:c.data.catches.concat(d.catches||[])}:d;
+  }catch(e){if(S.tab!=='trips'||S.tripUser?.id!==user.id||S.tripDetails!==cache)return;c.error=missingRPC(e)?'請先部署 migration-v201-admin-trip-details.sql':e.message;}
+  finally{c.loading=false;if(S.tab==='trips'&&S.tripUser?.id===user.id&&S.tripDetails===cache)renderTripDetail(i,c,t);}
+}
+function renderTripDetail(i,c,t){const node=$('trip-detail-'+i);if(node)node.innerHTML=tripDetailHtml(c,t,i);}
+function tripPhotos(urls,label){const safe=(Array.isArray(urls)?urls:[]).filter(u=>safeImg(u));return safe.length?'<div class="trip-photo-row">'+safe.map(u=>'<button type="button" class="btn" data-url="'+esc(u)+'" onclick="zoom(this.dataset.url)"><img src="'+esc(u)+'" alt="'+esc(label)+'" loading="lazy"></button>').join('')+'</div>':'<p class="hint">未記錄</p>';}
+function tripConditions(snap,label){
+  if(!snap)return '<section><h3>'+esc(label)+'</h3><p class="hint">未記錄</p></section>';
+  const w=snap.weather||{},t=snap.tide||{},m=snap.moon||{},s=snap.sun||{};
+  const trend={rising:'漲潮',falling:'退潮',slack:'平潮'},kind={spring:'大潮',medium:'中潮',neap:'小潮'};
+  return '<section><h3>'+esc(label)+'</h3><div class="trip-summary-grid">'
+    +tripField('氣溫',tripValue(w.airTempC,'°C'))+tripField('濕度',tripValue(w.humidityPct,'%'))+tripField('降雨量',tripValue(w.precipitationMm,'mm'))
+    +tripField('風速',tripValue(w.windSpeedKmh,'km/h'))+tripField('風向',tripValue(w.windDirDeg,'°'))+tripField('氣壓',tripValue(w.pressureHpa,'hPa'))
+    +tripField('雲量',tripValue(w.cloudCoverPct,'%'))+tripField('潮汐站',tripValue(t.station))+tripField('潮高',tripValue(t.heightM,'m'))
+    +tripField('潮汐趨勢',tripValue(trend[t.trend]||t.trend))+tripField('潮差',tripValue(t.tidalRangeM,'m'))+tripField('潮型',tripValue(kind[t.tideType]||t.tideType))
+    +tripField('距下次高潮',tripValue(t.hoursToNextHigh,'小時'))+tripField('距下次低潮',tripValue(t.hoursToNextLow,'小時'))
+    +tripField('月相',tripValue(m.phaseName))+tripField('月面照明',tripValue(m.illuminationPct,'%'))+tripField('月齡',tripValue(m.moonAgeDays,'日'))
+    +tripField('日出',tripValue(s.sunrise))+tripField('日落',tripValue(s.sunset))+'</div></section>';
+}
+function tripDetailHtml(c,t,i){
+  let h=c.error?'<div class="alert" role="alert">'+esc(c.error)+' <button type="button" class="btn sm" onclick="fetchTripDetail('+i+','+!!c.data+')">再試一次</button></div>':'';
+  const d=c.data;if(!d)return h+(c.loading?'<p role="status">載入詳情中…</p>':'');
+  h+='<section><h3>行程魚獲</h3>'+(d.catches&&d.catches.length?'<div class="tw"><table class="t"><thead><tr><th>魚種</th><th>重量</th><th>魚獲時間</th><th>建立時間</th><th>相片</th><th>上榜／原因</th></tr></thead><tbody>'+d.catches.map(x=>'<tr><td data-l="魚種">'+tripValue(x.species)+'</td><td data-l="重量">'+tripWeight(x.weight_kg)+'</td><td data-l="魚獲時間">'+tripValue(x.date)+' '+(x.time?esc(String(x.time).slice(0,5)):'未記錄時間')+'</td><td data-l="建立時間">'+esc(fmt(x.created_at))+'</td><td data-l="相片">'+(safeImg(x.photo_url)?'<button type="button" class="btn sm" data-url="'+esc(x.photo_url)+'" onclick="zoom(this.dataset.url)">查看相片</button>':'未記錄')+'</td><td data-l="上榜／原因">'+(x.excluded?'管理員已排除 · ':'')+esc(x.eligible?'符合':rt(x.reason)||'未能上榜')+'</td></tr>').join('')+'</tbody></table></div>':'<p class="hint">未記錄逐筆魚獲</p>')
+    +(d.catches.length<d.catches_total?'<button type="button" class="btn" onclick="fetchTripDetail('+i+',true)"'+(c.loading?' disabled':'')+'>載入更多魚獲</button>':'')+'</section>';
+  h+='<section><h3>快速計數</h3><p class="hint">獨立列出，不與逐筆魚獲合併；未記錄重量。</p>'+(d.tallies&&d.tallies.length?d.tallies.map(q=>'<div class="trip-tally"><b>'+esc(q.species)+'</b> '+tripValue(q.qty,'條')+tripPhotos(q.photos,q.species+'計數相片')+'</div>').join(''):'<p class="hint">未記錄</p>')+'</section>';
+  h+='<section><h3>行程相片</h3>'+tripPhotos(d.haul_photos,'行程相片')+'</section><div class="grid two">'+tripConditions(d.conditions?.start,'開始環境快照')+(t.ended_at?tripConditions(d.conditions?.end,'結束環境快照'):'<section><h3>結束環境快照</h3><p class="hint">行程進行中</p></section>')+'</div>';
+  return h+(c.loading?'<p role="status">載入中…</p>':'');
+}
+
 function tripLoadError(e){if(S.tab!=='trips')return;$('main').innerHTML=header('行程')+(S.tripUser?tripUserActions():'')+'<section class="card err" role="alert"><h2>載入失敗</h2><p>'+esc(e.message)+'</p><button type="button" class="btn" onclick="vTrips().catch(tripLoadError)">再試一次</button></section>';}
 
 async function loadDrill(btn,tab){btn.disabled=true;try{await (tab==='catches'?vCatches(true):vTrips(true));}finally{btn.disabled=false;}}
