@@ -16,6 +16,14 @@ test('both iOS bundles parse, all files scan, original web and Android sources u
     for(const f of fs.readdirSync(path.join(root,'www/lib')))if(f.endsWith('.js'))new vm.Script(fs.readFileSync(path.join(root,'www/lib',f),'utf8'));
     assert.ok(!html.includes('Object.keys(HKF.local)'));assert.ok(!html.includes('caches.delete'));
     assert.equal(html.includes('id="hkf-test-banner"'),env==='test');
+    const flags=JSON.parse(html.match(/window.HKF_BUILD=(\{[^;]+\});/)[1]);
+    assert.equal(flags.pushUi,env==='test');
+    assert.ok(html.indexOf('window.HKF_BUILD=') < html.indexOf('./lib/push.js'));
+    for(const id of ['push-enabled','push-record_broken','push-overtaken','push-status','push-explain']) {
+      assert.equal(html.includes('id="'+id+'"'),env==='test',id);
+    }
+    assert.equal(/<legend>通知<\/legend>/.test(html),env==='test');
+    assert.ok(html.includes('src="./lib/push.js"'));
     assert.equal((html.match(/HKF.createClient\(/g)||[]).length,2);
     {
       const forbidden=env==='test'?'lucizjohiycxdynrkjus':'qyijyrcbzalvqiautvjf';
@@ -57,4 +65,17 @@ test('test and production workflows both increment the latest integer TestFlight
     assert.equal(run(scripts[1]).status,0);assert.equal(fs.readFileSync(counter,'utf8'),'42');
     assert.equal(run(scripts[0]).status,0);assert.equal(fs.readFileSync(counter,'utf8'),'43');
   }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
+
+test('one production constant restores push UI without changing the test build',()=>{
+  const module={exports:{}};
+  const source=fs.readFileSync(path.join(root,'scripts/ios/transform.js'),'utf8');
+  const enabledSource=source.replace('const PROD_PUSH_UI = false;', 'const PROD_PUSH_UI = true;');
+  assert.notEqual(enabledSource,source);
+  vm.runInNewContext(enabledSource,{module});
+  for(const env of ['prod','test']){
+    const html=module.exports.transform('index.html',fs.readFileSync(path.join(root,'index.html'),'utf8'),{env,ref:'offline-ref'});
+    assert.equal(JSON.parse(html.match(/window.HKF_BUILD=(\{[^;]+\});/)[1]).pushUi,true);
+    assert.ok(html.includes('id="push-enabled"') && html.includes('id="push-explain"'));
+  }
 });
