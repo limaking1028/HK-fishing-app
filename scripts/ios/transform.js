@@ -1,3 +1,5 @@
+// 正式版推送 UI 暫時關閉；下次大更新只改此行為 true（測試版永遠開啟）。
+const PROD_PUSH_UI = false;
 // Checked transformations over current sources. A changed anchor fails the build.
 function replace(source, from, to) {
   if (!source.includes(from)) throw new Error('iOS source anchor changed: ' + from.slice(0, 70));
@@ -7,7 +9,19 @@ function storage(s) { return s.replace(/\b(?:window\.)?localStorage\b/g, 'HKF.lo
 function transform(file, source, manifest) {
   let s = source;
   const test = manifest.env === 'test';
+  const pushUi = test || PROD_PUSH_UI;
   if (file === 'index.html') {
+    if (!pushUi) {
+      // Remove whole notification sections from prod DOM; retain the shared push module.
+      for (const pattern of [
+        /  <div class="modal-overlay" id="push-explain"[\s\S]*?\n  <\/div>/,
+        /      <fieldset[^>]*>\s*<legend>通知<\/legend>[\s\S]*?<\/fieldset>/
+      ]) {
+        const section = s.match(pattern);
+        if (!section) throw new Error('Missing push UI section anchor');
+        s = replace(s, section[0], '');
+      }
+    }
     const start = s.indexOf('  // 強制清除舊 Service Worker');
     const end = s.indexOf('  </script>', start);
     if (start < 0 || end < 0) throw new Error('Missing SW cleanup anchor');
@@ -45,7 +59,7 @@ body{padding-top:var(--hkf-banner-height)}
     s = s.replace(/^.*切換到新項目.*$/m, '// Environment supplied by iOS build manifest.');
     s = storage(s);
     // First synchronous script validates the manifest before app code can run.
-    s = replace(s, '<head>', '<head>\n<script>window.HKF_BUILD=' + JSON.stringify({env:manifest.env,ref:manifest.ref}) + ';</script>\n<script src="./hkf-env.js"></script>\n<script src="./lib/hkf-runtime.js"></script>');
+    s = replace(s, '<head>', '<head>\n<script>window.HKF_BUILD=' + JSON.stringify({env:manifest.env,ref:manifest.ref,pushUi}) + ';</script>\n<script src="./hkf-env.js"></script>\n<script src="./lib/hkf-runtime.js"></script>');
   } else if (file === 'lib/auth.js') {
     s = replace(s, "const IOS_AUTH_REDIRECT = 'app.hkfishing.ios://auth-callback';", 'const IOS_AUTH_REDIRECT = ' + JSON.stringify('app.hkfishing.ios://' + (test ? 'auth-test-callback' : 'auth-callback')) + ';');
     s = replace(s, "if (!url || url.indexOf(IOS_AUTH_REDIRECT) !== 0) return false;", `if (!url) return false;
@@ -61,7 +75,7 @@ body{padding-top:var(--hkf-banner-height)}
     }
     s = storage(s);
   } else if (file === 'sw.js') {
-    s = replace(s, "const CACHE = 'hk-fishing-v206';", `const CACHE_PREFIX = 'hkf:${manifest.env}:${manifest.ref}:';\nconst CACHE = CACHE_PREFIX + 'photos-v199';`);
+    s = replace(s, "const CACHE = 'hk-fishing-v207';", `const CACHE_PREFIX = 'hkf:${manifest.env}:${manifest.ref}:';\nconst CACHE = CACHE_PREFIX + 'photos-v199';`);
     s = replace(s, 'keys.filter(k => k !== CACHE)', 'keys.filter(k => k.startsWith(CACHE_PREFIX) && k !== CACHE)');
     s = replace(s, 'caches.match(e.request, { ignoreSearch: true })', 'caches.open(CACHE).then(c => c.match(e.request, { ignoreSearch: true }))');
   } else if (file.endsWith('.js')) s = storage(s);
