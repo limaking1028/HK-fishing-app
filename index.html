@@ -1299,14 +1299,11 @@ button { touch-action: manipulation; }
   /* --- 登入 --- */
   .login-screen {
     padding: max(24px, env(safe-area-inset-top)) 24px max(24px, var(--safe-bottom));
-    background: linear-gradient(180deg, rgba(5,44,55,.30), rgba(5,42,54,.64)),
-      url("./assets/victoria-harbour-dusk.webp") center center / cover no-repeat, #07384a;
+    background: linear-gradient(to bottom, transparent 35%, rgba(3,32,40,.22)),
+      url("./assets/hong-kong-coast-dawn.webp") center 36% / cover no-repeat, #07384a;
   }
-  @media (max-width: 540px) and (orientation: portrait) {
-    .login-screen {
-      background: linear-gradient(to bottom, transparent 35%, rgba(3,32,40,.22)),
-        url("./assets/hong-kong-coast-dawn.webp") center top / cover no-repeat, #07384a;
-    }
+  @media (orientation: portrait) {
+    .login-screen { background-position: center top; }
   }
   @media (max-width: 540px) and (min-height: 680px) {
     .login-screen { padding-top: max(24vh, env(safe-area-inset-top)); }
