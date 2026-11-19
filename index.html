@@ -1289,6 +1289,10 @@ button { touch-action: manipulation; }
   /* --- 登入 --- */
   .login-screen { background: radial-gradient(120% 80% at 50% 0%, #0e8495 0%, #0a5866 45%, #07384a 100%); }
   .login-card { border-radius: 24px; padding: 30px 24px; box-shadow: 0 20px 60px rgba(3,20,30,.45); }
+  .login-screen-with-privacy { align-items: flex-start; overflow-y: auto; }
+  .login-card-with-privacy { margin-block: auto; padding-bottom: 10px; }
+  .login-privacy { margin: 5px 0 0; color: var(--gray-5); text-align: center; font-size: 12px; line-height: 15px; }
+  .login-privacy a { color: inherit; text-decoration: underline; }
   .login-logo { margin-bottom: 6px; line-height: 0; }
   .login-logo img { width: 72px; height: 72px; border-radius: 18px; box-shadow: 0 6px 18px rgba(10,88,102,.35); }
   .login-title { font-size: 24px; font-weight: 800; letter-spacing: 1px; }
@@ -1332,7 +1336,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v206</span></div>
+    <div class="header-title" id="header-title">釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v207</span></div>
     <div class="header-settings" onclick="openNameDialog()"><span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">改名</span></div>
   </header>
   <main id="main">
@@ -6557,7 +6561,7 @@ function switchView(name) {
   const titles = { record:'記錄魚獲', my:'我的魚獲', trips:'釣魚行程', leaderboard:'排行榜', map:'釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v206</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v207</span>';
   }
   renderView(name);
 }
@@ -6631,6 +6635,25 @@ let authMode = 'login';        // 'login' | 'register'
 let authEmail = '';            // 已 send 嘅 email
 let authCooldownTimer = null;
 
+const PRIVACY_POLICY_URL = 'https://limaking1028.github.io/HK-fishing-app/privacy.html';
+
+function openPrivacyPolicy(event) {
+  const capacitor = window.Capacitor;
+  const browser = capacitor?.Plugins?.Browser;
+  if (capacitor?.isNativePlatform?.() && capacitor.getPlatform?.() === 'ios' && browser?.open) {
+    event.preventDefault();
+    browser.open({ url: PRIVACY_POLICY_URL }).catch(error => console.warn('Privacy policy browser failed', error));
+    return;
+  }
+  try {
+    window.open(PRIVACY_POLICY_URL, '_blank', 'noopener');
+    // A successful noopener open can also return null. Avoid opening a duplicate tab.
+    event.preventDefault();
+  } catch {
+    // Let the link open through the browser if window.open is unavailable.
+  }
+}
+
 function renderLoginScreen() {
   const screen = document.getElementById('login-screen');
   if (!SB_ENABLED) { screen.innerHTML = ''; screen.style.display = 'none'; return; }
@@ -6639,8 +6662,8 @@ function renderLoginScreen() {
   authEmail = '';
   const remembered = window.authLib ? authLib.getRememberedPhone() : '';
   screen.innerHTML = `
-    <div class="login-screen">
-      <div class="login-card">
+    <div class="login-screen login-screen-with-privacy">
+      <div class="login-card login-card-with-privacy">
         <div class="login-logo"><img src="icon-192.png?v=125" alt="釣港" width="72" height="72"></div>
         <div class="login-title">釣港</div>
         <div class="login-subtitle">記低每條魚獲、同釣友鬥排行榜<br><span style="font-size:12px;opacity:.85">唔使安裝，手機瀏覽器直接用</span></div>
@@ -6723,6 +6746,7 @@ function renderLoginScreen() {
 
         <div class="login-msg" id="auth-msg"></div>
         ${SB_ENABLED && state.user ? '<button class="btn btn-outline" style="width:100%;margin-top:12px;color:var(--gray-5);border-color:var(--gray-3);" onclick="sbLogout()">登出</button>' : ''}
+        <p class="login-privacy">繼續使用即表示你同意<a href="${PRIVACY_POLICY_URL}" target="_blank" rel="noopener" onclick="openPrivacyPolicy(event)">《私隱政策》</a></p>
       </div>
     </div>
   `;
