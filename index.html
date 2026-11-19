@@ -701,7 +701,12 @@ button { touch-action: manipulation; }
   .empty-state .empty-text { font-size: 14px; }
   .empty-illustration { display: block; width: 96px; height: 72px; margin: 0 auto 8px; }
   .empty-state--catches { padding: 20px; }
-  .trip-start-card { text-align: center; padding: 24px 16px; }
+  .trip-start-card { text-align: center; padding: 0 0 24px; overflow: hidden; }
+  .trip-start-photo {
+    aspect-ratio: 3 / 2;
+    background: linear-gradient(to bottom, transparent 78%, var(--white)),
+      url("./assets/lau-fau-shan.webp") center / cover no-repeat;
+  }
   /* ===== 魚種圖鑑 ===== */
   .pokedex-progress-box { background: linear-gradient(135deg, var(--teal-dark), var(--teal)); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 14px; color: white; box-shadow: 0 3px 12px rgba(10,110,122,0.3); }
   .pokedex-progress-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
@@ -4064,7 +4069,7 @@ function renderTripsView() {
       + '</div></div>';
   } else {
     html += '<div class="card trip-start-card">'
-      + '<img class="empty-illustration" src="./assets/empty-trips.svg" width="96" height="72" alt="">'
+      + '<div class="trip-start-photo" aria-hidden="true"></div>'
       + '<div style="font-size:22px;color:var(--gray-6);margin-bottom:18px;font-weight:700;">準備好去釣魚？</div>'
       + '<button class="start-trip-btn" onclick="startTrip();">▶ 開始行程</button>'
     + '</div>';
