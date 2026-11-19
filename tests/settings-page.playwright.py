@@ -92,6 +92,23 @@ with sync_playwright() as p:
  assert pg.evaluate("document.documentElement.scrollWidth<=innerWidth && document.getElementById('settings-content').scrollWidth<=360")
  pg.evaluate("document.getElementById('settings-content').scrollTop=500")
  page.locator('.settings-back').click();pg.wait_for_timeout(100);entry.click();assert pg.evaluate("document.getElementById('settings-content').scrollTop")==0
+ privacy_url = 'https://limaking1028.github.io/HK-fishing-app/privacy.html'
+ privacy = pg.get_by_role('link', name='私隱政策', exact=True)
+ assert privacy.get_attribute('href') == privacy_url
+ assert privacy.get_attribute('target') == '_blank'
+ pg.evaluate("""ios => {
+   window.privacyCalls = [];
+   window.open = (...args) => window.privacyCalls.push(args);
+   if (ios) window.Capacitor = {
+     isNativePlatform: () => true,
+     getPlatform: () => 'ios',
+     Plugins: {Browser: {open: async ({url}) => window.privacyCalls.push([url])}}
+   };
+ }""", ios)
+ original_url = pg.url
+ privacy.click()
+ assert pg.evaluate('window.privacyCalls') == ([[privacy_url]] if ios else [[privacy_url, '_blank', 'noopener']])
+ assert pg.url == original_url and privacy.is_visible()
  # Full settings-page screenshot, fixture user and preferences. Exactly 390 CSS px wide.
  pg.set_viewport_size({'width':390,'height':1400});pg.evaluate("document.getElementById('settings-content').scrollTop=0")
  path=root/'docs/screenshots'/('settings-page-v203-'+('ios' if ios else 'web')+'-390.png');path.parent.mkdir(parents=True,exist_ok=True)
