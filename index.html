@@ -1302,14 +1302,14 @@ button { touch-action: manipulation; }
     background: linear-gradient(180deg, rgba(5,44,55,.30), rgba(5,42,54,.64)),
       url("./assets/victoria-harbour-dusk.webp") center center / cover no-repeat, #07384a;
   }
-  @media (max-width: 540px) and (min-height: 680px) {
+  @media (max-width: 540px) and (orientation: portrait) {
     .login-screen {
-      padding-top: max(22vh, env(safe-area-inset-top));
-      background-image: linear-gradient(180deg, rgba(5,44,55,.24), rgba(5,42,54,.56) 52%, #07384a 74%),
-        url("./assets/victoria-harbour-dusk.webp");
-      background-position: center top;
-      background-size: 100% 100%, auto 74%;
+      background: linear-gradient(to bottom, transparent 35%, rgba(3,32,40,.22)),
+        url("./assets/hong-kong-coast-dawn.webp") center top / cover no-repeat, #07384a;
     }
+  }
+  @media (max-width: 540px) and (min-height: 680px) {
+    .login-screen { padding-top: max(24vh, env(safe-area-inset-top)); }
   }
   .login-card { flex: none; margin-block: auto; border-radius: 24px; padding: 30px 24px; box-shadow: 0 20px 60px rgba(3,20,30,.45); }
   .login-logo { margin-bottom: 6px; line-height: 0; }
