@@ -8,15 +8,17 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
 server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(Quiet,directory=str(root)))
 threading.Thread(target=server.serve_forever,daemon=True).start()
 origin=f'http://127.0.0.1:{server.server_port}'
-def visible_event_labels_fit(chart):
- failures=chart.evaluate("""e=>{const clip=e.getBoundingClientRect();return [...e.querySelectorAll('.tide-event-label')].map(label=>{
+def visible_event_labels_fit(chart, change_day=None):
+ failures=chart.evaluate("""(e,day)=>{
+   if(day!==null)e.closest('.tide-explorer').querySelector('[data-day="'+day+'"]').click();
+   const clip=e.getBoundingClientRect();return [...e.querySelectorAll('.tide-event-label')].map(label=>{
    const symbol=e.querySelector('.tide-event-symbol[data-event="'+label.dataset.event+'"]');
    const marker=symbol.getBoundingClientRect(), x=(marker.left+marker.right)/2;
    const visible=x>=clip.left && x<=clip.right, visibility=getComputedStyle(label).visibility;
    const r=label.getBoundingClientRect(), t=label.nextElementSibling.getBoundingClientRect();
    const valid=visible ? visibility==='visible' && r.left>=clip.left && r.right<=clip.right && t.left>=clip.left && t.right<=clip.right : visibility==='hidden';
    return valid?null:{code:e.closest('.tide-card').dataset.station,clip:clip.toJSON(),marker:marker.toJSON(),label:r.toJSON(),text:t.toJSON(),visibility,scroll:e.scrollLeft};
- }).filter(Boolean)}""")
+ }).filter(Boolean)}""",change_day)
  assert not failures,failures
  return True
 
@@ -167,6 +169,13 @@ with sync_playwright() as p:
    if os.environ.get('SHOT_DIR') and width==390:
     Path(os.environ['SHOT_DIR']).mkdir(parents=True,exist_ok=True)
     pg.screenshot(path=f'{os.environ["SHOT_DIR"]}/{"tsim-bei-tsui" if code=="TBT" else "popup-destination"}-390.png')
+  # No frame/timer wait: reduced-motion must not leave x/visibility in a CSS transition.
+  pg.evaluate("tidesLib.setNowForTest(new Date(2026,10,16,11,30).getTime());renderMapTideList(document.getElementById('view-map'))")
+  instant_chart=pg.locator('.tide-card[data-station="QUB"] .tide-chart')
+  assert visible_event_labels_fit(instant_chart)
+  for instant_day in [2,0,1,2]:
+   assert visible_event_labels_fit(instant_chart,instant_day)
+
   assert not errors,errors
   print(f'PASS {width}x{height}: 12 guest cards, hourly height, drag, reset, strip, intervals, day chips, cross-year, gestures CSS, reduced-motion, attribution')
   c.close()
