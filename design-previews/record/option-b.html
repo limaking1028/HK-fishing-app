@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="zh-HK">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>釣港記錄 · 方案 B</title>
+<style>:root{--teal-dark:#0a5866;--teal:#0e8495;--teal-light:#e1f3f6;--teal-pale:#f1f9fa;--gray-1:#f2f6f8;--gray-2:#e3e9ee;--gray-3:#c7d1d8;--gray-4:#67727e;--gray-5:#4f5a66;--gray-6:#1f2a35;--dark:#14202b;--ink-grad:linear-gradient(155deg,#07384a,#0a5866 60%,#0e8495 130%);color:var(--dark);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang HK","PingFang TC","Noto Sans CJK HK","Noto Sans TC","Microsoft JhengHei",sans-serif;font-variant-numeric:tabular-nums}
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:var(--gray-1)}.shell{max-width:480px;min-height:100dvh;margin:auto;background:white;display:flex;flex-direction:column}header{background:var(--ink-grad);color:white;padding:15px 20px 18px}header p{margin:0 0 5px;color:var(--teal-light);font-size:13px;font-weight:700;letter-spacing:.08em}h1,h2,h3,p,figure{margin:0}h1{font-size:27px;line-height:1.2}h2{font-size:19px}h3{font-size:16px}small,.muted{font-size:13px;line-height:1.5;color:var(--gray-5)}button,input,select,textarea{font:inherit}button,summary{cursor:pointer}button{min-height:44px;border:1px solid var(--gray-3);background:white;color:var(--teal-dark);border-radius:10px;padding:8px 12px;font-weight:700}button.primary{background:var(--teal-dark);color:white;border-color:var(--teal-dark)}button:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+main{padding:0 16px 16px;flex:1}.notice{margin:10px 0 4px;display:flex;align-items:center;gap:6px;background:var(--teal-pale);color:var(--teal-dark);padding:0 4px 0 10px;border-radius:10px;font-size:12px}.notice span{flex:1}.notice button{border:0;background:none;padding:0 5px;white-space:nowrap}.notice .close{width:44px;font-size:18px}.trip{margin:12px 0;background:var(--teal-light);padding:10px 12px;border-radius:10px;color:var(--teal-dark);font-size:13px}.trip strong{display:block;font-size:14px}
+form{margin-top:6px}.panel{padding:14px 0;border-bottom:1px solid var(--gray-2);display:grid;gap:10px}.row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.weight-row{grid-template-columns:minmax(0,1fr) 78px minmax(0,.85fr)}label.field{display:grid;gap:4px;align-content:start;font-size:13px;font-weight:700;min-width:0}input:not([type=checkbox]),select,textarea{width:100%;min-width:0;min-height:44px;border:1px solid var(--gray-3);border-radius:9px;padding:8px;background:white;color:var(--dark);font-size:16px}textarea{resize:vertical}.chips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.chips button{padding:5px 2px;font-size:14px}.chips button[aria-pressed=true]{background:var(--teal-light);border-color:var(--teal);color:var(--teal-dark)}summary{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--teal-dark);font-size:14px;font-weight:700;list-style:none}summary::-webkit-details-marker{display:none}summary::after{content:'＋';margin-left:auto}details[open]>summary::after{content:'−'}.details-body{display:grid;gap:10px;padding:5px 0 10px}.status{color:var(--teal-dark);font-size:13px;font-weight:700}.media{display:grid;gap:8px}.media img{width:100%;height:120px;object-fit:cover;border-radius:10px}.media .primary{background:var(--teal-light);color:var(--teal-dark);border-color:var(--teal-light)}.astro{padding:9px 11px;border-radius:9px;background:var(--gray-1);font-size:13px}.elig{background:var(--teal-pale);border-radius:12px;padding:0 12px;margin-top:10px}.elig ul{margin:0;padding-left:19px;font-size:13px;line-height:1.6}.bar{position:sticky;bottom:0;margin-top:12px;background:white;border-top:1px solid var(--gray-2);padding:10px 0 max(9px,env(safe-area-inset-bottom));display:flex;gap:8px;z-index:1}.bar .primary{flex:1;min-height:49px}.error{font-size:13px;color:#ac2922;margin-top:8px}.steps{display:flex;gap:5px;margin:14px 0 8px}.steps button{flex:1;padding:5px 2px;font-size:13px;border-color:var(--gray-2)}.steps button[aria-current=step]{background:var(--teal-dark);color:white;border-color:var(--teal-dark)}.b .panel{border:0;padding:14px 0}.b .steps~.panel h2{font-size:22px}.review{padding:12px;background:var(--gray-1);border-radius:12px;display:grid;gap:7px}.c main{background:var(--gray-1)}.c .panel{background:white;border:0;border-radius:15px;padding:12px;margin:10px 0}.c .media img{height:155px}.c .media:not(.has-photo){border:1px dashed var(--teal);border-radius:12px;background:var(--teal-pale);padding:14px}.c .media .primary{min-height:54px}.c .bar{background:var(--gray-1)}.section-title{display:flex;align-items:center;justify-content:space-between;gap:6px}.score{margin:16px 0;background:var(--ink-grad);color:white;padding:18px;border-radius:16px;display:grid;gap:8px}.score img{width:100%;height:164px;border-radius:10px;object-fit:cover}.score small{color:var(--teal-light)}.score b{font-size:28px}.success{padding-top:22px}.success .check{display:grid;place-items:center;width:48px;height:48px;margin-bottom:8px;border-radius:50%;background:var(--teal-light);color:var(--teal-dark);font-size:24px}.actions{display:grid;gap:8px}.error:empty{display:none}dialog{width:calc(100% - 34px);max-width:390px;border:1px solid var(--gray-2);border-radius:16px;padding:20px;color:var(--dark)}dialog::backdrop{background:#14202b80}dialog p{margin:10px 0 14px}.shot .bar{position:static}
+</style></head>
+<body class="b"><div class="shell"><header><p>釣港 · 記錄</p><h1>記錄新魚獲</h1></header>
+<main id="view-record">
+<div id="trip-prompt" class="notice" hidden><span>開咗行程，統計會更準</span><button type="button" data-go="trip">開始行程</button><button id="dismiss" class="close" type="button" aria-label="今日收起提示">×</button></div>
+<div id="trip-status" class="trip" hidden><strong>行程進行中 · 西貢公眾碼頭</strong>已帶入釣點、磯釣、生蝦</div>
+<form id="catch-form" novalidate><nav class="steps" aria-label="填寫步驟"><button type="button" data-step="0">1 相片</button><button type="button" data-step="1">2 魚獲</button><button type="button" data-step="2">3 釣點</button><button type="button" data-step="3">4 確認</button></nav><section class="panel" id="step-0"><h2>魚獲相片</h2><div class="media" id="catch-media">
+<img id="fish-preview" alt="魚獲相片" hidden>
+<div class="row"><button class="primary photo-upload" type="button" data-file="catch-photo">影相</button><button type="button" data-file="catch-photo-gallery">從相簿揀</button></div>
+<input hidden type="file" id="catch-photo" accept="image/*" capture="environment"><input hidden type="file" id="catch-photo-gallery" accept="image/*">
+<small id="photo-preview-container">上榜要有魚獲相；相簿相須喺 30 分鐘內拍攝。</small></div><details id=""><summary>磅／尺相</summary><div class="details-body"><button id="proof-upload" type="button" data-file="catch-proof">加磅／尺相</button><input hidden type="file" id="catch-proof" accept="image/*"><small id="proof-name">重量王者須有磅／尺相，審核後上榜。</small></div></details></section><section class="panel" id="step-1"><h2>魚種同尺寸</h2><div id="species-selector">
+<div class="chips" aria-label="常用魚種"><button type="button" data-species="泥鯭" aria-pressed="false">泥鯭</button><button type="button" data-species="石狗公" aria-pressed="false">石狗公</button><button type="button" data-species="釘公" aria-pressed="false">釘公</button><button type="button" data-species="黃腳鱲" aria-pressed="false">黃腳鱲</button><button type="button" data-species="雞泡" aria-pressed="false">雞泡</button><button type="button" data-species="沙鯭" aria-pressed="false">沙鯭</button><button type="button" data-species="黑鱲" aria-pressed="false">黑鱲</button><button type="button" data-species="三鬚" aria-pressed="false">三鬚</button></div><details id="more-species"><summary>更多魚種／自訂</summary><div class="details-body"><label class="field" for="species-all">魚種列表<select id="species-all"><option value="">請揀魚種</option><option value="泥鯭">泥鯭</option><option value="石狗公">石狗公</option><option value="釘公">釘公</option><option value="黃腳鱲">黃腳鱲</option><option value="雞泡">雞泡</option><option value="沙鯭">沙鯭</option><option value="黑鱲">黑鱲</option><option value="三鬚">三鬚</option><option value="梳羅">梳羅</option><option value="牛鰍">牛鰍</option><option value="油蠟">油蠟</option><option value="紅衫魚">紅衫魚</option><option value="盲鰽">盲鰽</option><option value="金鼓">金鼓</option><option value="烏頭">烏頭</option><option value="沙鑽">沙鑽</option><option value="沙巴龍躉">沙巴龍躉</option><option value="赤鱲">赤鱲</option><option value="火點">火點</option><option value="牙點">牙點</option><option value="左口">左口</option><option value="石蚌">石蚌</option><option value="坑鰜">坑鰜</option><option value="連尖">連尖</option><option value="哨牙妹">哨牙妹</option><option value="紅鮋">紅鮋</option><option value="三刀">三刀</option><option value="細鱗">細鱗</option><option value="白鬚公">白鬚公</option><option value="海狼">海狼</option><option value="煙仔">煙仔</option><option value="馬友">馬友</option><option value="花鱸">花鱸</option><option value="星鱸">星鱸</option><option value="黃立鯧">黃立鯧</option><option value="石剎">石剎</option><option value="黃花">黃花</option><option value="䱛仔">䱛仔</option><option value="雞魚">雞魚</option><option value="牛廣GT">牛廣GT</option><option value="魔鬼魚">魔鬼魚</option><option value="青斑">青斑</option><option value="芝麻斑">芝麻斑</option><option value="白鱲">白鱲</option><option value="星點泥鯭">星點泥鯭</option><option value="custom">自訂魚種</option></select></label></div></details><div id="custom-fish" hidden><label class="field" for="custom-species">自訂魚種<input id="custom-species" maxlength="60"></label></div></div><div class="row weight-row"><label class="field" for="catch-weight">重量（必填）<input id="catch-weight" type="number" inputmode="decimal" step="any" min="0.001" placeholder="0.0" required></label><label class="field" for="catch-weight-unit">單位<select id="catch-weight-unit"><option value="kg">公斤</option><option value="g">克</option><option value="jin">斤</option><option value="tael">兩</option></select></label><label class="field" for="catch-length">長度（cm）<input id="catch-length" type="number" step="any" min="0" inputmode="decimal" placeholder="選填"></label></div><small id="catch-weight-conv" aria-live="polite"></small></section><section class="panel" id="step-2"><h2>釣點同時間</h2><div class="section-title"><span id="gps-status" class="status" role="status">未定位</span><button id="gps-btn" type="button">自動定位</button></div><label class="field" for="catch-spot">釣點<select id="catch-spot"><option value="">未選釣點</option><option value="西貢公眾碼頭">西貢公眾碼頭</option><option value="秘點">秘點</option><option value="其他">其他</option></select></label><small>揀「秘點」後，分享及排行榜只顯示「秘點」，位置僅供驗證。</small><div id="other-spot" hidden><label class="field" for="custom-spot">自訂釣點<input id="custom-spot" ></label></div><input id="catch-lat" type="hidden"><input id="catch-lng" type="hidden"><input id="catch-accuracy" type="hidden"><div class="row"><label class="field" for="catch-date">日期<input id="catch-date" type="date" required></label><label class="field" for="catch-time">時間<input id="catch-time" type="time" required></label></div><div class="astro" id="astro-info"><strong>潮汐／天文</strong><p id="astro-values" class="muted"></p></div><details id=""><summary>釣法、釣餌及備註</summary><div class="details-body"><div class="row"><div><label class="field" for="catch-method">釣法<select id="catch-method"><option value="">未選</option><option value="手絲">手絲</option><option value="手竿">手竿</option><option value="投竿">投竿</option><option value="筏竿">筏竿</option><option value="岸釣">岸釣</option><option value="磯釣">磯釣</option><option value="前打">前打</option><option value="路亞">路亞</option><option value="沉底">沉底</option><option value="放流">放流</option><option value="船釣筏釣">船釣筏釣</option><option value="其他">其他</option></select></label><div id="other-method" hidden><label class="field" for="custom-method">自訂釣法<input id="custom-method" ></label></div></div><div><label class="field" for="catch-bait">釣餌<select id="catch-bait"><option value="">未選</option><option value="南極蝦">南極蝦</option><option value="青蟲">青蟲</option><option value="紅蟲">紅蟲</option><option value="蝦仁">蝦仁</option><option value="生蝦">生蝦</option><option value="生蠔">生蠔</option><option value="麵包">麵包</option><option value="練餌">練餌</option><option value="其他">其他</option></select></label><div id="other-bait" hidden><label class="field" for="custom-bait">自訂釣餌<input id="custom-bait" ></label></div></div></div><label class="field" for="catch-notes">備註<textarea id="catch-notes" rows="2" placeholder="例如流水、風向"></textarea></label></div></details></section><section class="panel" id="step-3"><h2>確認魚獲</h2><div class="review" id="review"></div><details class="elig" id="elig-box"><summary><span id="elig-title">上榜條件</span></summary><div class="details-body">
+<ul><li id="elig-photo"></li><li id="elig-gps"></li><li id="elig-date"></li><li id="elig-species"></li><li id="elig-weight"></li><li id="elig-proof"></li><li>品種王者每個新魚種須審核一次。</li></ul>
+<small>未符合都可以儲存魚獲記錄。</small></div></details><details id="test-mode-box" hidden><summary>管理員工具</summary><label class="muted"><input id="test-mode" type="checkbox"> 測試模式（略過 GPS／香港範圍，榜上只限管理員可見）</label></details></section><div id="form-error" class="error" role="alert"></div><div class="bar"><button id="previous" type="button" hidden>上一步</button><button id="next" class="primary" type="button" hidden>下一步</button><button id="submit-catch" class="primary" type="submit">送出魚獲記錄</button></div></form>
+<section id="success" class="success" hidden><span class="check" aria-hidden="true">✓</span><h2>魚獲已記錄！</h2><p id="success-status" class="muted"></p><figure id="score-card-wrap" class="score"></figure><div class="actions"><button class="primary" id="reset" type="button">記錄下一條</button><button type="button" data-go="my">查看我的魚獲</button><button type="button" data-go="ranking">查看排行榜</button><button type="button" id="success-trip" data-go="trip">開始行程</button></div></section>
+<section id="destination" class="success" hidden><h2 id="destination-title"></h2><p id="destination-copy" class="muted"></p><div class="actions"><button id="demo-start" class="primary" type="button">開始示範行程</button><button id="back" type="button">返回記錄</button></div></section>
+</main></div>
+<script>
+const config = { option: "b", photo: "data:image/webp;base64,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" };
+/* ============================================================
+ * lib/weight.js — 重量單位換算（克 / 公斤 / 斤 / 兩）
+ *
+ * 標準重量 = 公斤（kg，精確到克）。所有排序、比較、排行榜都用標準重量。
+ * 1 斤 = 16 兩 = 604.79 克（香港市制）；1 兩 = 37.7994 克
+ *
+ * 暴露 window.weightLib
+ * ============================================================ */
+(function () {
+  'use strict';
+  const GRAMS = { g: 1, kg: 1000, jin: 604.79, tael: 37.7994 };
+  const NAMES = { g: '克', kg: '公斤', jin: '斤', tael: '兩' };
+  const DECIMALS = { g: 0, kg: 2, jin: 1, tael: 1 };
+  const UNITS = ['kg', 'g', 'jin', 'tael'];
+  const MAX_KG = 60;               // 上限（約 100 斤），須同資料庫 weight 約束一致
+  const DEFAULT_UNIT = 'kg';
+  const PREF_KEY = 'hk_fishing_weight_unit';
+
+  function isUnit(u) { return Object.prototype.hasOwnProperty.call(GRAMS, u); }
+  function round3(x) { return Math.round(x * 1000) / 1000; }
+
+  /** 任何單位 → 標準公斤（精確到克） */
+  function toKg(value, unit) {
+    const v = Number(value);
+    if (!isFinite(v) || !isUnit(unit)) return NaN;
+    return round3(v * GRAMS[unit] / 1000);
+  }
+  /** 標準公斤 → 指定單位（未捨入） */
+  function fromKg(kg, unit) {
+    return Number(kg) * 1000 / GRAMS[isUnit(unit) ? unit : DEFAULT_UNIT];
+  }
+  /** 舊版「斤」欄位 → 公斤（讀取舊資料用） */
+  function jinToKg(jin) { return round3(Number(jin) * GRAMS.jin / 1000); }
+  /** 公斤 → 舊版 weight 欄位（斤，2 位小數，最少 0.01 以符合 weight > 0 約束） */
+  function legacyJin(kg) { return Math.max(0.01, Math.round(fromKg(kg, 'jin') * 100) / 100); }
+
+  /** 格式化：返回 { value:'1.20', unit:'公斤', text:'1.20 公斤' } */
+  function format(kg, unit) {
+    const u = isUnit(unit) ? unit : DEFAULT_UNIT;
+    const n = Number(kg);
+    const v = isFinite(n) ? fromKg(n, u) : 0;
+    const p = Math.pow(10, DECIMALS[u]);
+    const value = (Math.round((v + Number.EPSILON) * p) / p).toFixed(DECIMALS[u]);   // v183：toFixed 對 0.605 會捨成 0.60，先 round 再出
+    return { value, unit: NAMES[u], text: value + ' ' + NAMES[u] };
+  }
+  /** 其他單位對照，例如「= 1.20 公斤 · 2.0 斤 · 32.0 兩」 */
+  function describeOthers(kg, exceptUnit) {
+    return UNITS.filter(u => u !== exceptUnit).map(u => format(kg, u).text).join(' · ');
+  }
+
+  function getPref() {
+    try { const u = localStorage.getItem(PREF_KEY); if (isUnit(u)) return u; } catch (e) {}
+    return DEFAULT_UNIT;
+  }
+  function setPref(u) {
+    if (!isUnit(u)) return;
+    try { localStorage.setItem(PREF_KEY, u); } catch (e) {}
+  }
+
+  window.weightLib = {
+    GRAMS, NAMES, UNITS, MAX_KG, DEFAULT_UNIT,
+    isUnit, toKg, fromKg, jinToKg, legacyJin, format, describeOthers, getPref, setPref
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = window.weightLib;
+})();
+
+const get = id => document.getElementById(id);
+const form = get('catch-form');
+const params = new URLSearchParams(location.search);
+const scenario = params.get('state') || 'empty';
+const hongKongDate = date => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Hong_Kong' }).format(date);
+const today = hongKongDate(new Date());
+const dateValue = params.has('shot') ? '2026-11-21' : today;
+const timeValue = params.has('shot') ? '16:42' : new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Hong_Kong', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+}).format(new Date());
+let activeTrip = false;
+let selectedFish = '';
+let photoUrl = '';
+let photoStatus = '';
+let proof = false;
+let step = 0;
+let screen = 'form';
+let previousScreen = 'form';
+let previousUnit = 'kg';
+let dismissed = false;
+const dismissKey = 'fishport-record-trip-prompt';
+try { dismissed = localStorage.getItem(dismissKey) === today; } catch {}
+
+function show(screenName) {
+  screen = screenName;
+  form.hidden = screen !== 'form';
+  get('success').hidden = screen !== 'success';
+  get('destination').hidden = screen !== 'destination';
+  get('trip-prompt').hidden = screen !== 'form' || activeTrip || dismissed;
+  get('trip-status').hidden = screen !== 'form' || !activeTrip;
+  get('success-trip').hidden = activeTrip;
+  window.scrollTo(0, 0);
+}
+
+function setStep(index, scroll = true) {
+  if (config.option !== 'b') return;
+  step = index;
+  document.querySelectorAll('[data-step]').forEach(button => {
+    const current = +button.dataset.step === index;
+    button.toggleAttribute('aria-current', current);
+    if (current) button.setAttribute('aria-current', 'step');
+    get('step-' + button.dataset.step).hidden = !current;
+  });
+  get('previous').hidden = index === 0;
+  get('next').hidden = index === 3;
+  get('submit-catch').hidden = index !== 3;
+  if (index === 3) {
+    get('review').textContent = [
+      fishName() || '未選魚種',
+      kg() > 0 ? get('catch-weight').value + ' ' + weightLib.NAMES[previousUnit] : '未填重量',
+      spotName(), get('catch-date').value + ' ' + get('catch-time').value,
+      ...(activeTrip ? ['釣法及釣餌已由行程帶入'] : [])
+    ].join(' · ');
+  }
+  if (scroll) window.scrollTo(0, 0);
+}
+
+function fishName() {
+  return (selectedFish === 'custom' ? get('custom-species').value : selectedFish).trim();
+}
+
+function spotName() {
+  const spot = get('catch-spot').value;
+  return (spot === '其他' ? get('custom-spot').value.trim() : spot) || '未選釣點';
+}
+
+function chooseFish(name) {
+  selectedFish = name;
+  get('species-all').value = name;
+  get('custom-fish').hidden = name !== 'custom';
+  document.querySelectorAll('[data-species]').forEach(button =>
+    button.setAttribute('aria-pressed', String(button.dataset.species === name)));
+}
+
+function kg() {
+  return weightLib.toKg(get('catch-weight').value, get('catch-weight-unit').value);
+}
+
+function setDemoLocation(fromTrip) {
+  get('catch-lat').value = '22.382';
+  get('catch-lng').value = '114.273';
+  get('catch-accuracy').value = '12';
+  get('gps-status').textContent = (fromTrip ? '行程定位' : '香港範圍已定位') + ' · ±12 m';
+  get('gps-btn').textContent = '更新定位';
+  if (!get('catch-spot').value) get('catch-spot').value = '西貢公眾碼頭';
+}
+
+function setPhoto(url, status) {
+  if (photoUrl.startsWith('blob:')) URL.revokeObjectURL(photoUrl);
+  photoUrl = url;
+  photoStatus = status;
+  const image = get('fish-preview');
+  image.hidden = !url;
+  if (url) image.src = url;
+  else image.removeAttribute('src');
+  get('catch-media').classList.toggle('has-photo', !!url);
+}
+
+function checks() {
+  const days = (Date.parse(dateValue) - Date.parse(get('catch-date').value)) / 86400000;
+  return {
+    photo: photoStatus === 'fresh',
+    gps: !!get('catch-lat').value || get('test-mode').checked,
+    date: days >= 0 && days <= 7,
+    species: !!fishName() && selectedFish !== 'custom',
+    weight: kg() > 0 && kg() <= weightLib.MAX_KG
+  };
+}
+
+function update() {
+  for (const id of ['spot', 'method', 'bait']) get('other-' + id).hidden = get('catch-' + id).value !== '其他';
+  const weight = kg();
+  get('catch-weight-conv').textContent = weight > 0 ? '約 ' + weightLib.describeOthers(weight, previousUnit) : '';
+  get('astro-values').textContent = get('catch-time').value
+    ? (get('catch-time').value < '15:00' ? '漲潮 · 高潮 15:18' : '退潮 · 低潮 21:36') + ' · 日落 17:39（示範）'
+    : '揀日期同時間後顯示';
+  const status = checks();
+  const labels = {
+    photo: photoStatus === 'gallery' ? '相簿相須喺 30 分鐘內拍攝（預覽未驗證拍攝時間）' : '魚獲相必備',
+    gps: get('test-mode').checked ? '香港範圍定位（測試模式略過）' : '香港範圍定位',
+    date: '日期須喺 7 日內', species: '列表內魚種', weight: '已填有效重量',
+    proof: '磅／尺相係重量王者必備，審核後上榜'
+  };
+  for (const [key, label] of Object.entries(labels)) {
+    get('elig-' + key).textContent = ((key === 'proof' ? proof : status[key]) ? '✓ ' : '○ ') + label;
+  }
+  get('elig-title').textContent = Object.values(status).every(Boolean)
+    ? (proof ? '上榜條件已齊 · 磅相待審核' : '上榜條件已齊 · 重量榜欠磅相')
+    : '上榜條件 · 未齊都可以儲存';
+  if (step === 3) setStep(3, false);
+}
+
+function reset(seed, startStep = 0) {
+  form.reset();
+  previousUnit = 'kg';
+  chooseFish('');
+  setPhoto('', '');
+  proof = false;
+  get('proof-name').textContent = '重量王者須有磅／尺相，審核後上榜。';
+  get('gps-status').textContent = '未定位';
+  get('gps-btn').textContent = '自動定位';
+  for (const id of ['lat', 'lng', 'accuracy']) get('catch-' + id).value = '';
+  get('catch-date').value = dateValue;
+  get('catch-date').max = dateValue;
+  get('catch-time').value = timeValue;
+  get('form-error').textContent = '';
+  form.querySelectorAll('details').forEach(details => { details.open = false; });
+  if (activeTrip) {
+    setDemoLocation(true);
+    get('catch-method').value = '磯釣';
+    get('catch-bait').value = '生蝦';
+    if (get('more-data')) get('more-data').open = true;
+  }
+  if (seed) {
+    chooseFish('黑鱲');
+    get('catch-weight').value = '1.24';
+    get('catch-length').value = '38';
+    if (!activeTrip) {
+      setDemoLocation(false);
+      get('catch-method').value = '磯釣';
+      get('catch-bait').value = '生蝦';
+    }
+    setPhoto(config.photo, 'fresh');
+    get('elig-box').open = !activeTrip;
+  }
+  setStep(startStep, false);
+  update();
+  show('form');
+}
+
+function submit(event) {
+  event?.preventDefault();
+  const weight = get('catch-weight');
+  const error = get('form-error');
+  if (!fishName() || !weight.validity.valid || !(kg() > 0) || kg() > weightLib.MAX_KG) {
+    setStep(1);
+    error.textContent = '請揀魚種，並填寫有效重量（最多 60 公斤）。';
+    (!fishName() ? get('species-selector').querySelector('button') : weight).focus();
+    return;
+  }
+  if (!get('catch-date').validity.valid || !get('catch-time').validity.valid) {
+    setStep(2);
+    if (get('more-data')) get('more-data').open = true;
+    error.textContent = '請輸入有效日期同時間。';
+    get('catch-date').focus();
+    return;
+  }
+  const score = get('score-card-wrap');
+  score.replaceChildren();
+  if (photoUrl) {
+    const image = document.createElement('img');
+    image.src = photoUrl;
+    image.alt = '已記錄魚獲';
+    score.append(image);
+  }
+  const title = document.createElement('h3');
+  title.textContent = fishName();
+  const size = document.createElement('b');
+  size.textContent = get('catch-weight').value + ' ' + weightLib.NAMES[previousUnit] +
+    (get('catch-length').value ? ' · ' + get('catch-length').value + ' cm' : '');
+  const where = document.createElement('small');
+  where.textContent = spotName() + ' · ' + get('catch-date').value + ' ' + get('catch-time').value;
+  score.append(title, size, where);
+  get('success-status').textContent = Object.values(checks()).every(Boolean)
+    ? (proof ? '符合上榜條件 · 磅相待審核' : '符合上榜條件 · 重量王者須補磅相')
+    : '已儲存記錄 · 上榜條件未齊';
+  show('success');
+}
+
+document.querySelectorAll('[data-species]').forEach(button =>
+  button.addEventListener('click', () => { chooseFish(button.dataset.species); update(); }));
+get('species-all').addEventListener('change', event => { chooseFish(event.target.value); update(); });
+get('catch-weight-unit').addEventListener('change', event => {
+  const weight = get('catch-weight');
+  const next = event.target.value;
+  if (weight.value) {
+    const standard = weightLib.toKg(weight.value, previousUnit);
+    weight.value = +weightLib.fromKg(standard, next).toFixed(5);
+  }
+  previousUnit = next;
+  update();
+});
+form.addEventListener('input', update);
+form.addEventListener('submit', submit);
+get('gps-btn').addEventListener('click', () => { setDemoLocation(false); update(); });
+document.querySelectorAll('[data-file]').forEach(button => {
+  const input = get(button.dataset.file);
+  button.addEventListener('click', () => input.click());
+  input.addEventListener('change', () => {
+    const file = input.files[0];
+    if (!file) return;
+    if (input.id === 'catch-proof') {
+      proof = true;
+      get('proof-name').textContent = '已揀 · ' + file.name + ' · 重量王者須審核';
+    } else {
+      setPhoto(URL.createObjectURL(file), input.id === 'catch-photo' ? 'fresh' : 'gallery');
+    }
+    update();
+  });
+});
+document.querySelectorAll('[data-step]').forEach(button =>
+  button.addEventListener('click', () => setStep(+button.dataset.step)));
+get('previous').addEventListener('click', () => setStep(step - 1));
+get('next').addEventListener('click', () => setStep(step + 1));
+get('dismiss').addEventListener('click', () => {
+  dismissed = true;
+  get('trip-prompt').hidden = true;
+  try { localStorage.setItem(dismissKey, today); } catch {}
+});
+const destinations = {
+  trip: ['行程', '喺呢度開始示範行程，返回記錄時會自動帶入釣點、釣法同釣餌。'],
+  my: ['我的魚獲', '正式版會喺呢度顯示你嘅魚獲記錄。'],
+  ranking: ['排行榜', '正式版會喺呢度顯示合資格魚獲嘅排名。']
+};
+document.querySelectorAll('[data-go]').forEach(button => button.addEventListener('click', () => {
+  previousScreen = screen;
+  const [title, copy] = destinations[button.dataset.go];
+  get('destination-title').textContent = title;
+  get('destination-copy').textContent = copy;
+  get('demo-start').hidden = button.dataset.go !== 'trip';
+  show('destination');
+}));
+get('back').addEventListener('click', () => show(previousScreen));
+get('demo-start').addEventListener('click', () => {
+  activeTrip = true;
+  setDemoLocation(true);
+  get('catch-method').value = '磯釣';
+  get('catch-bait').value = '生蝦';
+  if (get('more-data')) get('more-data').open = true;
+  update();
+  show('form');
+});
+get('reset').addEventListener('click', () => reset(false));
+
+document.body.classList.toggle('shot', params.has('shot'));
+get('test-mode-box').hidden = !params.has('admin');
+activeTrip = scenario === 'trip';
+reset(scenario !== 'empty', scenario === 'filled' || scenario === 'success' ? 3 : activeTrip ? 2 : 0);
+if (activeTrip && config.option === 'b') get('catch-method').closest('details').open = true;
+if (scenario === 'success') submit();
+
+</script></body></html>
