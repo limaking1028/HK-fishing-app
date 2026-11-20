@@ -4776,7 +4776,6 @@ function getMyStatsHTML() {
   if (!window.myStatsLib) return '<div class="ms-empty">統計模組載入失敗，請重新整理</div>';
   const period = state.statsPeriod === '90' ? '90' : 'all';
   const r = window.myStatsLib.compute(state.catches || [], state.trips || [], { periodDays: period === '90' ? 90 : null });
-  const kg = v => { const d = weightDisplay({ weight: v }); return d.value + d.unit; };
   const more = count => count > STATS_TOP_N ? '<p class="ms-more">還有 ' + (count - STATS_TOP_N) + ' 項</p>' : '';
   let h = '<div class="ms-wrap">'
     + '<div class="filter-row" style="padding:0;margin-bottom:12px;">'
@@ -4820,12 +4819,12 @@ function getMyStatsHTML() {
   // 釣點
   if (r.spots.length) {
     h += '<section class="ms-card"><h3>收穫最多嘅釣點</h3>'
-      + msBarRows(r.spots.slice(0, STATS_TOP_N), { markBest: true, extra: x => kg(x.maxKg) }) + more(r.spotCount) + '</section>';
+      + msBarRows(r.spots.slice(0, STATS_TOP_N), { markBest: true }) + more(r.spotCount) + '</section>';
   }
   // 魚種
   if (r.species.length) {
     h += '<section class="ms-card"><h3>最常釣到嘅魚種</h3>'
-      + msBarRows(r.species.slice(0, STATS_TOP_N), { markBest: true, extra: x => kg(x.maxKg) }) + more(r.speciesCount) + '</section>';
+      + msBarRows(r.species.slice(0, STATS_TOP_N), { markBest: true }) + more(r.speciesCount) + '</section>';
   }
   // 釣法同魚餌
   if (r.methods.length || r.baits.length) {
