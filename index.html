@@ -1233,6 +1233,36 @@ button { touch-action: manipulation; }
 
   /* --- 卡片／區塊 --- */
   .view { padding: 16px 14px 24px; }
+
+  /* A viewport-fixed layer keeps all three My tabs on the same background. */
+  #view-my {
+    position: relative;
+    isolation: isolate;
+  }
+  #view-my.fade-in {
+    /* The shared translation animation would move the fixed layer with the view. */
+    animation: none;
+  }
+  #login-screen:empty ~ #main #view-my.active::before,
+  #login-screen:empty ~ #main #view-my.active::after {
+    content: "";
+    z-index: -1;
+    pointer-events: none;
+  }
+  #view-my::before {
+    position: fixed;
+    inset: 0;
+    width: min(100%, 480px);
+    margin-inline: auto;
+    background: #b4dce2 url("assets/my-ocean-bg.webp") center top / cover no-repeat;
+  }
+  #view-my::after {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 40px;
+    background: linear-gradient(180deg, rgba(7, 56, 74, .32), transparent);
+  }
+  #view-my .pokedex-card.locked { opacity: 1; }
   .card, .stat-card, .catch-card, .collapsible-header, .trip-card, .lb-tabs { border: 1px solid rgba(10,88,102,.07); box-shadow: var(--shadow); }
   .section-title { font-size: 17px; font-weight: 800; letter-spacing: -.2px; }
   .stats-row { gap: 12px; }
