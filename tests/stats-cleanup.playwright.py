@@ -101,6 +101,8 @@ with sync_playwright() as p:
     )
     for title in ["收穫最多嘅釣點", "最常釣到嘅魚種"]:
         expect(card(title).locator(".ms-row")).to_have_count(3)
+        expect(card(title)).not_to_contain_text(re.compile("斤|公斤"))
+        expect(card(title).locator(".ms-val small")).to_have_count(0)
         expect(card(title).locator(".ms-more")).to_have_text("還有 3 項")
     for group in card("釣餌同釣法中魚次數").locator(".ms-two > div").all():
         expect(group.locator(".ms-chip")).to_have_count(3)
