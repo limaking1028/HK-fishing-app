@@ -762,8 +762,9 @@ button { touch-action: manipulation; }
   .ms-wrap { padding: 0 16px 24px; }
   .ms-hint { font-size: 12px; color: var(--gray-5); background: var(--gray-1); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; line-height: 1.5; }
   .ms-card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 14px 12px; margin-bottom: 12px; border: 1px solid rgba(10,88,102,.07); }
-  .ms-card h3 { font-size: 15px; font-weight: 800; color: var(--dark); margin: 0 0 4px; }
+  .ms-card h3 { font-size: 15px; font-weight: 800; color: var(--dark); margin: 0 0 10px; }
   .ms-card .ms-sub { font-size: 12px; color: var(--gray-5); margin: 0 0 12px; line-height: 1.45; }
+  .ms-more { font-size: 12px; color: var(--gray-5); margin: 8px 0 0; }
   .ms-kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .ms-kpi { background: var(--teal-pale); border-radius: var(--radius-sm); padding: 10px 8px; text-align: center; }
   .ms-kpi b { display: block; font-size: 22px; font-weight: 800; color: var(--teal-dark); line-height: 1.15; font-variant-numeric: tabular-nums; }
@@ -778,7 +779,7 @@ button { touch-action: manipulation; }
   .ms-bar { display: block; height: 100%; background: #0e8495; border-radius: 0 4px 4px 0; }
   .ms-val { font-size: 13px; color: var(--gray-6); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .ms-val small { font-weight: 500; color: var(--gray-4); margin-left: 4px; }
-  .ms-cols { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; align-items: end; height: 128px; padding-top: 4px; }
+  .ms-cols { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; align-items: end; height: 128px; padding-top: 4px; }
   .ms-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; }
   .ms-col i { font-style: normal; font-size: 12px; font-weight: 700; color: var(--gray-6); font-variant-numeric: tabular-nums; min-height: 15px; }
   .ms-col span.c { width: 70%; max-width: 34px; background: #0e8495; border-radius: 4px 4px 0 0; min-height: 0; }
@@ -4763,7 +4764,7 @@ function getMyStatsHTML() {
   if (!window.myStatsLib) return '<div class="ms-empty">統計模組載入失敗，請重新整理</div>';
   const period = state.statsPeriod === '90' ? '90' : 'all';
   const r = window.myStatsLib.compute(state.catches || [], state.trips || [], { periodDays: period === '90' ? 90 : null });
-  const kg = v => { const d = weightDisplay({ weight: v }); return d.value + d.unit; };
+  const more = count => count > STATS_TOP_N ? '<p class="ms-more">還有 ' + (count - STATS_TOP_N) + ' 項</p>' : '';
   let h = '<div class="ms-wrap">'
     + '<div class="filter-row" style="padding:0;margin-bottom:12px;">'
     + '<button class="filter-chip ' + (period === 'all' ? 'active' : '') + '" onclick="setStatsPeriod(\'all\')">全部</button>'
@@ -4777,10 +4778,9 @@ function getMyStatsHTML() {
 
   // 出釣表現
   const t = r.trips;
-  h += '<section class="ms-card"><h3>出釣表現</h3>';
+  h += '<section class="ms-card"><h3>行程統計</h3>';
   if (t.count) {
-    h += '<p class="ms-sub">計已結束嘅行程' + (t.active ? '（另有 ' + t.active + ' 個進行中）' : '') + '，快速計數都計埋。</p>'
-      + '<div class="ms-kpis">'
+    h += '<div class="ms-kpis">'
       + '<div class="ms-kpi"><b>' + t.count + '<small>次</small></b><span>出釣次數</span></div>'
       + '<div class="ms-kpi"><b>' + t.rate + '<small>%</small></b><span>有魚率（' + t.withFish + '/' + t.count + '）</span></div>'
       + '<div class="ms-kpi"><b>' + t.avgCatch + '<small>條</small></b><span>平均每次</span></div>'
@@ -4791,40 +4791,46 @@ function getMyStatsHTML() {
   h += '</section>';
 
   // 每月
-  const mMax = Math.max(1, ...r.monthly.map(m => m.n));
-  h += '<section class="ms-card"><h3>每月魚獲</h3><p class="ms-sub">最近 6 個月</p>'
-    + '<div class="ms-cols" role="img" aria-label="' + r.monthly.map(m => m.label + ' ' + m.n + ' 條').join('，') + '">'
-    + r.monthly.map(m => '<div class="ms-col" title="' + m.label + '：' + m.n + ' 條"><i>' + (m.n || '') + '</i>'
+  const monthly = r.monthly.slice(-STATS_MONTHS);
+  const mMax = Math.max(1, ...monthly.map(m => m.n));
+  h += '<section class="ms-card"><h3>每月魚獲</h3>'
+    + '<div class="ms-cols" role="img" aria-label="' + monthly.map(m => m.label + ' ' + m.n + ' 條').join('，') + '">'
+    + monthly.map(m => '<div class="ms-col" title="' + m.label + '：' + m.n + ' 條"><i>' + (m.n || '') + '</i>'
       + '<span class="c" style="height:' + (m.n ? Math.max(4, Math.round(m.n / mMax * 88)) : 0) + 'px"></span><em>' + m.label + '</em></div>').join('')
     + '</div></section>';
 
   // 時段
   if (r.timedCount) {
-    h += '<section class="ms-card"><h3>你最常中魚嘅時段</h3><p class="ms-sub">按魚獲時間計（' + r.timedCount + ' 條有填時間）</p>'
+    h += '<section class="ms-card"><h3>你最常中魚嘅時段</h3>'
       + msBarRows(r.slots, { markBest: true }) + '</section>';
   }
   // 釣點
   if (r.spots.length) {
-    h += '<section class="ms-card"><h3>收穫最多嘅釣點</h3><p class="ms-sub">頭 ' + r.spots.length + ' 位 · 灰色係最大一條</p>'
-      + msBarRows(r.spots, { markBest: true, extra: x => kg(x.maxKg) }) + '</section>';
+    h += '<section class="ms-card"><h3>收穫最多嘅釣點</h3>'
+      + msBarRows(r.spots.slice(0, STATS_TOP_N), { markBest: true }) + more(r.spotCount) + '</section>';
   }
   // 魚種
   if (r.species.length) {
-    h += '<section class="ms-card"><h3>最常釣到嘅魚種</h3><p class="ms-sub">共 ' + r.speciesCount + ' 種 · 灰色係最大一條</p>'
-      + msBarRows(r.species, { markBest: true, extra: x => kg(x.maxKg) }) + '</section>';
+    h += '<section class="ms-card"><h3>最常釣到嘅魚種</h3>'
+      + msBarRows(r.species.slice(0, STATS_TOP_N), { markBest: true }) + more(r.speciesCount) + '</section>';
   }
   // 釣法同魚餌
   if (r.methods.length || r.baits.length) {
-    const chips = arr => arr.length ? '<div class="ms-chips">' + arr.map(x => '<span class="ms-chip">' + escapeHtml(x.name) + '<b>' + x.n + '</b></span>').join('') + '</div>' : '<span class="ms-sub">—</span>';
-    h += '<section class="ms-card"><h3>最多收穫嘅釣法同魚餌</h3><p class="ms-sub">數字係魚獲條數</p>'
-      + '<div class="ms-two"><div><h4>釣法</h4>' + chips(r.methods) + '</div><div><h4>魚餌</h4>' + chips(r.baits) + '</div></div></section>';
+    const chips = arr => arr.length ? '<div class="ms-chips">' + arr.slice(0, STATS_TOP_N).map(x => '<span class="ms-chip">' + escapeHtml(x.name) + '<b>' + x.n + '</b></span>').join('') + '</div>' : '<span class="ms-sub">—</span>';
+    h += '<section class="ms-card"><h3>釣餌同釣法中魚次數</h3>'
+      + '<div class="ms-two"><div><h4>釣法</h4>' + chips(r.methods) + more(r.methodCount) + '</div><div><h4>魚餌</h4>' + chips(r.baits) + more(r.baitCount) + '</div></div></section>';
   }
   return h + msProCard() + '</div>';
 }
 
+const SHOW_PRO_CARD = false; // 改 true 就重新顯示進階分析卡
+const STATS_TOP_N = 3; // 排名卡顯示項數，將來付費用戶可以唔受呢個限制
+const STATS_MONTHS = 3; // 每月魚獲顯示月數，將來付費用戶可以唔受呢個限制
+
 /* 進階分析興趣登記：用戶主動撳先會送出（寫入意見箱），唔會自動追蹤 */
 const INTEREST_KEY = 'hk_interest_adv_v1';
 function msProCard() {
+  if (!SHOW_PRO_CARD) return '';
   let done = false; try { done = !!localStorage.getItem(INTEREST_KEY); } catch (e) {}
   return '<section class="ms-card ms-pro"><h3>進階分析（開發緊）</h3>'
     + '<ul><li>潮汐、天氣、月相同你中魚嘅關係</li><li>你專屬嘅最佳出釣時間同釣點</li><li>出釣前預測今日適唔適合</li><li>每月個人釣魚報告</li></ul>'
