@@ -129,7 +129,7 @@ button:active:not(:disabled), .btn:active:not(:disabled),
 /* 防止點擊延遲（passive listener 已在 JS 處理，這裡提供 CSS 層優化） */
 button { touch-action: manipulation; }
 /* ===== 登入畫面 ===== */
-.login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, var(--teal-dark), var(--teal)); display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 9999; }
+.login-screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; overflow-y: auto; padding: 24px; z-index: 9999; }
 .login-card { background: white; border-radius: 16px; padding: 32px 24px; width: 100%; max-width: 360px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
 .login-logo { font-size: 48px; text-align: center; margin-bottom: 8px; }
 .login-title { font-size: 22px; font-weight: 700; color: var(--teal-dark); text-align: center; margin-bottom: 4px; }
@@ -225,10 +225,10 @@ button { touch-action: manipulation; }
   html { -webkit-text-size-adjust: 100%; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif;
-    background: var(--gray-1); color: var(--gray-6); line-height: 1.6;
+    background: var(--app-bg); color: var(--gray-6); line-height: 1.6;
     -webkit-font-smoothing: antialiased; overscroll-behavior: none;
   }
-  #app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--gray-1); position: relative; display: flex; flex-direction: column; }
+  #app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--app-bg); position: relative; display: flex; flex-direction: column; }
   #header { background: linear-gradient(135deg, var(--teal-dark), var(--teal)); color: white; padding: 14px 18px; text-align: center; font-size: 17px; font-weight: 700; position: sticky; top: 0; z-index: 100; letter-spacing: 0.5px; box-shadow: 0 2px 8px rgba(10,110,122,0.3); display: flex; align-items: center; justify-content: space-between; }
   .header-title { flex: 1; min-width: 0; text-align: center; }
   .header-settings { font-size: 13px; font-weight: 600; opacity: 0.9; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px; flex-shrink: 0; max-width: 46%; }
@@ -699,6 +699,14 @@ button { touch-action: manipulation; }
   .empty-state { text-align: center; padding: 40px 20px; color: var(--gray-4); }
   .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
   .empty-state .empty-text { font-size: 14px; }
+  .empty-illustration { display: block; width: 96px; height: 72px; margin: 0 auto 8px; }
+  .empty-state--catches { padding: 20px; }
+  .trip-start-card { text-align: center; padding: 0 0 24px; overflow: hidden; }
+  .trip-start-photo {
+    aspect-ratio: 3 / 2;
+    background: linear-gradient(to bottom, transparent 78%, var(--white)),
+      url("./assets/lau-fau-shan.webp") center / cover no-repeat;
+  }
   /* ===== 魚種圖鑑 ===== */
   .pokedex-progress-box { background: linear-gradient(135deg, var(--teal-dark), var(--teal)); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 14px; color: white; box-shadow: 0 3px 12px rgba(10,110,122,0.3); }
   .pokedex-progress-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
@@ -1176,6 +1184,7 @@ button { touch-action: manipulation; }
      ============================================================ */
   :root {
     --teal-dark: #0a5866; --teal: #0e8495; --teal-light: #e1f3f6; --teal-pale: #f1f9fa;
+    --app-bg: #eaf2f6;
     --gray-1: #f2f6f8; --gray-2: #e3e9ee; --gray-3: #c7d1d8;
     --gray-4: #67727e; --gray-5: #4f5a66; --gray-6: #1f2a35; --dark: #14202b;
     --orange: #e8561f;
@@ -1190,7 +1199,8 @@ button { touch-action: manipulation; }
   button:focus-visible, .btn:focus-visible, .nav-item:focus-visible { border-radius: 12px; }
 
   /* --- 頂欄 --- */
-  #header { background: var(--ink-grad); padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px; letter-spacing: 0; box-shadow: 0 2px 14px rgba(7,56,74,.28); }
+  #header { background: var(--ink-grad); padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 18px; letter-spacing: 0; box-shadow: 0 2px 14px rgba(7,56,74,.22); }
+  .header-wave { position: absolute; inset: auto 0 0; width: 100%; height: 12px; pointer-events: none; }
   .guest-login-prompt .btn + .btn { margin-top: 10px; }  /* 訪客鎖定頁：「登入／註冊」同「睇潮汐」兩粒掣之間留位 */
   .header-title { font-size: 17px; font-weight: 800; letter-spacing: .3px; }
   .header-settings { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.18); padding: 6px 12px; border-radius: 999px; min-height: 36px; opacity: 1; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
@@ -1223,6 +1233,36 @@ button { touch-action: manipulation; }
 
   /* --- 卡片／區塊 --- */
   .view { padding: 16px 14px 24px; }
+
+  /* A viewport-fixed layer keeps all three My tabs on the same background. */
+  #view-my {
+    position: relative;
+    isolation: isolate;
+  }
+  #view-my.fade-in {
+    /* The shared translation animation would move the fixed layer with the view. */
+    animation: none;
+  }
+  #login-screen:empty ~ #main #view-my.active::before,
+  #login-screen:empty ~ #main #view-my.active::after {
+    content: "";
+    z-index: -1;
+    pointer-events: none;
+  }
+  #view-my::before {
+    position: fixed;
+    inset: 0;
+    width: min(100%, 480px);
+    margin-inline: auto;
+    background: #b4dce2 url("assets/my-ocean-bg.webp") center top / cover no-repeat;
+  }
+  #view-my::after {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 40px;
+    background: linear-gradient(180deg, rgba(7, 56, 74, .32), transparent);
+  }
+  #view-my .pokedex-card.locked { opacity: 1; }
   .card, .stat-card, .catch-card, .collapsible-header, .trip-card, .lb-tabs { border: 1px solid rgba(10,88,102,.07); box-shadow: var(--shadow); }
   .section-title { font-size: 17px; font-weight: 800; letter-spacing: -.2px; }
   .stats-row { gap: 12px; }
@@ -1287,8 +1327,18 @@ button { touch-action: manipulation; }
   .tally-plus { box-shadow: 0 4px 12px rgba(14,132,149,.3); }
 
   /* --- 登入 --- */
-  .login-screen { background: radial-gradient(120% 80% at 50% 0%, #0e8495 0%, #0a5866 45%, #07384a 100%); }
-  .login-card { border-radius: 24px; padding: 30px 24px; box-shadow: 0 20px 60px rgba(3,20,30,.45); }
+  .login-screen {
+    padding: max(24px, env(safe-area-inset-top)) 24px max(24px, var(--safe-bottom));
+    background: linear-gradient(to bottom, transparent 35%, rgba(3,32,40,.22)),
+      url("./assets/hong-kong-coast-dawn.webp") center 36% / cover no-repeat, #07384a;
+  }
+  @media (orientation: portrait) {
+    .login-screen { background-size: auto 115%, auto 115%; background-position: center bottom, center bottom; }
+  }
+  @media (max-width: 540px) and (min-height: 600px) {
+    .login-screen { padding-top: max(30vh, env(safe-area-inset-top)); }
+  }
+  .login-card { flex: none; margin-block: auto; border-radius: 24px; padding: 30px 24px; box-shadow: 0 20px 60px rgba(3,20,30,.45); }
   .login-logo { margin-bottom: 6px; line-height: 0; }
   .login-logo img { width: 72px; height: 72px; border-radius: 18px; box-shadow: 0 6px 18px rgba(10,88,102,.35); }
   .login-title { font-size: 24px; font-weight: 800; letter-spacing: 1px; }
@@ -1334,6 +1384,10 @@ button { touch-action: manipulation; }
   <header id="header">
     <div class="header-title" id="header-title">釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v206</span></div>
     <div class="header-settings" onclick="openNameDialog()"><span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">改名</span></div>
+    <svg class="header-wave" viewBox="0 0 480 12" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+      <path d="M0 7C80 16 130 1 220 5S374 14 480 3V12H0Z" fill="#a9dfe4" fill-opacity=".14"/>
+      <path d="M0 7C80 16 130 1 220 5S374 14 480 3" fill="none" stroke="#c0eef0" stroke-opacity=".34"/>
+    </svg>
   </header>
   <main id="main">
     <!-- Route H: 進行中行程 banner（無行程時隱藏） — 永遠黏在 main 頂部，跨所有 view 顯示 -->
@@ -4041,7 +4095,8 @@ function renderTripsView() {
         + '<button class="btn btn-primary" style="flex:2;" onclick="confirmStartTrip();" ' + (!detectedSpot ? 'disabled style="opacity:0.5;flex:2;"' : 'style="flex:2;"') + '>' + (isEditing ? '儲存變更' : '▶ 開始行程') + '</button>'
       + '</div></div>';
   } else {
-    html += '<div class="card" style="text-align:center;padding:24px 16px;">'
+    html += '<div class="card trip-start-card">'
+      + '<div class="trip-start-photo" aria-hidden="true"></div>'
       + '<div style="font-size:22px;color:var(--gray-6);margin-bottom:18px;font-weight:700;">準備好去釣魚？</div>'
       + '<button class="start-trip-btn" onclick="startTrip();">▶ 開始行程</button>'
     + '</div>';
@@ -4693,20 +4748,21 @@ function renderMyView() {
       + '<div class="collapsible-content">' + rows + '</div>'
       + '</div>';
   }
-  // 全部記錄（摺疊）
-  let allRecordsHtml = '';
-  const recKey = 'allRecords';
-  const recExpanded = !!state.ui.expandedSections[recKey];
-  let listHtml = '';
+  // 有魚獲先顯示可摺疊嘅記錄清單
+  let allRecordsHtml;
   if (filtered.length === 0) {
-    listHtml = '<div class="empty-state" style="padding:20px"><div class="empty-text">呢個時段未有魚獲</div></div>';
+    allRecordsHtml = '<div class="card empty-state empty-state--catches">'
+      + '<img class="empty-illustration" src="./assets/empty-catches.svg" width="96" height="72" alt="">'
+      + '<div class="empty-text">呢個時段未有魚獲</div></div>';
   } else {
-    listHtml = filtered.map(c => renderCatchCard(c, myRankings)).join('');
+    const recKey = 'allRecords';
+    const recExpanded = !!state.ui.expandedSections[recKey];
+    const listHtml = filtered.map(c => renderCatchCard(c, myRankings)).join('');
+    allRecordsHtml = '<div class="collapsible '+(recExpanded?'expanded':'')+'">'
+      + '<div class="collapsible-header" onclick="toggleSection(\''+recKey+'\')"><span class="collapsible-title">全部記錄（'+filtered.length+' 條）</span><span class="collapsible-arrow">▶</span></div>'
+      + '<div class="collapsible-content">' + listHtml + '</div>'
+      + '</div>';
   }
-  allRecordsHtml = '<div class="collapsible '+(recExpanded?'expanded':'')+'">'
-    + '<div class="collapsible-header" onclick="toggleSection(\''+recKey+'\')"><span class="collapsible-title">全部記錄（'+filtered.length+' 條）</span><span class="collapsible-arrow">▶</span></div>'
-    + '<div class="collapsible-content">' + listHtml + '</div>'
-    + '</div>';
   view.innerHTML = subTabsHtml + splitPromptHtml()
     + '<div style="padding:0 16px"><div class="my-founder-slot"></div><div class="founder-banner-slot"></div></div>'
     + (totalCatches === 0 ? '<button class="btn btn-primary first-catch-cta" onclick="recordFirstFish()">記錄第一條魚</button>' : '')   // v175
