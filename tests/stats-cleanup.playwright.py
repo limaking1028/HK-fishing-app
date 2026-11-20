@@ -84,6 +84,8 @@ with sync_playwright() as p:
     expect(stats.locator(".ms-pro, p.ms-sub")).to_have_count(0)
     expect(stats).not_to_contain_text(re.compile("進階分析|付費|解鎖|升級|最多收穫嘅釣法同魚餌"))
     expect(stats.get_by_role("heading", name="釣餌同釣法中魚次數")).to_be_visible()
+    expect(stats.get_by_role("heading", name="行程統計", exact=True)).to_be_visible()
+    expect(stats).not_to_contain_text("出釣表現")
     expect(stats.locator(".ms-kpi")).to_have_count(4)
     expect(stats.locator(".ms-cols")).to_have_attribute("aria-label", "9月 1 條，10月 2 條，11月 1 條")
     expect(stats.locator(".ms-col em")).to_have_text(["9月", "10月", "11月"])
