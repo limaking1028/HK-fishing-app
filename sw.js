@@ -34,24 +34,45 @@ self.addEventListener('fetch', e => {
 self.addEventListener('push', e => {
   e.waitUntil((async () => {
     let p; try { p = e.data.json(); } catch (_) { return; }
-    const board = ['biggest', 'quantity', 'species'].includes(p.data?.lbType) ? p.data.lbType : 'biggest';
-    // Render only server-created text; navigation data has a fixed allowlist.
-    await self.registration.showNotification(String(p.title || '釣港'), {
-      body: String(p.body || ''), data: {view: 'leaderboard', lbType: board, lbPeriod: 'all'}
-    });
+    function pushRoute(data) {
+    data = data || {};
+    const view = ['leaderboard','map','trips','my'].includes(data.view) ? data.view : 'leaderboard';
+    const out = {view};
+    if (view === 'leaderboard') {
+      out.lbType = ['biggest','quantity','species'].includes(data.lbType) ? data.lbType : 'biggest';
+      out.lbPeriod = ['all','month'].includes(data.lbPeriod) ? data.lbPeriod : 'all';
+    } else if (view === 'map') {
+      out.mapTab = 'tide';
+      if (['QUB','TPK','CCH','TAO','SPW','TBT','SAI','KCQ','LAM','CHK','TCT','PEN'].includes(data.station)) out.station = data.station;
+    }
+    return out;
+  }
+    await self.registration.showNotification(String(p.title || '釣港'), {body:String(p.body || ''), data:pushRoute(p.data)});
   })());
 });
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   e.waitUntil((async () => {
-    const board = ['biggest', 'quantity', 'species'].includes(e.notification.data?.lbType) ? e.notification.data.lbType : 'biggest';
+    function pushRoute(data) {
+    data = data || {};
+    const view = ['leaderboard','map','trips','my'].includes(data.view) ? data.view : 'leaderboard';
+    const out = {view};
+    if (view === 'leaderboard') {
+      out.lbType = ['biggest','quantity','species'].includes(data.lbType) ? data.lbType : 'biggest';
+      out.lbPeriod = ['all','month'].includes(data.lbPeriod) ? data.lbPeriod : 'all';
+    } else if (view === 'map') {
+      out.mapTab = 'tide';
+      if (['QUB','TPK','CCH','TAO','SPW','TBT','SAI','KCQ','LAM','CHK','TCT','PEN'].includes(data.station)) out.station = data.station;
+    }
+    return out;
+  }
     const url = new URL('./', self.registration.scope);
-    url.search = new URLSearchParams({view: 'leaderboard', lbType: board, lbPeriod: 'all'}).toString();
-    const windows = await self.clients.matchAll({type: 'window', includeUncontrolled: true});
+    url.search = new URLSearchParams(pushRoute(e.notification.data)).toString();
+    const windows = await self.clients.matchAll({type:'window', includeUncontrolled:true});
     const app = windows.find(w => new URL(w.url).origin === url.origin && new URL(w.url).pathname.startsWith(new URL(self.registration.scope).pathname));
     if (app) {
-      try { await app.navigate(url.href); } catch (_) { /* The existing window may still be focusable. */ }
-      try { await app.focus(); return; } catch (_) { /* Closed/unfocusable window: open a new one. */ }
+      try { await app.navigate(url.href); } catch (_) { /* Focus still works when navigation is unavailable. */ }
+      try { await app.focus(); return; } catch (_) { /* Window closed: open another. */ }
     }
     await self.clients.openWindow(url.href);
   })());

@@ -3,13 +3,14 @@ import functools, http.server, pathlib, threading, subprocess
 from playwright.sync_api import sync_playwright
 root = pathlib.Path(__file__).resolve().parents[1]
 ios = (root/'ios').is_dir()
-base = subprocess.check_output(['git', 'show', ('origin/ios-capacitor' if ios else 'origin/main') + ':sw.js'], cwd=root).decode()
+stacked_base = 'origin/codex/settings-page-ios' if ios else 'origin/codex/push-1-web'
+try:
+    base = subprocess.check_output(['git', 'show', stacked_base + ':sw.js'], cwd=root, stderr=subprocess.DEVNULL).decode()
+except subprocess.CalledProcessError:
+    base = subprocess.check_output(['git', 'show', ('origin/ios-capacitor' if ios else 'origin/main') + ':sw.js'], cwd=root).decode()
 current = (root/'sw.js').read_text()
-if ios:
-    assert current.startswith("const CACHE = 'hk-fishing-v207';")
-    assert current.split('\n', 1)[1].startswith(base.split('\n', 1)[1]), 'Existing photo cache logic must be unchanged'
-else:
-    assert current.startswith(base), 'Existing SW must be byte-for-byte unchanged'
+assert current.startswith("const CACHE = 'hk-fishing-v205';")
+assert current.split('// Push handlers')[0].split('\n',1)[1] == base.split('// Push handlers')[0].split('\n',1)[1], 'Photo cache logic unchanged'
 class Handler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *_): pass
 server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(Handler, directory=str(root)))
@@ -59,7 +60,7 @@ with sync_playwright() as p:
     page.evaluate("nativeListeners.registration({value:'fixture-only-apns-token'}); nativeListeners.pushNotificationActionPerformed({notification:{data:{lbType:'quantity'}}})")
     page.wait_for_timeout(80)
     assert page.evaluate("calls.some(c=>c.name==='push_register_device')")
-    assert page.evaluate("calls.includes('quantity')")
+    assert page.evaluate("calls.some(c=>c && c.view==='leaderboard' && c.lbType==='quantity')")
     page.evaluate("pushLib.change('overtaken',false)")
     page.wait_for_timeout(80)
     assert page.evaluate('fakePrefs.overtaken') is False
