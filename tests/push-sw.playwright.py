@@ -9,7 +9,7 @@ try:
 except subprocess.CalledProcessError:
     base = subprocess.check_output(['git', 'show', ('origin/ios-capacitor' if ios else 'origin/main') + ':sw.js'], cwd=root).decode()
 current = (root/'sw.js').read_text()
-assert current.startswith("const CACHE = 'hk-fishing-v215';")
+assert current.startswith("const CACHE = 'hk-fishing-v216';")
 assert current.split('// Push handlers')[0].split('\n',1)[1] == base.split('// Push handlers')[0].split('\n',1)[1], 'Photo cache logic unchanged'
 class Handler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *_): pass

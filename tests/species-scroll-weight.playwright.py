@@ -17,7 +17,12 @@ WIN = "(()=>{const r=document.getElementById('catch-weight').getBoundingClientRe
 def run(p, flow, species):
     b = p.chromium.launch(); c = b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, service_workers='block', is_mobile=True, has_touch=True)
     pg = c.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
-    pg.route('**/*', lambda r, *_: r.abort() if 'supabase.co' in r.request.url else r.continue_())
+    origin = f'http://127.0.0.1:{srv.server_port}/'
+    pg.route('**/*', lambda r: r.continue_() if r.request.url.startswith(origin) else r.abort())
+    pg.add_init_script("""window.supabase = {createClient: () => ({
+      auth: {getSession: async () => ({data:{session:null}}), onAuthStateChange: () => {}},
+      rpc: async () => ({data:null})
+    })};""")
     pg.goto(f'http://127.0.0.1:{srv.server_port}/index.html'); pg.wait_for_timeout(2500)
     pg.click('text=唔登入，先睇潮汐同天氣'); pg.wait_for_timeout(800)
     pg.evaluate("state.user={id:'00000000-0000-0000-0000-0000000000aa',email:null}")

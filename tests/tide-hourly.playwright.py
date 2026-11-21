@@ -37,6 +37,10 @@ with sync_playwright() as p:
   pg.evaluate("async()=>{await tidesLib.ready; tidesLib.setNowForTest(new Date(2026,10,15,11,30).getTime());showApp();enterGuestMode();switchMapTab('tide');}")
   pg.wait_for_timeout(300)
   assert pg.locator('.tide-card').count()==12
+  assert pg.locator('.tide-card-advice').count()==0
+  assert pg.get_by_text('潮汐預測（天文潮）由香港天文台提供。', exact=False).count()==1
+  pg.evaluate('chooseTide()')
+  assert pg.get_by_text('未落場？先睇潮水揀日子。', exact=False).count()==0
   assert pg.evaluate('state.user===null')
   for code in ['QUB','TPK','CCH','TAO','SPW','TBT','CHK','KCQ']:
    assert pg.locator(f'.tide-card[data-station="{code}"] .tide-card-est').count()==0

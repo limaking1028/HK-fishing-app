@@ -25,7 +25,7 @@ def shot(page, name, target=None):
         directory = Path(SHOT_DIR)
         directory.mkdir(parents=True, exist_ok=True)
         page.clock.run_for(2100)  # Let toast messages clear before capture.
-        page.evaluate("document.activeElement?.blur(); window.scrollTo(0, 0)")
+        page.evaluate("document.activeElement?.blur(); window.scrollTo(0, 0); document.getElementById('main').scrollTop = 0")
         if target:
             page.locator(target).evaluate("el => el.scrollIntoView({block:'center', behavior:'instant'})")
         page.mouse.move(0, 0)
@@ -265,7 +265,18 @@ def run(page, url):
     assert payload == dict(species='黃腳鱲', spot='西貢公眾碼頭', method='磯釣', bait='生蝦', date='2026-11-21',
                            time='01:43', tripId='offline-trip', latitude=22.381, longitude=114.274), payload
     expect(page.locator('#view-record .record-hero')).to_have_count(0)
+    page.locator('#score-card-wrap').evaluate("el => el.style.minHeight = '480px'")
+    page.locator('#main').evaluate("el => el.scrollTop = 150")
+    assert page.locator('#main').evaluate("el => el.scrollTop") > 0
     page.get_by_role('button', name='記錄下一條').click()
+    expect(page.locator('#main')).to_have_js_property('scrollTop', 0)
+    expect(page.locator('#active-trip-banner.on-record .active-trip-banner')).to_be_in_viewport(ratio=1)
+    expect(page.locator('#catch-weight')).to_have_value('')
+    page.locator('#main').evaluate("el => el.scrollTop = 230")
+    expect(page.locator('#atb-timer')).to_be_in_viewport(ratio=1)
+    assert page.evaluate("[state.selectedSpecies, (state.customSpot || state.selectedSpot), (state.customMethod || state.selectedMethod), (state.customBait || state.selectedBait)]") == [
+        None, '西貢公眾碼頭', '磯釣', '生蝦']
+    assert page.evaluate("tripsLib.tripDurationSec(state.activeTrip)") > 3600
     page.locator('#record-species-search').fill('無匹配')
     page.get_by_role('button', name='自訂魚種', exact=True).click()
     page.locator('#custom-species').fill('示範魚種')
