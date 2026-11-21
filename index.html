@@ -257,9 +257,6 @@ button { touch-action: manipulation; }
     gap: 10px;
     box-shadow: 0 2px 8px rgba(255,107,53,0.3);
     cursor: pointer;
-    position: sticky;
-    top: 0;
-    z-index: 50;
   }
   .active-trip-banner:hover { filter: brightness(1.05); }
   .atb-dot {
@@ -838,8 +835,6 @@ button { touch-action: manipulation; }
   .tide-forecast-events .hi { color: #f97316; }
   .tide-forecast-events .lo { color: #0d9488; }
   .tide-forecast-events .uk { color: var(--gray-5); }
-  .tide-card-advice { padding: 8px 10px; background: #fff8ed; border-radius: 8px; font-size: 12px; line-height: 1.7; margin-top: 8px; }
-  .tide-card-advice div { margin: 2px 0; color: #444; }
   .tide-card-action {
     margin-top: 10px; width: 100%; padding: 8px;
     background: var(--orange); color: white; border: none; border-radius: 8px;
@@ -1166,7 +1161,40 @@ button { touch-action: manipulation; }
   .trip-card-title { font-size: 16px; font-weight: 800; }
   .trip-card-time { font-size: 12px; color: var(--gray-5); }
   .start-trip-btn { box-shadow: 0 8px 20px rgba(232,86,31,.32); border-radius: 14px; }
-  .active-trip-banner { border-radius: 0 0 18px 18px; box-shadow: 0 8px 22px rgba(232,86,31,.28); }
+  #app:has(#view-record.active) {
+    height:calc(100vh - var(--hkf-banner-height, 0px));
+    height:calc(100dvh - var(--hkf-banner-height, 0px));
+  }
+  #active-trip-banner { position:sticky; top:0; z-index:50; }
+  .active-trip-banner { border-radius:0 0 18px 18px; box-shadow:0 8px 22px rgba(232,86,31,.28); }
+  .atb-title { overflow-wrap:anywhere; }
+  .atb-status + .atb-spot::before { content:' · '; }
+  .atb-actions { display:flex; align-items:center; gap:6px; }
+  .active-trip-record {
+    background:linear-gradient(180deg, #0a3643 0%, rgba(10,54,67,.89) 47%, rgba(10,54,67,.12) 76%, rgba(10,54,67,.72) 100%),
+      var(--teal-dark) url('assets/record-hero.webp') center 62% / cover no-repeat;
+    color:white; border-radius:0 0 18px 18px; box-shadow:0 6px 16px rgba(10,54,67,.24);
+  }
+  .active-trip-record .active-trip-banner {
+    display:grid; grid-template-columns:auto minmax(0, 1fr); column-gap:8px; row-gap:8px;
+    background:none; box-shadow:none; padding:12px 14px 0;
+  }
+  .active-trip-record .active-trip-banner:hover { filter:none; }
+  .active-trip-record .atb-dot { align-self:start; margin-top:4px; background:#ff9863; }
+  .active-trip-record .atb-title { display:flex; flex-wrap:wrap; gap:2px 8px; }
+  .active-trip-record .atb-spot { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
+  .active-trip-record .atb-spot::before { content:none; }
+  .active-trip-record .atb-timer { font-size:28px; font-variant-numeric:tabular-nums; margin:4px 0; }
+  .active-trip-record .atb-actions { grid-column:1 / -1; gap:8px; }
+  .active-trip-record .atb-btn, .active-trip-record .atb-end { min-height:36px; padding:6px 12px; font-size:13px; }
+  .active-trip-record .atb-btn { color:var(--teal-dark); }
+  .active-trip-record .atb-end { margin-left:auto; background:rgba(10,54,67,.64); border:1px solid #fff; }
+  .atb-record-title { display:flex; align-items:end; min-height:71px; margin:0; padding:10px 14px; font-size:22px; text-shadow:0 1px 6px #0a3643; }
+  .trip-ended-hero {
+    min-height:130px; display:flex; align-items:end; margin:0 0 12px; padding:14px 16px; border-radius:var(--radius);
+    color:white; font-size:22px; background:linear-gradient(180deg, transparent, rgba(10,54,67,.82)),
+      var(--teal-dark) url('assets/record-hero.webp') center 60% / cover no-repeat;
+  }
 
   /* --- 彈窗／提示 --- */
   .modal-overlay { background: rgba(7,24,34,.55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
@@ -1217,7 +1245,7 @@ button { touch-action: manipulation; }
   .tut-card-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
   #tut-count { color: #0a5866; font-weight: 800; font-size: 14px; }
   #tut-hint { font-size: 15px; font-weight: 800; line-height: 1.35; }
-  #tut-skip { background: #fff; color: #0a5866; border: 0; font-weight: 800; font-size: 14px; font-family: inherit; border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+  #tut-exit { background: #fff; color: #0a5866; border: 0; font-weight: 800; font-size: 14px; font-family: inherit; border-radius: 999px; padding: 6px 12px; cursor: pointer; }
   #tut-dim { position: fixed; inset: 0; background: rgba(7,24,34,.62); pointer-events: auto; }
   #tut-done { position: fixed; z-index: 5; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); background: #fff; border-radius: 16px; padding: 22px 16px; text-align: center; box-shadow: 0 12px 40px rgba(7,24,34,.3); pointer-events: auto; }
   #tut-done p { margin: 0 0 14px; font-size: 17px; font-weight: 800; line-height: 1.45; color: #14202b; }
@@ -1277,8 +1305,17 @@ button { touch-action: manipulation; }
 #push-status:not(:empty) { padding:0 0 12px; }
 .settings-danger,.settings-danger svg { color:#cf4e50; }
 .settings-footer { text-align:center;color:#9aa6ad;font-size:11px;padding:2px 0 8px; }
-.settings-small-dialog { align-items:center; }
-.settings-small-dialog .modal-sheet { border-radius:18px;max-width:360px;margin:20px; }
+/* Stay near the top before focus so opening the keyboard never slides the sheet upwards. */
+.settings-small-dialog {
+  align-items:flex-start; padding:12px 0;
+  top:max(var(--hkf-banner-height, env(safe-area-inset-top, 0px)), var(--settings-viewport-top, 0px));
+  bottom:max(env(safe-area-inset-bottom, 0px), var(--settings-keyboard-inset, 0px));
+}
+.settings-small-dialog .modal-sheet {
+  border-radius:18px; max-width:360px; margin:0 15px; animation:none;
+  max-height:100%; padding:16px 20px;
+}
+.settings-small-dialog .modal-sheet::before { display:none; }
   /* 記錄頁摺疊資料與行程開始時間 */
   .record-hero { height:150px; position:relative; margin:-16px -14px 0; isolation:isolate; overflow:hidden; background:var(--teal-dark); }
   .record-hero img { width:100%; height:100%; display:block; object-fit:cover; object-position:center 60%; }
@@ -1315,7 +1352,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v215</span></div>
+    <div class="header-title" id="header-title">釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v216</span></div>
     <div class="header-settings" onclick="openNameDialog()"><span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">設定</span></div>
     <svg class="header-wave" viewBox="0 0 480 12" preserveAspectRatio="none" aria-hidden="true" focusable="false">
       <path d="M0 7C80 16 130 1 220 5S374 14 480 3V12H0Z" fill="#a9dfe4" fill-opacity=".14"/>
@@ -1566,6 +1603,7 @@ async function sbLogin(username, pin) {
 
 async function sbLogout() {
   // Only enabled push builds wait for token cleanup before the existing sign-out.
+  if (tutorialOn()) tutorialFinish(false);
   if (window.pushLib?.isEnabled()) await Promise.race([pushLib.logout().catch(() => {}), new Promise(r => setTimeout(r, 1500))]);
   state.user = null;
   state.catches = [];
@@ -2166,6 +2204,7 @@ function updateRecordDetailsSummary() {
 
 function renderRecordView() {
   const view = document.getElementById('view-record');
+  renderActiveTripBanner();
   if (state.formSuccess) {
     const oldWrap = document.getElementById('score-card-wrap'), keep = oldWrap && oldWrap.querySelector('.sc-box') ? oldWrap.innerHTML : '';   // v177：成績卡唔好消失再重建
     view.innerHTML = '<div class="success-screen"><div class="success-circle">✓</div><div class="success-title">魚獲已記錄！</div><div class="success-sub">'+successEligLine()+'</div></div><div id="score-card-wrap" style="text-align:center;margin:8px 0 12px;"></div><button class="btn btn-primary mt-2" onclick="resetForm()">記錄下一條</button><button class="btn btn-outline mt-2" onclick="goToView(\'my\')">查看我的魚獲</button><button class="btn btn-outline mt-2" onclick="goToView(\'leaderboard\')">查看排行榜</button>'+(state.activeTrip ? '' : '<button class="btn btn-outline mt-2" onclick="goToView(\'trips\')">開始行程（下一條可以上數量／品種榜）</button>');   // v175
@@ -2313,8 +2352,9 @@ function renderRecordView() {
   const details = '<details id="record-details"><summary>詳細資料 <span id="record-details-summary"></span></summary>'
     + (collapseSpot ? spotFields : '') + tripDetailsFields + '</details>';
 
-  view.innerHTML = '<div class="record-hero"><img src="assets/record-hero.webp" alt="">' +
-    '<h2>記錄新魚獲</h2></div><div class="card record-form-card">' + recordTripPromptHtml() + fishFields
+  const hero = trip ? '' : '<div class="record-hero"><img src="assets/record-hero.webp" alt="">' +
+    '<h2>記錄新魚獲</h2></div>';
+  view.innerHTML = hero + '<div class="card record-form-card">' + recordTripPromptHtml() + fishFields
     + (trip
       ? (collapseSpot ? '' : spotFields) + photoFields + notesField + eligibility + adminMode + details + submitButton
       : spotFields + tripDetailsFields + notesField + photoFields + adminMode + eligibility + submitButton)
@@ -3195,10 +3235,7 @@ function submitCatch() {
     setTimeout(() => showToast('解鎖新魚種：'+speciesName+'！'), 400);
   }
   // Route H: 若有進行中行程，更新 banner 統計
-  if (state.activeTrip) {
-    renderActiveTripBanner();
-    if (state.view === 'trips') renderTripsView();
-  }
+  if (state.activeTrip && state.view === 'trips') renderTripsView();
   renderRecordView();
 }
 function resetRecordFields() {
@@ -3215,6 +3252,7 @@ function resetRecordFields() {
 function resetForm() {
   resetRecordFields();
   renderRecordView();
+  document.getElementById('main').scrollTop = 0;
 }
 
 /* ============================================================
@@ -3524,21 +3562,25 @@ function renderActiveTripBanner() {
         (nextTxt ? ' · ' + nextTxt : '') + '</div>';
     }
   }
+  const recordHero = state.view === 'record' && !state.formSuccess;
+  el.classList.toggle('active-trip-record', recordHero);
   el.style.display = 'block';
   el.innerHTML =
     '<div class="active-trip-banner" onclick="goToView(\'trips\');">'
       + '<span class="atb-dot"></span>'
       + '<div class="atb-info">'
-        + '<div class="atb-title">行程進行中' + (t.spot ? ' · ' + escapeHtml(t.spot) : '') + '</div>'
+        + '<div class="atb-title"><span class="atb-status">行程進行中</span>' + (t.spot ? '<span class="atb-spot">' + escapeHtml(t.spot) + '</span>' : '') + '</div>'
         + '<div class="atb-timer" id="atb-timer">' + window.tripsLib.formatTimerDisplay(sec) + '</div>'
         + '<div class="atb-meta">' + summary.count + ' 條魚 · ' + fmtWeight(summary.totalWeight) + (tallyTotal(t.id) ? ' · <span class="tally-chip">計數 ' + tallyTotal(t.id) + ' 條</span>' : '') + '</div>'
         + tideChip
       + '</div>'
-      + '<button class="atb-btn" onclick="event.stopPropagation();addCatchInTrip();">加魚</button>'
+      + '<div class="atb-actions"><button class="atb-btn" onclick="event.stopPropagation();addCatchInTrip();">加魚</button>'
       + '<button class="atb-btn" aria-label="快速計數" onclick="event.stopPropagation();openTallySheet();">計數</button>'
-      + '<button class="atb-btn" style="font-size:14px;padding:6px 10px;" onclick="event.stopPropagation();editActiveTrip();">編輯</button>'
+      + '<button class="atb-btn" onclick="event.stopPropagation();editActiveTrip();">編輯</button>'
       + '<button class="atb-end" onclick="event.stopPropagation();endTrip(false);">結束</button>'
-    + '</div>';
+      + '</div>'
+    + '</div>'
+    + (recordHero ? '<h2 class="atb-record-title">記錄新魚獲</h2>' : '');
 }
 
 function tickActiveTripBanner() {
@@ -4225,7 +4267,7 @@ function renderTripDetailView(id) {
   const isActive = !trip.endedAt;
   const justEnded = !isActive && state.justEndedTripId === id;
   let html = '<button class="btn btn-outline" style="margin-bottom:12px;" onclick="closeTripDetail();">← 返回行程列表</button>';
-  if (justEnded) html += '<div style="text-align:center;padding:4px 0 10px;"><div style="font-size:18px;font-weight:700;">行程已結束</div></div>';
+  if (justEnded) html += '<h2 class="trip-ended-hero">行程已結束</h2>';
   html += '<div class="trip-detail-header">'
     + '<div class="trip-detail-title">' + (trip.spot ? escapeHtml(trip.spot) : '未命名行程') + (isActive ? ' <span style="font-size:12px;color:var(--orange);">（進行中）</span>' : '') + '</div>'
     + '<div class="trip-detail-meta">' + dateStr + ' ' + timeStr + (trip.endedAt ? ' · 結束 ' + new Date(trip.endedAt).toTimeString().slice(0,5) : '') + '</div>';
@@ -4306,7 +4348,10 @@ async function resumeActiveTrip() {
     if (state.view === 'trips') renderTripsView();
   } else {
     // 冇未結束嘅行程 → 清除本機記錄
+    state.activeTrip = null;
+    window.tripsLib.stopTimer();
     window.tripsLib.clearActiveTrip();
+    renderActiveTripBanner();
   }
 }
 
@@ -4401,11 +4446,12 @@ function tutorialStepInputs() {
 }
 function tutorialAllowed(el) {
   if (!el) return false;
+  if (state.tutorial.step === 'done') return !!el.closest('#tut-done');
   if (el.closest('.tut-target, #tut-layer, .modal-overlay.show')) return true;
   return el.matches('input[type="file"]') && tutorialStepInputs().includes(el.id);
 }
 function tutorialInteractionGuard(event) {
-  if (!tutorialOn() || state.tutorial.step === 'done') return;
+  if (!tutorialOn()) return;
   if (event.type === 'touchend') {
     tutorialTrackTouch(event);
     tutorialTouchStart = null;
@@ -4491,11 +4537,14 @@ function tutorialEnsure() {
   layer.id = 'tut-layer';
   layer.hidden = true;
   layer.innerHTML = '<div id="tut-dim" hidden></div>'
-    + '<div id="tut-card"><div class="tut-card-row"><span id="tut-count"></span><button type="button" id="tut-skip">略過教學</button></div><div id="tut-hint" role="status"></div></div>'
+    + '<div id="tut-card"><div class="tut-card-row"><span id="tut-count"></span><span id="tut-actions"></span></div><div id="tut-hint" role="status"></div></div>'
     + '<div id="tut-done" hidden><p id="tut-done-msg">教學完成，可以正式記錄魚獲啦！</p><button type="button" class="btn btn-primary" id="tut-done-btn">知道</button></div>';
   document.body.appendChild(layer);
-  document.getElementById('tut-skip').onclick = function () { skipTutorial(); };
-  document.getElementById('tut-done-btn').onclick = function () { tutorialFinish(); };
+  document.getElementById('tut-done-btn').onclick = function () {
+    if (state.tutorial?.step !== 'done') return;
+    tutorialMarkSeen();
+    tutorialFinish();
+  };
   const resize = function () {
     if (!tutorialOn() || state.tutorial.step === 'done') return;
     requestAnimationFrame(function () { tutorialPlace(tutorialTarget()); });
@@ -4568,12 +4617,12 @@ function tutorialFullDim() {
 function tutorialShowDone() {
   if (!tutorialOn()) return;
   state.tutorial.step = 'done';
-  tutorialSetInteractionLock(false);
   const layer = tutorialEnsure();
   layer.hidden = false;
   layer.dataset.step = 'done';
   document.getElementById('tut-done').hidden = false;
   tutorialFullDim();
+  document.getElementById('tut-done-btn').focus({preventScroll:true});
 }
 function tutorialParkRealTrip() {
   const t = state.tutorial;
@@ -4613,11 +4662,10 @@ function tutorialClearPractice() {
   state.speciesPicking = false;
   try { clearPhotoInputs(); } catch (e) {}
 }
-function tutorialFinish() {
+function tutorialFinish(returnToApp = true) {
   if (!state.tutorial) { tutorialHide(); return; }
   const snap = state.tutorial.tripKey;
   const parked = state.tutorial.parkedTrip || null;
-  tutorialMarkSeen();
   tutorialClearPractice();
   state.activeTrip = parked;
   try {
@@ -4631,13 +4679,14 @@ function tutorialFinish() {
   tutorialHide();
   if (state.activeTrip && window.tripsLib) { try { window.tripsLib.startTimer(tickActiveTripBanner, 1000); } catch (e) {} }
   try { renderActiveTripBanner(); } catch (e) {}
-  state.founderAt = Date.now();
-  switchView('my');
+  if (returnToApp) {
+    state.founderAt = Date.now();
+    switchView('my');
+  }
 }
-function skipTutorial() { tutorialFinish(); }
-function startTutorial() {
+function startTutorial(optional = false) {
+  if (tutorialOn()) return;
   tutorialInstallGuards();
-  tutorialMarkSeen();
   try { closeNameDialog(); } catch (e) {}
   let tripKey = null;
   try { tripKey = localStorage.getItem('hk_fishing_active_trip'); } catch (e) {}
@@ -4651,23 +4700,18 @@ function startTutorial() {
   state.formSuccess = false;
   switchView('trips');
   tutorialEnsure();
+  const actions = document.getElementById('tut-actions');
+  actions.innerHTML = optional ? '<button type="button" id="tut-exit">離開教學</button>' : '';
+  if (optional) actions.firstElementChild.onclick = () => tutorialFinish();
   tutorialPaint();
 }
-function replayTutorial() { startTutorial(); }
+function replayTutorial() { startTutorial(true); }
 function maybeAutoTutorial() {
   if (tutorialOn() || tutorialSeen()) return;
   if (SB_ENABLED && !state.user) return;
-  const consent = document.getElementById('consent-modal');
-  if (consent && consent.classList.contains('show')) {
-    if (!consent._tutWatch) {
-      consent._tutWatch = true;
-      const obs = new MutationObserver(function () {
-        if (!consent.classList.contains('show')) { obs.disconnect(); maybeAutoTutorial(); }
-      });
-      obs.observe(consent, { attributes: true, attributeFilter: ['class'] });
-    }
-    return;
-  }
+  if (document.getElementById('consent-modal').classList.contains('show') ||
+      document.getElementById('import-modal').classList.contains('show') ||
+      pendingShareToken() || new URLSearchParams(location.search).get('c')) return;
   startTutorial();
 }
 function tutorialBeginPicker() {
@@ -4725,8 +4769,8 @@ function tutorialBeginRecord() {
 const SPLIT_DISMISS_KEY = 'hkf-split-dismissed';
 function splitDismissed() { try { return sessionStorage.getItem(SPLIT_DISMISS_KEY) === '1'; } catch (e) { return false; } }
 function dismissSplit() { try { sessionStorage.setItem(SPLIT_DISMISS_KEY, '1'); } catch (e) {} if (state.view === 'my') renderMyView(); }
-function chooseShore() { state.shoreMode = true; state.ashoreTip = false; switchView('record'); }
-function chooseTide() { state.shoreMode = false; state.ashoreTip = true; state.mapTab = 'tide'; switchView('map'); }
+function chooseShore() { state.shoreMode = true; switchView('record'); }
+function chooseTide() { state.shoreMode = false; state.mapTab = 'tide'; switchView('map'); }
 function splitPromptHtml() {
   if (splitDismissed()) return '';
   return '<div class="split-card" id="split-card">'
@@ -5067,15 +5111,32 @@ function closeNameDialog() {
   if (history.state?.hkfSettings && !settingsBackPending) { settingsBackPending = true; history.back(); }
 }
 window.addEventListener('popstate', () => { settingsBackPending = false; hideSettingsPage(); });
+function positionSettingsDialog() {
+  const dialog = document.querySelector('.settings-small-dialog.show');
+  if (!dialog) return;
+  const viewport = window.visualViewport;
+  const viewportTop = viewport?.offsetTop || 0;
+  const viewportBottom = viewportTop + (viewport?.height || window.innerHeight);
+  dialog.style.setProperty('--settings-viewport-top', viewportTop + 'px');
+  dialog.style.setProperty('--settings-keyboard-inset', Math.max(0, window.innerHeight - viewportBottom) + 'px');
+}
+window.visualViewport?.addEventListener('resize', positionSettingsDialog);
+window.visualViewport?.addEventListener('scroll', positionSettingsDialog);
+window.addEventListener('resize', positionSettingsDialog);
+
+function openSettingsDialog(id, input) {
+  document.getElementById(id).classList.add('show');
+  positionSettingsDialog();
+  input.focus({preventScroll:true});
+}
 function openSettingsNameDialog() {
-  document.getElementById('name-input').value = getUserName();
-  document.getElementById('settings-name-dialog').classList.add('show');
-  document.getElementById('name-input').focus();
+  const input = document.getElementById('name-input');
+  input.value = getUserName();
+  openSettingsDialog('settings-name-dialog', input);
 }
 function closeSettingsNameDialog() { document.getElementById('settings-name-dialog').classList.remove('show'); }
 function openSettingsPasswordDialog() {
-  document.getElementById('settings-password-dialog').classList.add('show');
-  document.getElementById('settings-new-pw').focus();
+  openSettingsDialog('settings-password-dialog', document.getElementById('settings-new-pw'));
 }
 function closeSettingsPasswordDialog() { document.getElementById('settings-password-dialog').classList.remove('show'); }
 function setPrefWeightUnit(u) {
@@ -5132,6 +5193,7 @@ function maybeShowConsentModal() {
 }
 function closeConsentModal() {
   document.getElementById('consent-modal').classList.remove('show');
+  maybeAutoTutorial();
 }
 /* ===== 刪除帳戶（Google Play 要求）===== */
 async function changeMyPassword() {
@@ -5580,7 +5642,14 @@ function clearShareParam() {
   const url = location.origin + location.pathname;
   history.replaceState({}, document.title, url);
 }
-function closeImportModal() { document.getElementById('import-modal').classList.remove('show'); if (state.user) maybeShowConsentModal(); }
+function closeImportModal() {
+  document.getElementById('import-modal').classList.remove('show');
+  if (state.user) {
+    clearShareParam();
+    maybeShowConsentModal();
+    requestAnimationFrame(maybeAutoTutorial);
+  }
+}
 
 /* ===== Leaderboard View ===== */
 const LB_TTL = 60000;
@@ -6091,13 +6160,11 @@ function renderMapTideList(view) {
   const now = window.tidesLib.now();
   const cards = stations.map(st => {
     const cur = window.tidesLib.getCurrentTide(st.code, now);
-    const advice = window.tidesLib.getFishingAdvice(st.code, now);
     const curH = cur.height === null ? '—' : cur.height.toFixed(2);
     const trendClass = cur.trend || 'unknown';
     const trendText = cur.trend === 'rising' ? '漲中' : cur.trend === 'falling' ? '退中' : '→ 平';
     const nextHigh = cur.nextHigh ? `${window.tidesLib.formatTime(cur.nextHigh.ms)} 高潮 ${cur.nextHigh.height}m` : '—';
     const nextLow  = cur.nextLow  ? `${window.tidesLib.formatTime(cur.nextLow.ms)} 低潮 ${cur.nextLow.height}m` : '—';
-    const adviceHtml = advice.map(a => `<div>${a.icon} ${escapeHtml(a.text)}</div>`).join('') + (advice.length ? '<div style="font-size:11px;opacity:.7;">以上建議根據潮汐及天氣推算，僅供參考。</div>' : '');
     const estBadge = cur.estimated
       ? `<span class="tide-card-est" title="基於 ${st.source || st.officialStation || st.code} 站數據估算；缺少逐小時檔時回退高低潮插值">估算</span>`
       : '';
@@ -6157,7 +6224,6 @@ function renderMapTideList(view) {
           ${rows}
         </div>`;
       })()}
-      <div class="tide-card-advice">${adviceHtml}</div>
       <button class="tide-card-action" onclick="showStationOnMap('${st.code}')">在地圖上顯示位置</button>
     </div>`;
   }).join('');
@@ -6168,7 +6234,7 @@ function renderMapTideList(view) {
     + '<button class="map-subtab" data-tab="map" onclick="switchMapTab(this.dataset.tab)">地圖</button>'
     + '<button class="map-subtab active" data-tab="tide" onclick="switchMapTab(this.dataset.tab)">潮汐</button>'
     + '<button class="map-subtab" data-tab="weather" onclick="switchMapTab(this.dataset.tab)">天氣</button>'
-    + '</div>' + (state.ashoreTip ? '<div class="lb-tip" style="margin:10px 12px;">未落場？先睇潮水揀日子。<br>大潮（潮差 ≥1.5m）水流強，磯釣、防波堤一般較有利；小潮水流弱。<br>潮汐：香港天文台天文潮預測（政府／DATA.GOV.HK）｜天氣：Open-Meteo</div>' : '') + tideNotice
+    + '</div>' + tideNotice
     + '<div class="tide-list"><div class="tide-list-grid">' + cards + '</div></div>'
     + '<div style="padding:4px 12px 12px;font-size:11px;color:var(--gray-5);text-align:center;">潮汐預測（天文潮）由香港天文台提供。資料來源：香港特別行政區政府／香港天文台／DATA.GOV.HK；政府及香港天文台為資料知識產權擁有人。潮高以圖表基準面（Chart Datum）為準。西貢、南丫島、東涌、坪洲並無獨立官方站，相關高度按鄰近官方站估算。逐小時檔載入失敗時回退高低潮插值，並標示估算。</div>';
   window.tidesLib.mountExplorers(view);
@@ -6763,8 +6829,9 @@ function switchView(name) {
   const titles = { record:'記錄魚獲', my:'我的魚獲', trips:'釣魚行程', leaderboard:'排行榜', map:'釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v215</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v216</span>';
   }
+  if (name !== 'record') renderActiveTripBanner();
   renderView(name);
 }
 function goToView(name) { switchView(name); }
@@ -6857,6 +6924,8 @@ function openPrivacyPolicy(event) {
 }
 
 function renderLoginScreen() {
+  if (tutorialOn()) tutorialFinish(false);
+  document.getElementById('consent-modal').classList.remove('show');
   const screen = document.getElementById('login-screen');
   if (!SB_ENABLED) { screen.innerHTML = ''; screen.style.display = 'none'; return; }
   authStep = 'pw';
@@ -7312,6 +7381,7 @@ async function init() {
             await completeSignIn(profile);
           }
         } else if (event === 'SIGNED_OUT') {
+          if (tutorialOn()) tutorialFinish(false);
           state.user = null;
           state.catches = [];
           renderLoginScreen();
@@ -7329,6 +7399,7 @@ async function init() {
         return;
       }
       await completeSignIn(state.user);
+      return;
     } else {
       setInitStatus('正在載入本地資料', '離線模式');
       state.catches = await loadCatches();
@@ -7448,6 +7519,7 @@ async function completeSignInInner(userProfile) {
     pushLib.init({sb, navigate(data) { if (data.view === 'leaderboard') { state.lbType = data.lbType; state.lbPeriod = data.lbPeriod; } else if (data.view === 'map') { state.mapTab = 'tide'; } safeSwitchView(data.view); }});
     pushLib.login(userProfile.id);
   }
+  maybeAutoTutorial();
 }
 
 function safeSwitchView(name) {
