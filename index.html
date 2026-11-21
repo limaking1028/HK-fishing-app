@@ -104,7 +104,7 @@
 }
 /* 所有可點擊元素：觸碰時縮小一點 + 加快過渡 */
 button, .btn, .nav-item, .atb-btn, .gps-btn, .atb-end,
-.species-chip, .sp-card, .sp-pin-toggle, .trip-card,
+.species-chip, .sp-card, .trip-card,
 .start-trip-btn, .photo-upload, .collapsible-header, .species-row,
 .login-tab, .lb-tab, .lb-period, .filter-chip, .my-sub-tab,
 .leaderboard-card, .trip-detail-row, .nav-item, .atb-action {
@@ -116,7 +116,7 @@ button, .btn, .nav-item, .atb-btn, .gps-btn, .atb-end,
 /* 觸碰時縮放回饋（原生 app 質感） */
 button:active:not(:disabled), .btn:active:not(:disabled),
 .nav-item:active, .atb-btn:active, .gps-btn:active, .atb-end:active,
-.species-chip:active, .sp-card:active, .sp-pin-toggle:active, .trip-card:active,
+.species-chip:active, .sp-card:active, .trip-card:active,
 .start-trip-btn:active, .photo-upload:active, .collapsible-header:active, .species-row:active,
 .login-tab:active, .lb-tab:active, .lb-period:active, .filter-chip:active, .my-sub-tab:active {
   transform: scale(0.96);
@@ -378,9 +378,6 @@ button { touch-action: manipulation; }
   .fb-cats { display: flex; gap: 8px; margin-bottom: 10px; }
   .fb-cat { flex: 1; border: 1.5px solid var(--gray-3); background: #fff; color: var(--gray-5); font-weight: 700; font-size: 14px; padding: 10px 6px; border-radius: 12px; cursor: pointer; }
   .fb-cat.on { border-color: var(--teal); background: var(--teal-light); color: var(--teal-dark); }
-  .sp-chosen { display: flex; align-items: center; gap: 14px; }
-  .sp-chosen .sp-card { width: 96px; flex: none; }
-  .sp-change-btn { border: 1.5px solid var(--teal); background: #fff; color: var(--teal-dark); font-weight: 700; font-size: 14px; padding: 10px 16px; border-radius: 12px; cursor: pointer; }
   .species-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .species-chip { text-align: center; padding: 8px 4px; border: 1.5px solid var(--gray-2); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s; font-size: 12px; background: var(--white); position: relative; }
   .species-chip > svg { display: block; margin: 0 auto 3px; }
@@ -391,199 +388,50 @@ button { touch-action: manipulation; }
   .species-chip.selected { border-color: var(--teal); background: var(--teal-light); color: var(--teal-dark); font-weight: 600; }
   .species-chip:active { transform: scale(0.95); }
 
-  /* Route K: 智能揀魚種 UI（Top 8 + 摺疊展開） */
-  #species-selector { margin-top: 4px; }
-  .sp-section-title {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--gray-5);
-    margin: 4px 4px 8px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-  .sp-sub-section-title {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--teal-dark);
-    margin: 14px 4px 6px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-  .sp-sub-section-title span { color: var(--gray-4); font-weight: 600; }
-  .sp-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-  }
-  .sp-card {
-    position: relative;
-    background: white;
-    border: 1.5px solid var(--gray-2);
-    border-radius: 10px;
-    padding: 8px 4px 6px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.15s;
-    aspect-ratio: 1 / 1.1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-  .sp-card:hover {
-    border-color: var(--teal);
-    transform: translateY(-1px);
-  }
-  .sp-card.selected {
-    border-color: var(--teal);
-    background: var(--teal-light);
-    box-shadow: 0 0 0 1.5px var(--teal);
-  }
-  .sp-card.pinned {
-    border-color: #f5a623;
-    background: linear-gradient(180deg, #fff8ed 0%, #fff 100%);
-  }
-  .sp-card.selected.pinned {
-    border-color: var(--teal);
-    background: var(--teal-light);
-  }
-  .sp-card.custom-species { border: 1.5px dashed #f5a623 !important; background: linear-gradient(135deg, #fff8e1, #ffeaa7); }
-  .sp-card.custom-species .sp-name::after { content: ' (自訂)'; font-size: 9px; color: #b06820; font-weight: 500; }
-  .sp-card:active { transform: scale(0.95); }
-  .sp-icon {
-    font-size: 28px;
-    line-height: 1;
-    margin-bottom: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 56px;
-    height: 56px;
-  }
-  .sp-icon-img {
-    width: 56px;
-    height: 56px;
-    object-fit: contain;
-    border-radius: 6px;
-    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
-    padding: 2px;
-  }
-  .sp-icon-emoji {
-    font-size: 36px;
-    line-height: 1;
-  }
-  .sp-name {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--dark);
-    line-height: 1.2;
-    word-break: keep-all;
-  }
-  .sp-count {
-    position: absolute;
-    top: 2px;
-    right: 4px;
-    font-size: 9px;
-    background: var(--orange);
-    color: white;
-    padding: 1px 4px;
-    border-radius: 6px;
-    font-weight: 700;
-  }
-  .sp-pin {
-    position: static;
-    font-size: 10px;
-    font-weight: 800;
-    line-height: 1.2;
-    color: #b45309;
-    white-space: nowrap;
-  }
-  .sp-pin-toggle {
-    position: static;
-    margin-top: 2px;
-    font-size: 10px;
-    font-weight: 800;
-    line-height: 1.2;
-    width: auto;
-    height: auto;
-    max-width: 100%;
-    padding: 1px 4px;
-    border-radius: 6px;
-    background: rgba(255,255,255,0.92);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    opacity: 1;
-    border: 1px solid var(--gray-3);
-    z-index: 2;
-    white-space: nowrap;
-  }
-  .sp-card:hover .sp-pin-toggle { opacity: 0.85; }
-  .sp-pin-toggle:hover { transform: scale(1.15); }
-  .sp-pin-toggle:active { transform: scale(0.9); }
-  .sp-pin-toggle.active {
-    opacity: 1;
-    background: #fef3c7;
-    border-color: #f5a623;
-    box-shadow: 0 0 4px rgba(245,166,35,0.4);
-  }
-  .sp-empty, .sp-empty-tip {
-    grid-column: 1 / -1;
-    text-align: center;
-    color: var(--gray-4);
-    font-size: 12px;
-    padding: 16px 8px;
-    background: var(--gray-1);
-    border-radius: 8px;
-  }
-  .sp-empty-large {
-    text-align: center;
-    color: var(--gray-4);
-    font-size: 13px;
-    padding: 18px 8px;
-    background: var(--gray-1);
-    border-radius: 8px;
-    margin: 8px 4px;
-  }
-  .sp-empty-tip {
-    background: var(--teal-light);
-    color: var(--teal-dark);
-    margin: 4px;
-  }
-  .sp-expand-btn {
-    width: 100%;
-    background: linear-gradient(135deg, #e0f5f8 0%, #f0fafb 100%);
-    border: 1.5px dashed var(--teal);
-    color: var(--teal-dark);
-    padding: 10px 14px;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: inherit;
-    margin-top: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    transition: all 0.2s;
-  }
-  .sp-expand-btn:hover {
-    background: linear-gradient(135deg, #d0eef3 0%, #e0f5f8 100%);
-  }
-  .sp-expand-btn.open {
-    border-style: solid;
-    background: var(--teal-light);
-  }
-  .sp-expand-btn span { font-weight: 800; }
-  .sp-expand-arrow {
-    font-size: 10px;
-    transition: transform 0.2s;
-  }
-  .sp-expand-btn.open .sp-expand-arrow { transform: rotate(0deg); }
+  /* 記錄頁魚種揀選 */
+  #species-selector { margin-top:4px; }
+  .sp-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; align-content:start; }
+  .sp-card { position:relative; display:grid; gap:3px; align-content:start; justify-items:center; min-width:0; padding:4px 4px 6px; border:1px solid var(--gray-2); border-radius:9px; background:var(--white); color:var(--dark); cursor:pointer; font:inherit; }
+  .sp-card:hover { border-color:var(--teal); }
+  .sp-card .sp-icon-img, .sp-card .sp-icon-emoji, .sp-custom-icon { width:100%; aspect-ratio:1.65; object-fit:contain; border-radius:5px; background:var(--gray-1); }
+  .sp-card .sp-icon-emoji, .sp-custom-icon { display:grid; place-items:center; }
+  .sp-name { font-size:11px; line-height:1.2; font-weight:700; overflow-wrap:anywhere; }
+  .sp-star { position:absolute; right:4px; top:3px; padding:0 3px; border-radius:6px; background:white; color:#9a5c0a; font-size:13px; line-height:1.2; }
+  .sp-card.custom-species { border-style:dashed; border-color:#d79a33; }
+  .sp-custom-icon { color:#8b580e; background:#fff4d4; font-size:23px; }
+  .sp-section-title { margin:8px 0 6px; color:var(--gray-5); font-size:12px; font-weight:700; }
+  .sp-empty { grid-column:1 / -1; color:var(--gray-5); margin:2px 0; font-size:13px; }
+  .sp-search { position:relative; display:flex; align-items:center; border:1px solid var(--gray-2); border-radius:10px; background:white; }
+  .sp-search:focus-within { border-color:var(--teal); }
+  .sp-search input { min-width:0; flex:1; width:100%; min-height:44px; border:0; border-radius:10px; padding:8px 8px 8px 34px; background:transparent; color:var(--dark); font:inherit; font-size:16px; }
+  .sp-search input::-webkit-search-cancel-button { display:none; }
+  .sp-search-icon { position:absolute; pointer-events:none; left:12px; width:11px; height:11px; border:1.5px solid var(--gray-5); border-radius:50%; }
+  .sp-search-icon::after { content:''; position:absolute; width:5px; height:1.5px; background:var(--gray-5); right:-4px; bottom:-2px; transform:rotate(45deg); }
+  .sp-search button, .sp-sheet-heading button { width:44px; min-height:44px; flex:none; border:0; border-radius:50%; background:transparent; color:var(--gray-5); font:inherit; font-size:23px; line-height:1; cursor:pointer; }
+  .sp-sheet-heading button { background:var(--gray-1); }
+  .sp-expand-btn { width:100%; min-height:44px; margin-top:9px; border:1px dashed var(--teal); border-radius:9px; background:var(--teal-pale); color:var(--teal-dark); font:inherit; font-size:14px; font-weight:700; cursor:pointer; }
+  .sp-chosen { display:flex; align-items:center; gap:9px; min-height:54px; padding:4px 7px; border:1px solid var(--teal); border-radius:10px; background:var(--teal-pale); }
+  .sp-chosen .sp-icon-img, .sp-chosen .sp-icon-emoji { width:61px; height:38px; flex:none; object-fit:contain; border-radius:5px; }
+  .sp-chosen .sp-icon-emoji { display:grid; place-items:center; }
+  .sp-chosen strong { font-size:15px; }
+  .sp-chosen input { flex:1; min-width:0; min-height:42px; padding:5px; border:0; border-radius:5px; background:white; color:var(--dark); font:inherit; font-size:16px; }
+  .sp-change-btn { margin-left:auto; flex:none; min-height:44px; padding:0 8px; border:0; border-radius:8px; background:transparent; color:var(--teal-dark); font:inherit; font-weight:700; font-size:14px; cursor:pointer; }
+  html:has(#record-species-sheet[open]), html:has(#record-species-sheet[open]) body, html:has(#record-species-sheet[open]) #main { overflow:hidden; overscroll-behavior:none; }
+  #record-species-sheet { position:fixed; inset:auto 0 0; width:min(100%,480px); max-width:none; height:80dvh; max-height:100dvh; margin:0 auto; padding:8px 14px max(10px,env(safe-area-inset-bottom)); border:0; border-radius:18px 18px 0 0; overflow:hidden; background:white; color:var(--dark); }
+  #record-species-sheet[open] { display:flex; flex-direction:column; gap:8px; }
+  #record-species-sheet::backdrop { background:rgba(12,25,36,.55); }
+  .sp-sheet-handle { width:38px; height:4px; margin:0 auto; border-radius:3px; background:var(--gray-3); flex:none; }
+  .sp-sheet-heading { display:flex; align-items:center; justify-content:space-between; }
+  .sp-sheet-heading h2 { margin:0; font-size:19px; }
+  .sp-categories { display:flex; flex:none; gap:6px; overflow:auto hidden; scrollbar-width:none; }
+  .sp-categories button { flex:none; min-height:36px; border:1px solid var(--gray-2); border-radius:18px; background:white; padding:0 10px; color:var(--gray-5); font:inherit; font-weight:700; font-size:13px; cursor:pointer; }
+  .sp-categories button[aria-pressed=true] { border-color:var(--teal-dark); background:var(--teal-dark); color:white; }
+  .sp-sheet-body { min-height:0; flex:1; overflow:auto; overscroll-behavior:contain; padding:2px; }
+  .sp-sheet-body .sp-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .sp-sheet-body .sp-card { touch-action:pan-y; user-select:none; -webkit-touch-callout:none; }
+  .sp-sheet-body img { pointer-events:none; }
+  .sp-sheet-foot { text-align:center; color:var(--gray-4); font-size:12px; }
+  .sp-sheet-toast:not(:empty) { position:absolute; bottom:42px; left:50%; transform:translateX(-50%); padding:8px 14px; border-radius:20px; background:var(--dark); color:white; pointer-events:none; white-space:nowrap; font-size:13px; }
   .photo-upload { border: 2px dashed var(--gray-3); border-radius: var(--radius); padding: 24px 16px; text-align: center; cursor: pointer; transition: border-color 0.2s; position: relative; }
   .photo-upload:active { border-color: var(--teal); }
   .photo-upload .upload-icon { font-size: 16px; font-weight: 800; line-height: 1.2; }
@@ -1319,11 +1167,17 @@ button { touch-action: manipulation; }
   #tut-done p { margin: 0 0 14px; font-size: 17px; font-weight: 800; line-height: 1.45; color: #14202b; }
   #tut-done button { width: 100%; }
   /* 記錄頁摺疊資料與行程開始時間 */
+  .record-hero { height:150px; position:relative; margin:-16px -14px 0; isolation:isolate; overflow:hidden; background:var(--teal-dark); }
+  .record-hero img { width:100%; height:100%; display:block; object-fit:cover; object-position:center 60%; }
+  .record-hero::after { content:''; position:absolute; inset:0; background:linear-gradient(to bottom,rgba(10,54,67,.65),transparent 35%,transparent 64%,var(--gray-1)); }
+  .record-hero h2 { position:absolute; left:16px; top:13px; z-index:1; margin:0; color:white; font-size:22px; text-shadow:0 1px 6px rgba(14,30,39,.78); }
+  .record-form-card { position:relative; margin-top:-24px; box-shadow:0 5px 18px rgba(16,42,56,.10); }
+  @media (max-height:700px) { .record-hero { height:124px; } }
   .record-trip-prompt { display:flex; align-items:center; gap:6px; padding:0 6px 0 12px; margin-bottom:8px; border-radius:var(--radius-sm); background:var(--teal-pale); color:var(--teal-dark); font-size:13px; }
   .record-trip-prompt span { flex:1; }
   .record-trip-prompt button { min-height:44px; padding:0 6px; border:0; background:transparent; color:inherit; font:inherit; font-weight:700; white-space:nowrap; cursor:pointer; }
   .record-trip-prompt button:last-child { min-width:44px; font-size:19px; }
-  #record-details { margin-top:12px; border-top:1px solid var(--gray-2); }
+  #record-details { margin:12px 0; border-top:1px solid var(--gray-2); }
   #record-details summary { display:flex; align-items:center; gap:8px; min-height:44px; color:var(--teal-dark); font-size:14px; font-weight:700; cursor:pointer; }
   #record-details summary::after { content:'＋'; }
   #record-details[open] summary::after { content:'−'; }
@@ -1919,12 +1773,13 @@ function genSampleCatches() {
 /* ===== State & Persistence ===== */
 const STORAGE_KEY = 'hk_fishing_catches_v5';
 const USERNAME_KEY = 'hk_fishing_username';
-let state = { view:'my', mapTab:'map', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', lbUnit:'kg', lbCache:{}, lbFetching:{}, lbServerFailed:false, photoAgeSec:null, weightInputUnit:null, myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{}, expandedPokedex:{} }, trips:[], activeTrip:null, tripDetailId:null, tripTickHandle:null, tripPicking:false, tripPickingSpot:'', tripPickingDetectedSpot:'', tripPickingCustom:'', tripPickingMethod:'', tripPickingBait:'', tripPickingLat:null, tripPickingLng:null, tripPickingAccuracy:null, geoStatus:'idle', userLocation:null, nearestStations:[], geoError:null, geoRequestedAt:0, pinnedSpecies:[], speciesExpanded:false };
+let state = { view:'my', mapTab:'map', mySubTab:'log', catches:[], user: null, selectedSpecies:null, customSpecies:'', selectedMethod:'', customMethod:'', selectedBait:'', customBait:'', selectedSpot:'', customSpot:'', lbType:'biggest', lbPeriod:'all', lbUnit:'kg', lbCache:{}, lbFetching:{}, lbServerFailed:false, photoAgeSec:null, weightInputUnit:null, myFilter:'all', formSuccess:false, lastCatchId:null, ui:{ expandedSections:{}, expandedSpecies:{}, expandedPokedex:{} }, trips:[], activeTrip:null, tripDetailId:null, tripTickHandle:null, tripPicking:false, tripPickingSpot:'', tripPickingDetectedSpot:'', tripPickingCustom:'', tripPickingMethod:'', tripPickingBait:'', tripPickingLat:null, tripPickingLng:null, tripPickingAccuracy:null, geoStatus:'idle', userLocation:null, nearestStations:[], geoError:null, geoRequestedAt:0, pinnedSpecies:[] };
 
 // 載入用戶 pin 嘅魚種（持久化）
 try {
   const pinnedJson = localStorage.getItem('hk-fishing-pinned-species');
-  if (pinnedJson) state.pinnedSpecies = JSON.parse(pinnedJson);
+  const pinned = pinnedJson ? JSON.parse(pinnedJson) : [];
+  if (Array.isArray(pinned)) state.pinnedSpecies = pinned;
 } catch(e) { state.pinnedSpecies = []; }
 function getUserName() { return state.user ? (state.user.display_name || (state.user.email ? state.user.email.split('@')[0] : '釣友')) : (localStorage.getItem(USERNAME_KEY) || '我'); }
 // v184：改名規則由 DB 強制（2–12 字、唔准撞名、30 日一次、禁用字），呢度只係將錯誤碼轉做廣東話
@@ -2360,217 +2215,244 @@ function renderRecordView() {
   const details = '<details id="record-details"><summary>詳細資料 <span id="record-details-summary"></span></summary>'
     + (collapseSpot ? spotFields : '') + tripDetailsFields + '</details>';
 
-  view.innerHTML = recordTripPromptHtml() + '<div class="card"><div class="section-title">記錄新魚獲</div>' + fishFields
+  view.innerHTML = '<div class="record-hero"><img src="assets/record-hero.webp" alt="">' +
+    '<h2>記錄新魚獲</h2></div><div class="card record-form-card">' + recordTripPromptHtml() + fishFields
     + (trip
-      ? (collapseSpot ? '' : spotFields) + photoFields + notesField + eligibility + adminMode + submitButton + details
+      ? (collapseSpot ? '' : spotFields) + photoFields + notesField + eligibility + adminMode + details + submitButton
       : spotFields + tripDetailsFields + notesField + photoFields + adminMode + eligibility + submitButton)
     + '</div>';
   updateRecordDetailsSummary();
   // Route L+: 表單打開時不直接觸發 (iOS 政策需用戶操作),但記錄狀態讓按鈕更醒目
   // 用戶點擊 [啟用自動定位] 後,後續 GPS 自動運行無需再操作
   setTimeout(() => { try { onDateChange(); } catch(e) { console.warn('astro init failed', e); } try { updateEligibilityHint(); } catch(e) {} try { renderTestModeToggle(); } catch(e) {} }, 0);
-  // Route K: 渲染智能揀魚種 UI（Top 8 by 使用次數 + 摺疊展開）
+  // Route K: 渲染常用魚種同搜尋入口
   renderSpeciesSelector();
 }
-function selectSpecies(idx) { state.selectedSpecies = idx; state.speciesPicking = false; if (idx !== FISH_SPECIES.length - 1) state.customSpecies = ''; renderSpeciesSelector(); try { updateEligibilityHint(); } catch (e) {} }
-
-/* ============================================================
- * Route K: 智能揀魚種 UI（Top 8 by 使用次數 + 摺疊展開）
- * ============================================================ */
-// 用戶記錄嘅魚種次數（排除 demo data）
-function getSpeciesCounts() {
-  const counts = {};
-  (state.catches || []).forEach(c => {
-    if (c.isDemo) return;
-    counts[c.species] = (counts[c.species] || 0) + 1;
-  });
-  return counts;
+const SPECIES_CATEGORIES = {
+  '鱲／鯛': ['黃腳鱲', '黑鱲', '白鱲', '赤鱲', '火點', '紅衫魚', '梳羅'],
+  '石斑': ['沙巴龍躉', '青斑', '芝麻斑'],
+  '鱸／泥鯭': ['盲鰽', '花鱸', '星鱸', '泥鯭', '星點泥鯭'],
+  '沙底': ['沙鯭', '沙鑽', '牛鰍', '左口', '坑鰜', '三鬚', '黃花', '白鬚公', '雞魚'],
+  '河口': ['烏頭', '金鼓', '細鱗', '釘公', '牙點', '煙仔'],
+  '掠食': ['油蠟', '海狼', '連尖', '牛廣GT', '三刀', '馬友', '黃立鯧', '䱛仔'],
+  '其他': ['石狗公', '紅鮋', '雞泡', '石剎', '石蚌', '哨牙妹', '魔鬼魚']
+};
+function recordSpeciesOptions() {
+  return FISH_SPECIES.map((fish, idx) => ({
+    fish, idx, category: Object.keys(SPECIES_CATEGORIES).find(name => SPECIES_CATEGORIES[name].includes(fish.name)) || '其他'
+  })).filter(item => !item.fish.custom);
 }
-
-// 取得 Top N 魚種（pinned 永遠在前 + 其他 by 次數 desc）
-function getTopSpecies(n) {
-  const counts = getSpeciesCounts();
-  const pinned = (state.pinnedSpecies || []).map(name => {
-    const idx = FISH_SPECIES.findIndex(f => f.name === name);
-    return idx >= 0 ? { idx, f: FISH_SPECIES[idx], count: counts[name] || 0, pinned: true } : null;
-  }).filter(Boolean);
-  const pinnedNames = new Set(pinned.map(p => p.f.name));
-  const others = FISH_SPECIES
-    .map((f, idx) => ({ idx, f, count: counts[f.name] || 0, pinned: false }))
-    .filter(x => !x.f.custom && !pinnedNames.has(x.f.name))
-    .sort((a, b) => b.count - a.count);
-  // 去重（防止因為相同魚名出現兩次）
-  const seen = new Set();
-  const result = [...pinned];
-  pinned.forEach(p => seen.add(p.f.name));
-  for (const x of others) {
-    if (seen.has(x.f.name)) continue;
-    seen.add(x.f.name);
-    result.push(x);
-    if (result.length >= n) break;
+function getTopSpecies(limit, options) {
+  const counts = new Map();
+  for (const entry of state.catches || []) {
+    if (!entry.isDemo) counts.set(entry.species, (counts.get(entry.species) || 0) + 1);
   }
-  return result;
+  const pins = new Map((state.pinnedSpecies || []).map((name, i) => [name, i]));
+  // 當未有魚獲紀錄時，沿用常見魚種嘅預設次序。
+  const common = new Map(['泥鯭', '黃腳鱲', '黑鱲', '石狗公', '釘公', '沙鯭', '烏頭', '沙鑽'].map((name, i) => [name, i]));
+  return [...options].sort((a, b) => {
+    const first = a.fish.name, second = b.fish.name;
+    return (pins.get(first) ?? pins.size) - (pins.get(second) ?? pins.size) ||
+      (counts.get(second) || 0) - (counts.get(first) || 0) ||
+      (counts.size ? 0 : (common.get(first) ?? common.size) - (common.get(second) ?? common.size));
+  }).slice(0, limit);
 }
-
-// 取得「已收過」魚種（用戶曾釣過）
-function getCollectedSpecies() {
-  const counts = getSpeciesCounts();
-  return FISH_SPECIES
-    .map((f, idx) => ({ idx, f, count: counts[f.name] || 0 }))
-    .filter(x => !x.f.custom && x.count > 0)
-    .sort((a, b) => b.count - a.count);
+function renderSpeciesCard(idx) {
+  const fish = FISH_SPECIES[idx];
+  const pinned = state.pinnedSpecies.includes(fish.name);
+  const image = fish.custom ? '<span class="sp-custom-icon" aria-hidden="true">✎</span>' : fishPhotoImg(fish.photo, fish.icon);
+  return '<button type="button" class="sp-card' + (fish.custom ? ' custom-species' : '') + '" data-species="' +
+    escapeHtml(fish.name) + '" data-species-index="' + idx + '">' + image +
+    '<span class="sp-name">' + (fish.custom ? '自訂魚種' : escapeHtml(fish.name)) + '</span>' +
+    (pinned ? '<span class="sp-star" aria-label="已收藏">★</span>' : '') + '</button>';
 }
-
-// 取得全部魚種（pinned 置頂 + 其他按 count desc，count=0 排最後，「其他」永遠排最後）
-function getAllSpecies() {
-  const counts = getSpeciesCounts();
-  const pinnedNames = new Set(state.pinnedSpecies || []);
-  const items = FISH_SPECIES
-    .map((f, idx) => ({ idx, f, count: counts[f.name] || 0, pinned: pinnedNames.has(f.name) }));
-  // 排序:pinned first → 自訂(custom)永遠最後 → count desc → 維持原順序
-  return items.sort((a, b) => {
-    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-    const aCustom = a.f.custom ? 1 : 0;
-    const bCustom = b.f.custom ? 1 : 0;
-    if (aCustom !== bCustom) return aCustom - bCustom;  // 自訂永遠排最後
-    if (a.count !== b.count) return b.count - a.count;
-    return 0;
-  });
+function speciesMatches(options, query) {
+  return options.filter(({ fish, category }) => fish.name.toLowerCase().includes(query) || category.includes(query));
 }
-
+function speciesSearchHtml(id) {
+  return '<div class="sp-search"><span class="sp-search-icon" aria-hidden="true"></span>' +
+    '<input type="search" id="' + id + '" aria-label="搜尋魚種" placeholder="搜尋魚種（例如：黃、石斑）" autocomplete="off">' +
+    '<button type="button" aria-label="清除搜尋" hidden>×</button></div>';
+}
+function bindSpeciesSearch(root, render) {
+  const input = root.querySelector('input');
+  const clear = root.querySelector('button');
+  const update = () => {
+    clear.hidden = !input.value;
+    render(input.value.trim().toLowerCase());
+  };
+  input.addEventListener('input', update);
+  clear.addEventListener('click', () => { input.value = ''; input.focus(); update(); });
+  update();
+}
 function togglePinSpecies(name) {
   if (tutorialOn()) return;
-  if (!state.pinnedSpecies) state.pinnedSpecies = [];
-  const idx = state.pinnedSpecies.indexOf(name);
-  if (idx >= 0) {
-    state.pinnedSpecies.splice(idx, 1);
-    toast('已取消收藏 ' + name);
-  } else {
-    state.pinnedSpecies.push(name);
-    toast('已收藏 ' + name);
-  }
-  // 持久化
-  try {
-    localStorage.setItem('hk-fishing-pinned-species', JSON.stringify(state.pinnedSpecies));
-  } catch(e) { console.warn('localStorage save failed', e); }
-  renderSpeciesSelector();
+  const index = state.pinnedSpecies.indexOf(name);
+  const pinned = index < 0;
+  if (pinned) state.pinnedSpecies.push(name);
+  else state.pinnedSpecies.splice(index, 1);
+  try { localStorage.setItem('hk-fishing-pinned-species', JSON.stringify(state.pinnedSpecies)); }
+  catch (e) { console.warn('localStorage save failed', e); }
+  const message = (pinned ? '已收藏 ' : '已取消收藏 ') + name;
+  const sheet = document.getElementById('record-species-sheet');
+  if (!sheet?.open) { toast(message); renderSpeciesSelector(); return; }
+  const status = sheet.querySelector('.sp-sheet-toast');
+  status.textContent = message;
+  clearTimeout(status.hideTimer);
+  status.hideTimer = setTimeout(() => { status.textContent = ''; }, 2000);
 }
 
-function selectSpeciesByName(name) {
-  const idx = FISH_SPECIES.findIndex(f => f.name === name);
-  if (idx >= 0) {
-    state.selectedSpecies = idx;
-    state.speciesPicking = false;   // v135：揀完自動收起魚種列表
-    state.customSpecies = '';
-    renderSpeciesSelector();  // 只更新魚種區，不重畫整個表單（避免清空已輸入的重量/備註/照片）
-    // 揀完魚種：列表收起後捲去「重量」欄（揀「其他」要先輸入名，唔捲；唔 focus、唔彈鍵盤）
-    if (!document.getElementById('custom-species')) { const w = document.getElementById('catch-weight'); if (w) w.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
-    try { updateEligibilityHint(); } catch (e) {}
-    if (tutorialOn() && state.tutorial.step === 4 && state.selectedSpecies != null) {
-      state.tutorial.step = 5;
-      tutorialPaint();
+function selectSpecies(index) {
+  const fish = FISH_SPECIES[index];
+  if (!fish) return;
+  document.getElementById('record-species-sheet')?.close();
+  if (state.selectedSpecies !== index) state.customSpecies = '';
+  state.selectedSpecies = index;
+  state.speciesPicking = false;
+  renderSpeciesSelector();
+  if (!fish.custom) {
+    const weight = document.getElementById('catch-weight');
+    if (weight) {
+      const rect = weight.getBoundingClientRect();
+      const bottom = document.getElementById('bottom-nav').getBoundingClientRect().top || innerHeight;
+      if (rect.top < 0 || rect.bottom > bottom) weight.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
   }
+  updateEligibilityHint();
+  if (tutorialOn() && state.tutorial.step === 4) {
+    state.tutorial.step = 5;
+    tutorialPaint();
+  }
 }
 
-function changeSpecies() { state.speciesPicking = true; renderSpeciesSelector(); }
-function expandSpecies() {
-  state.speciesExpanded = true;
-  renderSpeciesSelector();
+function bindSpeciesPinGesture(grid, onPin) {
+  let press, timer, pinnedCard;
+  const cancel = () => { clearTimeout(timer); press = null; };
+  const pin = card => {
+    pinnedCard = card;
+    togglePinSpecies(card.dataset.species);
+    onPin(card);
+  };
+  grid.addEventListener('pointerdown', event => {
+    pinnedCard = null;
+    cancel();
+    const card = event.target.closest('.sp-card:not(.custom-species)');
+    if (!card || event.button !== 0) return;
+    press = { x: event.clientX, y: event.clientY };
+    timer = setTimeout(() => {
+      if (card.closest('dialog[open]')) pin(card);
+    }, 500);
+  });
+  grid.addEventListener('pointermove', event => {
+    if (press && Math.hypot(event.clientX - press.x, event.clientY - press.y) > 10) cancel();
+  });
+  for (const type of ['pointercancel', 'pointerup', 'pointerleave']) grid.addEventListener(type, cancel);
+  grid.addEventListener('contextmenu', event => {
+    const card = event.target.closest('.sp-card:not(.custom-species)');
+    if (!card) return;
+    event.preventDefault();
+    cancel();
+    if (pinnedCard !== card) pin(card);
+  });
+  grid.addEventListener('click', event => {
+    if (pinnedCard && pinnedCard.contains(event.target)) {
+      pinnedCard = null;
+      event.stopImmediatePropagation();
+    }
+  }, true);
+  return cancel;
 }
 
-function collapseSpecies() {
-  state.speciesExpanded = false;
-  renderSpeciesSelector();
+function openRecordSpeciesSheet(options, customIndex, refreshInline) {
+  if (tutorialOn() || document.getElementById('record-species-sheet')) return;
+  const sheet = document.createElement('dialog');
+  sheet.id = 'record-species-sheet';
+  sheet.setAttribute('aria-labelledby', 'sp-sheet-title');
+  const categories = ['全部', ...Object.keys(SPECIES_CATEGORIES)];
+  sheet.innerHTML = '<div class="sp-sheet-handle" aria-hidden="true"></div>' +
+    '<div class="sp-sheet-heading"><h2 id="sp-sheet-title">揀魚種</h2><button type="button" aria-label="關閉魚種面板" autofocus>×</button></div>' +
+    speciesSearchHtml('sp-sheet-search') + '<div class="sp-categories" role="group" aria-label="魚種分類">' +
+    categories.map((name, i) => '<button type="button" data-category="' + name + '" aria-pressed="' + (i === 0) + '">' +
+      name + ' ' + (i === 0 ? options.length : options.filter(item => item.category === name).length) + '</button>').join('') +
+    '</div><div class="sp-sheet-body"><div class="sp-grid"></div></div>' +
+    '<div class="sp-sheet-foot">長按魚卡可以收藏，收藏會排喺常用最前</div><div class="sp-sheet-toast" role="status"></div>';
+  document.getElementById('species-selector').append(sheet);
+  const body = sheet.querySelector('.sp-sheet-body');
+  const grid = body.querySelector('.sp-grid');
+  let category = '全部', query = '';
+  function renderGrid() {
+    const group = category === '全部' ? options : options.filter(item => item.category === category);
+    const matches = speciesMatches(group, query);
+    grid.innerHTML = matches.map(item => renderSpeciesCard(item.idx)).join('') + renderSpeciesCard(customIndex);
+    body.scrollTop = 0;
+  }
+  const cancelPress = bindSpeciesPinGesture(grid, card => {
+    // Keep the pressed card and scroll position stable until the pointer is released.
+    const star = card.querySelector('.sp-star');
+    if (star) star.remove();
+    else card.insertAdjacentHTML('beforeend', '<span class="sp-star" aria-label="已收藏">★</span>');
+    refreshInline();
+  });
+  grid.addEventListener('click', event => {
+    const card = event.target.closest('.sp-card');
+    if (card) selectSpecies(Number(card.dataset.speciesIndex));
+  });
+  sheet.querySelector('.sp-categories').addEventListener('click', event => {
+    const button = event.target.closest('button');
+    if (!button) return;
+    category = button.dataset.category;
+    sheet.querySelectorAll('[data-category]').forEach(tab => tab.setAttribute('aria-pressed', String(tab === button)));
+    renderGrid();
+  });
+  bindSpeciesSearch(sheet.querySelector('.sp-search'), value => { query = value; renderGrid(); });
+  sheet.querySelector('.sp-sheet-heading button').addEventListener('click', () => sheet.close());
+  sheet.addEventListener('click', event => {
+    if (event.target !== sheet) return;
+    const rect = sheet.getBoundingClientRect();
+    if (event.clientY < rect.top || event.clientX < rect.left || event.clientX > rect.right) sheet.close();
+  });
+  sheet.addEventListener('close', () => { cancelPress(); sheet.remove(); }, { once: true });
+  sheet.showModal();
 }
 
 function renderSpeciesSelector() {
   const container = document.getElementById('species-selector');
   if (!container) return;
-  const top = getTopSpecies(8);
-  const pinnedNames = new Set(state.pinnedSpecies || []);
-
-  // 渲染單個 species card
-  const renderCard = (item, opts) => {
-    const { f, count, pinned } = item;
-    const isSelected = state.selectedSpecies === item.idx;
-    const isCustom = f.custom;
-    const isPinned = pinned || pinnedNames.has(f.name);
-    const countBadge = count > 0 ? '<span class="sp-count">×' + count + '</span>' : '';
-    const pinBadge = '';
-    const clickAction = isCustom ? `selectSpeciesByName('${f.name}')` : `selectSpeciesByName('${f.name}')`;
-    // Image vs emoji：如有 photo 就用真實魚圖 (auto try .jpg/.png/.webp)，否則 fallback 為 emoji
-    const iconHtml = f.photo
-      ? fishPhotoImg(f.photo, f.icon, 'sp-icon-img').replace('alt=""', 'alt="' + escapeHtml(f.name) + '"')
-      : `<div class="sp-icon-emoji">🐟</div>`;
-    return `<div class="sp-card ${isSelected ? 'selected' : ''} ${isPinned ? 'pinned' : ''} ${isCustom ? 'custom-species' : ''}" onclick="${clickAction}" data-species="${escapeHtml(f.name)}">
-      <div class="sp-pin-toggle ${isPinned ? 'active' : ''}" onclick="event.stopPropagation();togglePinSpecies('${escapeHtml(f.name)}')" title="${isPinned ? '取消收藏' : '加入收藏'}">${isPinned ? '已收藏' : '收藏'}</div>
-      <div class="sp-icon">${iconHtml}</div>
-      <div class="sp-name">${escapeHtml(f.name)}</div>
-      ${countBadge}${pinBadge}
-    </div>`;
-  };
-
-  // v135：已揀魚種 → 收起列表，只顯示所揀魚種 + 「更改魚種」
-  if (state.selectedSpecies != null && !state.speciesPicking) {
-    const sel = getAllSpecies().find(it => it.idx === state.selectedSpecies);
-    if (sel) {
-      let h = '<div class="sp-chosen">' + renderCard(sel)
-        + '<button type="button" class="sp-change-btn" onclick="changeSpecies()">更改魚種</button></div>';
-      if (sel.f.custom) {
-        h += '<input type="text" class="form-input" id="custom-species" placeholder="輸入魚種名稱（例如：象拔蚌）..." value="' + escapeHtml(state.customSpecies || '') + '" oninput="state.customSpecies=this.value" style="margin-top:10px;">';
-      }
-      container.innerHTML = h;
-      return;
-    }
+  const fish = FISH_SPECIES[state.selectedSpecies];
+  if (fish && !state.speciesPicking) {
+    const name = fish.custom
+      ? '<input type="text" id="custom-species" aria-label="自訂魚種名稱" placeholder="輸入魚種名稱" value="' +
+        escapeHtml(state.customSpecies || '') + '" oninput="state.customSpecies=this.value">'
+      : '<strong>' + escapeHtml(fish.name) + '</strong>';
+    container.innerHTML = '<div class="sp-chosen">' + fishPhotoImg(fish.photo, fish.icon) + name +
+      '<button type="button" class="sp-change-btn">更改</button></div>';
+    container.querySelector('.sp-change-btn').addEventListener('click', () => {
+      state.speciesPicking = true;
+      renderSpeciesSelector();
+      container.querySelector('.sp-expand-btn').focus({ preventScroll: true });
+    });
+    return;
   }
-
-  // Top 8 區域
-  let html = '<div class="sp-section-title">常用 (自動 by 使用次數)</div>';
-  html += '<div class="sp-grid">';
-  if (top.length === 0 || top.every(t => t.count === 0 && !t.pinned)) {
-    // v175：新用戶未有紀錄 → 顯示 8 種香港最常見魚
-    const COMMON = ['泥鯭', '黃腳鱲', '黑鱲', '石狗公', '釘公', '沙鯭', '烏頭'];
-    const common = getAllSpecies().filter(it => COMMON.includes(it.f.name)).sort((a, b) => COMMON.indexOf(a.f.name) - COMMON.indexOf(b.f.name));
-    if (common.length) common.forEach(item => { html += renderCard(item); });
-    else html += '<div class="sp-empty">尚未記錄魚獲 — 全部 ' + FISH_SPECIES.filter(f => !f.custom).length + ' 種魚可按下面「全部」展開揀選</div>';
-  } else {
-    top.forEach(item => { html += renderCard(item); });
+  const options = recordSpeciesOptions();
+  const customIndex = FISH_SPECIES.findIndex(item => item.custom);
+  container.innerHTML = speciesSearchHtml('record-species-search') +
+    '<div class="sp-section-title" role="status"></div><div class="sp-grid"></div>' +
+    '<button type="button" class="sp-expand-btn" aria-haspopup="dialog">全部魚種（' + options.length + '） ›</button>';
+  const heading = container.querySelector('.sp-section-title');
+  const grid = container.querySelector('.sp-grid');
+  let query = '';
+  function refresh() {
+    const matches = query ? speciesMatches(options, query) : getTopSpecies(8, options);
+    heading.textContent = query ? '搜尋結果（' + matches.length + '）' : '常用（按使用次數）';
+    grid.innerHTML = matches.length ? matches.map(item => renderSpeciesCard(item.idx)).join('') :
+      '<p class="sp-empty">搵唔到，可以揀「自訂魚種」</p>' + renderSpeciesCard(customIndex);
   }
-  html += '</div>';
-
-  // 展開 / 摺疊按鈕
-  const totalSpecies = FISH_SPECIES.filter(f => !f.custom).length;  // 排除「其他」
-  if (!state.speciesExpanded) {
-    // 摺疊狀態：顯示「全部 N 種魚」按鈕
-    html += '<button class="sp-expand-btn" onclick="expandSpecies()">';
-    html += '全部 <span>' + totalSpecies + '</span> 種魚';
-    html += '<span class="sp-expand-arrow">▼</span>';
-    html += '</button>';
-  } else {
-    // 展開狀態
-    html += '<button class="sp-expand-btn open" onclick="collapseSpecies()">';
-    html += '全部 <span>' + totalSpecies + '</span> 種魚';
-    html += '<span class="sp-expand-arrow">▲</span>';
-    html += '</button>';
-
-    // 全部魚種（pinned 置頂 + 其他按 count desc，count=0 排最後）
-    const allItems = getAllSpecies();
-    html += '<div class="sp-grid">';
-    allItems.forEach(item => { html += renderCard(item); });
-    html += '</div>';
-  }
-
-  // 自訂魚種輸入（始終保留「其他」選項 — 不加入圖鑑）
-  if (state.selectedSpecies === FISH_SPECIES.length - 1) {
-    html += '<div style="background:#fff8e1;border:1.5px dashed #f5a623;border-radius:8px;padding:10px 12px;margin-top:10px;font-size:12px;color:#8a5a1c;line-height:1.5;">'
-      + '<b>自訂魚種</b> — 你輸入的名稱會跟這次魚獲一起保存，<br>'
-      + '但 <b>不會加入「魚種圖鑑」</b>，也不會觸發解鎖慶祝。'
-      + '</div>';
-    html += '<input type="text" class="form-input" id="custom-species" placeholder="輸入魚種名稱（例如：象拔蚌）..." value="' + escapeHtml(state.customSpecies || '') + '" oninput="state.customSpecies=this.value" style="margin-top:8px;">';
-  }
-
-  container.innerHTML = html;
+  bindSpeciesSearch(container.querySelector('.sp-search'), value => { query = value; refresh(); });
+  grid.addEventListener('click', event => {
+    const card = event.target.closest('.sp-card');
+    if (card) selectSpecies(Number(card.dataset.speciesIndex));
+  });
+  container.querySelector('.sp-expand-btn').addEventListener('click', () => openRecordSpeciesSheet(options, customIndex, refresh));
 }
 
 /* ===== Route A1: 月相 / 日出日落資訊 ===== */
@@ -4626,7 +4508,6 @@ function tutorialClearPractice() {
   state.catchAccuracy = null;
   state.photoAgeSec = null;
   state.speciesPicking = false;
-  state.speciesExpanded = false;
   try { clearPhotoInputs(); } catch (e) {}
 }
 function tutorialFinish() {
@@ -6685,6 +6566,7 @@ function togglePokedexSpecies(name) {
 
 /* ===== Navigation ===== */
 function switchView(name) {
+  if (name !== 'record') document.getElementById('record-species-sheet')?.close();
   if (name !== 'trips' && state.justEndedTripId) { state.justEndedTripId = null; state.tripDetailId = null; }
   state.view = name;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
