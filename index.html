@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#0a6e7a">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#c5e6fc">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -230,7 +230,7 @@ button { touch-action: manipulation; }
     -webkit-font-smoothing: antialiased; overscroll-behavior: none;
   }
   #app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--app-bg); position: relative; display: flex; flex-direction: column; }
-  #header { background: linear-gradient(135deg, var(--teal-dark), var(--teal)); color: white; padding: 14px 18px; text-align: center; font-size: 17px; font-weight: 700; position: sticky; top: 0; z-index: 100; letter-spacing: 0.5px; box-shadow: 0 2px 8px rgba(10,110,122,0.3); display: flex; align-items: center; justify-content: space-between; }
+  #header { text-align:center; position:sticky; top:0; z-index:100; display:flex; align-items:center; justify-content:space-between; }
   .header-title { flex: 1; text-align: center; }
   .header-settings { font-size: 13px; font-weight: 600; opacity: 0.9; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
   .header-edit { flex: none; font-size: 13px; font-weight: 800; margin-left: 6px; white-space: nowrap; }
@@ -248,43 +248,43 @@ button { touch-action: manipulation; }
   .modal-title { padding-left: 52px; padding-right: 52px; }
   #main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: calc(84px + var(--safe-bottom)); }  /* v179: tab bar 高度 + safe-area，捲到底唔會遮掣 */
   /* ===== Route H: 進行中行程 banner ===== */
+  #active-trip-banner { position:sticky; top:0; z-index:50; padding-bottom:28px; }
+  #active-trip-banner.on-record { padding-bottom:0; }
+  #active-trip-banner::after {
+    content:''; position:absolute; inset:auto 0 0; height:32px; pointer-events:none; z-index:3;
+    background:linear-gradient(to bottom, #b1e0fd 0%, rgba(177,224,253,.88) 36%, rgba(177,224,253,.45) 68%, rgba(177,224,253,0) 100%);
+  }
+  #active-trip-banner.on-record::after { bottom:-28px; }
   .active-trip-banner {
-    background: linear-gradient(135deg, var(--orange), #ff8c5a);
-    color: white;
-    padding: 10px 14px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    box-shadow: 0 2px 8px rgba(255,107,53,0.3);
-    cursor: pointer;
+    min-height:150px; padding:10px 14px 12px;
+    display:grid; grid-template-columns:auto minmax(0,1fr); align-content:center; gap:8px;
+    cursor:pointer; color:#0b4855;
+    background:linear-gradient(to bottom, #c5e6fc 0%, rgba(197,230,252,0) 22px),
+      url('assets/trip-banner-sky.webp') center 50% / cover no-repeat #b1e0fd;
   }
-  .active-trip-banner:hover { filter: brightness(1.05); }
   .atb-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: white; box-shadow: 0 0 0 0 rgba(255,255,255,0.7);
-    animation: atb-pulse 1.6s infinite; flex-shrink: 0;
+    width:8px; height:8px; border-radius:50%; margin-top:4px; background:#ff9863;
+    box-shadow:0 0 0 3px rgba(255,152,99,.24);
   }
-  @keyframes atb-pulse {
-    0%   { box-shadow: 0 0 0 0 rgba(255,255,255,0.7); }
-    70%  { box-shadow: 0 0 0 8px rgba(255,255,255,0); }
-    100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  .atb-title { display:flex; gap:8px; font-size:13px; font-weight:700; line-height:1.25; }
+  .atb-status { flex:none; }
+  .atb-spot { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .atb-timer {
+    margin:3px 0; font:700 26px/1.1 'SF Mono', Menlo, Consolas, monospace;
+    font-variant-numeric:tabular-nums;
   }
-  .atb-info { flex: 1; min-width: 0; }
-  .atb-title { font-size: 13px; font-weight: 700; line-height: 1.2; }
-  .atb-timer { font-size: 18px; font-weight: 700; font-family: 'SF Mono', Menlo, Consolas, monospace; letter-spacing: 0.5px; line-height: 1.1; }
-  .atb-meta { font-size: 11px; opacity: 0.9; line-height: 1.2; }
-  .atb-tide { font-size: 11px; opacity: 0.95; line-height: 1.3; margin-top: 2px; background: rgba(255,255,255,0.15); padding: 3px 6px; border-radius: 4px; display: inline-block; }
-  .atb-btn {
-    background: white; color: var(--orange); border: none; border-radius: 8px;
-    padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer;
-    flex-shrink: 0;
+  .atb-meta { font-size:11px; line-height:1.3; min-height:22px; display:flex; align-items:center; gap:6px; white-space:nowrap; }
+  .atb-counts, .atb-tide { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  .atb-meta .tally-chip { color:inherit; font-size:inherit; }
+  .atb-tide { flex-shrink:0; padding:3px 6px; border-radius:4px; background:rgba(255,255,255,.65); }
+  .atb-actions { grid-column:1 / -1; display:flex; align-items:center; gap:8px; }
+  .atb-btn, .atb-end {
+    background:#fff; color:#0b4855; border:0; border-radius:999px;
+    padding:6px 13px; font-size:13px; font-weight:700; cursor:pointer;
+    box-shadow:0 1px 3px rgba(11,72,85,.16);
   }
-  .atb-btn:active { transform: scale(0.95); }
-  .atb-end {
-    background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4);
-    border-radius: 8px; padding: 6px 8px; font-size: 11px; font-weight: 600;
-    cursor: pointer; flex-shrink: 0;
-  }
+  .atb-end { margin-left:auto; background:rgba(255,255,255,.62); border:1.5px solid #0b4855; }
+
   .trip-tag {
     display: inline-block; background: var(--gray-2); color: var(--gray-6);
     padding: 4px 10px; border-radius: 12px; font-size: 12px;
@@ -418,7 +418,7 @@ button { touch-action: manipulation; }
   .sp-chosen strong { font-size:15px; }
   .sp-chosen input { flex:1; min-width:0; min-height:42px; padding:5px; border:0; border-radius:5px; background:white; color:var(--dark); font:inherit; font-size:16px; }
   .sp-change-btn { margin-left:auto; flex:none; min-height:44px; padding:0 8px; border:0; border-radius:8px; background:transparent; color:var(--teal-dark); font:inherit; font-weight:700; font-size:14px; cursor:pointer; }
-  html:has(#record-species-sheet[open]), html:has(#record-species-sheet[open]) body, html:has(#record-species-sheet[open]) #main { overflow:hidden; overscroll-behavior:none; }
+  html.species-sheet-open, html.species-sheet-open body, html.species-sheet-open #main { overflow:hidden; overscroll-behavior:none; }
   #record-species-sheet { position:fixed; inset:auto 0 0; width:min(100%,480px); max-width:none; height:80dvh; max-height:100dvh; margin:0 auto; padding:8px 14px max(10px,env(safe-area-inset-bottom)); border:0; border-radius:18px 18px 0 0; overflow:hidden; background:white; color:var(--dark); }
   #record-species-sheet[open] { display:flex; flex-direction:column; gap:8px; }
   #record-species-sheet::backdrop { background:rgba(12,25,36,.55); }
@@ -657,7 +657,7 @@ button { touch-action: manipulation; }
   .int-opts { display: grid; gap: 8px; margin: 6px 0 14px; }
   .int-opt { display: flex; align-items: center; gap: 10px; font-size: 14px; padding: 10px 12px; border: 1.5px solid var(--gray-2); border-radius: var(--radius-sm); cursor: pointer; min-height: 44px; }
   .int-opt input { width: 18px; height: 18px; accent-color: var(--teal); margin: 0; }
-  .int-opt:has(input:checked) { border-color: var(--teal); background: var(--teal-pale); }
+  .int-opt.selected { border-color: var(--teal); background: var(--teal-pale); }
   .int-q { font-size: 13px; font-weight: 700; color: var(--gray-6); margin: 4px 0 6px; }
   .success-screen { text-align: center; padding: 30px 20px; }
   .success-circle { width: 72px; height: 72px; border-radius: 50%; background: var(--green); color: white; display: flex; align-items: center; justify-content: center; font-size: 36px; margin: 0 auto 16px; animation: popIn 0.3s ease; }
@@ -1044,11 +1044,15 @@ button { touch-action: manipulation; }
   button:focus-visible, .btn:focus-visible, .nav-item:focus-visible { border-radius: 12px; }
 
   /* --- 頂欄 --- */
-  #header { background: var(--ink-grad); padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 18px; letter-spacing: 0; box-shadow: 0 2px 14px rgba(7,56,74,.22); }
-  .header-wave { position: absolute; inset: auto 0 0; width: 100%; height: 12px; pointer-events: none; }
+  #header { background:#c5e6fc; color:#0b4855; padding:calc(12px + env(safe-area-inset-top, 0px)) 16px 18px; letter-spacing:0; box-shadow:none; }
+  /* Keep the native dark status icons legible over the login artwork and overlays. */
+  body::before {
+    content:''; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top, 0px);
+    background:#c5e6fc; pointer-events:none; z-index:1000000;
+  }
   .guest-login-prompt .btn + .btn { margin-top: 10px; }  /* 訪客鎖定頁：「登入／註冊」同「睇潮汐」兩粒掣之間留位 */
   .header-title { font-size: 17px; font-weight: 800; letter-spacing: .3px; }
-  .header-settings { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.18); padding: 6px 12px; border-radius: 999px; min-height: 36px; max-width: 58%; opacity: 1; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  .header-settings { background:rgba(11,72,85,.06); border:1px solid rgba(11,72,85,.16); color:#0b4855; padding:6px 12px; border-radius: 999px; min-height: 36px; max-width: 58%; opacity: 1; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
   .header-settings:active { background: rgba(255,255,255,.24); }
   /* v174：創始釣友 */
   .founder-badge { display: inline-block; font-size: 11px; font-weight: 700; color: #92400e; background: linear-gradient(135deg,#fef3c7,#fde68a); border: 1px solid #fcd34d; border-radius: 999px; padding: 1px 7px; margin-left: 4px; white-space: nowrap; vertical-align: 1px; }
@@ -1104,9 +1108,10 @@ button { touch-action: manipulation; }
   #view-my::after {
     position: absolute;
     inset: 0 0 auto;
-    height: 40px;
-    background: linear-gradient(180deg, rgba(7, 56, 74, .32), transparent);
+    height:160px;
+    background:linear-gradient(180deg, #b1e0fd 0%, rgba(177,224,253,.72) 28%, rgba(177,224,253,.28) 62%, rgba(177,224,253,0) 100%);
   }
+  .has-active-trip #view-my::after { top:-28px; }
   #view-my .pokedex-card.locked { opacity: 1; }
   .card, .stat-card, .catch-card, .collapsible-header, .trip-card, .lb-tabs { border: 1px solid rgba(10,88,102,.07); box-shadow: var(--shadow); }
   .section-title { font-size: 17px; font-weight: 800; letter-spacing: -.2px; }
@@ -1161,39 +1166,16 @@ button { touch-action: manipulation; }
   .trip-card-title { font-size: 16px; font-weight: 800; }
   .trip-card-time { font-size: 12px; color: var(--gray-5); }
   .start-trip-btn { box-shadow: 0 8px 20px rgba(232,86,31,.32); border-radius: 14px; }
-  #app:has(#view-record.active) {
+  #app.record-view, #app.has-active-trip {
     height:calc(100vh - var(--hkf-banner-height, 0px));
     height:calc(100dvh - var(--hkf-banner-height, 0px));
   }
-  #active-trip-banner { position:sticky; top:0; z-index:50; }
-  .active-trip-banner { border-radius:0 0 18px 18px; box-shadow:0 8px 22px rgba(232,86,31,.28); }
-  .atb-title { overflow-wrap:anywhere; }
-  .atb-status + .atb-spot::before { content:' · '; }
-  .atb-actions { display:flex; align-items:center; gap:6px; }
-  .active-trip-record {
-    background:linear-gradient(180deg, #0a3643 0%, rgba(10,54,67,.89) 47%, rgba(10,54,67,.12) 76%, rgba(10,54,67,.72) 100%),
-      var(--teal-dark) url('assets/record-hero.webp') center 62% / cover no-repeat;
-    color:white; border-radius:0 0 18px 18px; box-shadow:0 6px 16px rgba(10,54,67,.24);
-  }
-  .active-trip-record .active-trip-banner {
-    display:grid; grid-template-columns:auto minmax(0, 1fr); column-gap:8px; row-gap:8px;
-    background:none; box-shadow:none; padding:12px 14px 0;
-  }
-  .active-trip-record .active-trip-banner:hover { filter:none; }
-  .active-trip-record .atb-dot { align-self:start; margin-top:4px; background:#ff9863; }
-  .active-trip-record .atb-title { display:flex; flex-wrap:wrap; gap:2px 8px; }
-  .active-trip-record .atb-spot { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
-  .active-trip-record .atb-spot::before { content:none; }
-  .active-trip-record .atb-timer { font-size:28px; font-variant-numeric:tabular-nums; margin:4px 0; }
-  .active-trip-record .atb-actions { grid-column:1 / -1; gap:8px; }
-  .active-trip-record .atb-btn, .active-trip-record .atb-end { min-height:36px; padding:6px 12px; font-size:13px; }
-  .active-trip-record .atb-btn { color:var(--teal-dark); }
-  .active-trip-record .atb-end { margin-left:auto; background:rgba(10,54,67,.64); border:1px solid #fff; }
-  .atb-record-title { display:flex; align-items:end; min-height:71px; margin:0; padding:10px 14px; font-size:22px; text-shadow:0 1px 6px #0a3643; }
   .trip-ended-hero {
-    min-height:130px; display:flex; align-items:end; margin:0 0 12px; padding:14px 16px; border-radius:var(--radius);
-    color:white; font-size:22px; background:linear-gradient(180deg, transparent, rgba(10,54,67,.82)),
-      var(--teal-dark) url('assets/record-hero.webp') center 60% / cover no-repeat;
+    min-height:130px; display:flex; align-items:flex-end; margin:0 0 12px; padding:14px 16px; border-radius:var(--radius);
+    color:#fff; font-size:22px; text-align:left; text-shadow:0 1px 8px rgba(0,0,0,.6), 0 0 12px rgba(0,0,0,.35);
+    background:linear-gradient(to right, rgba(12,16,28,.58) 0%, rgba(12,16,28,.28) 36%, rgba(12,16,28,0) 64%),
+      linear-gradient(to top, rgba(12,16,28,.22), transparent 42%),
+      url('assets/trip-ended-hero.webp') center 50% / cover no-repeat;
   }
 
   /* --- 彈窗／提示 --- */
@@ -1317,12 +1299,17 @@ button { touch-action: manipulation; }
 }
 .settings-small-dialog .modal-sheet::before { display:none; }
   /* 記錄頁摺疊資料與行程開始時間 */
-  .record-hero { height:150px; position:relative; margin:-16px -14px 0; isolation:isolate; overflow:hidden; background:var(--teal-dark); }
-  .record-hero img { width:100%; height:100%; display:block; object-fit:cover; object-position:center 60%; }
-  .record-hero::after { content:''; position:absolute; inset:0; background:linear-gradient(to bottom,rgba(10,54,67,.65),transparent 35%,transparent 64%,var(--gray-1)); }
-  .record-hero h2 { position:absolute; left:16px; top:13px; z-index:1; margin:0; color:white; font-size:22px; text-shadow:0 1px 6px rgba(14,30,39,.78); }
-  .record-form-card { position:relative; margin-top:-24px; box-shadow:0 5px 18px rgba(16,42,56,.10); }
-  @media (max-height:700px) { .record-hero { height:124px; } }
+  .record-hero { height:150px; position:relative; margin:-16px -14px 0; isolation:isolate; overflow:hidden; background:#b1dcfc; }
+  .record-hero img { width:100%; height:100%; display:block; object-fit:cover; object-position:center 24%; }
+  .record-hero::after { content:''; position:absolute; inset:0; background:linear-gradient(to bottom,transparent 64%,var(--gray-1)); }
+  .record-hero h2 { position:absolute; left:16px; top:13px; z-index:1; margin:0; color:#0b4855; font-size:22px; text-shadow:0 1px 4px rgba(255,255,255,.92), 0 0 10px rgba(255,255,255,.55); }
+  .record-hero.with-trip { margin-top:-20px; }
+  .record-hero.with-trip::after {
+    background:linear-gradient(to bottom,rgba(177,224,253,.2) 0%,rgba(177,220,252,.08) 10%,transparent 22%,transparent 64%,var(--gray-1) 100%);
+  }
+  .record-hero.with-trip h2 { top:auto; bottom:34px; }
+  .record-form-card { position:relative; margin-top:-28px; }
+  @media (max-height:700px) { .record-hero:not(.with-trip) { height:124px; } }
   .record-trip-prompt { display:flex; align-items:center; gap:6px; padding:0 6px 0 12px; margin-bottom:8px; border-radius:var(--radius-sm); background:var(--teal-pale); color:var(--teal-dark); font-size:13px; }
   .record-trip-prompt span { flex:1; }
   .record-trip-prompt button { min-height:44px; padding:0 6px; border:0; background:transparent; color:inherit; font:inherit; font-weight:700; white-space:nowrap; cursor:pointer; }
@@ -1354,10 +1341,6 @@ button { touch-action: manipulation; }
   <header id="header">
     <div class="header-title" id="header-title">釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v216</span></div>
     <div class="header-settings" onclick="openNameDialog()"><span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">設定</span></div>
-    <svg class="header-wave" viewBox="0 0 480 12" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-      <path d="M0 7C80 16 130 1 220 5S374 14 480 3V12H0Z" fill="#a9dfe4" fill-opacity=".14"/>
-      <path d="M0 7C80 16 130 1 220 5S374 14 480 3" fill="none" stroke="#c0eef0" stroke-opacity=".34"/>
-    </svg>
   </header>
   <main id="main">
     <!-- Route H: 進行中行程 banner（無行程時隱藏） — 永遠黏在 main 頂部，跨所有 view 顯示 -->
@@ -2204,6 +2187,7 @@ function updateRecordDetailsSummary() {
 
 function renderRecordView() {
   const view = document.getElementById('view-record');
+  view.querySelector('#record-species-sheet')?.close();
   renderActiveTripBanner();
   if (state.formSuccess) {
     const oldWrap = document.getElementById('score-card-wrap'), keep = oldWrap && oldWrap.querySelector('.sc-box') ? oldWrap.innerHTML : '';   // v177：成績卡唔好消失再重建
@@ -2352,7 +2336,7 @@ function renderRecordView() {
   const details = '<details id="record-details"><summary>詳細資料 <span id="record-details-summary"></span></summary>'
     + (collapseSpot ? spotFields : '') + tripDetailsFields + '</details>';
 
-  const hero = trip ? '' : '<div class="record-hero"><img src="assets/record-hero.webp" alt="">' +
+  const hero = '<div class="record-hero' + (trip ? ' with-trip' : '') + '"><img src="assets/record-hero.webp" alt="">' +
     '<h2>記錄新魚獲</h2></div>';
   view.innerHTML = hero + '<div class="card record-form-card">' + recordTripPromptHtml() + fishFields
     + (trip
@@ -2549,8 +2533,13 @@ function openRecordSpeciesSheet(options, customIndex, refreshInline) {
     const rect = sheet.getBoundingClientRect();
     if (event.clientY < rect.top || event.clientX < rect.left || event.clientX > rect.right) sheet.close();
   });
-  sheet.addEventListener('close', () => { cancelPress(); sheet.remove(); }, { once: true });
+  sheet.addEventListener('close', () => {
+    cancelPress();
+    sheet.remove();
+    if (!document.querySelector('#record-species-sheet[open]')) document.documentElement.classList.remove('species-sheet-open');
+  }, { once: true });
   sheet.showModal();
+  document.documentElement.classList.add('species-sheet-open');
 }
 
 function renderSpeciesSelector() {
@@ -3253,6 +3242,7 @@ function resetForm() {
   resetRecordFields();
   renderRecordView();
   document.getElementById('main').scrollTop = 0;
+  window.scrollTo(0, 0);
 }
 
 /* ============================================================
@@ -3546,6 +3536,7 @@ tallyLoadLocal();
 // ===== Banner =====
 function renderActiveTripBanner() {
   const el = document.getElementById('active-trip-banner');
+  document.getElementById('app').classList.toggle('has-active-trip', !!state.activeTrip);
   if (!state.activeTrip) { el.style.display = 'none'; el.innerHTML = ''; return; }
   const t = state.activeTrip;
   const sec = window.tripsLib.tripDurationSec(t);
@@ -3558,12 +3549,11 @@ function renderActiveTripBanner() {
       const tideIcon = tide.trend === 'rising' ? '' : tide.trend === 'falling' ? '' : '→';
       const nextTxt = tide.nextHigh ? `${window.tidesLib.formatTime(tide.nextHigh.ms)} 高${tide.nextHigh.height}m` :
                       tide.nextLow ? `${window.tidesLib.formatTime(tide.nextLow.ms)} 低${tide.nextLow.height}m` : '';
-      tideChip = '<div class="atb-tide">' + tide.height + 'm ' + tideIcon + ' ' + tide.trendText +
-        (nextTxt ? ' · ' + nextTxt : '') + '</div>';
+      tideChip = '<span class="atb-tide">' + tide.height + 'm ' + tideIcon + ' ' + tide.trendText +
+        (nextTxt ? ' · ' + nextTxt : '') + '</span>';
     }
   }
-  const recordHero = state.view === 'record' && !state.formSuccess;
-  el.classList.toggle('active-trip-record', recordHero);
+  el.classList.toggle('on-record', state.view === 'record' && !state.formSuccess);
   el.style.display = 'block';
   el.innerHTML =
     '<div class="active-trip-banner" onclick="goToView(\'trips\');">'
@@ -3571,16 +3561,14 @@ function renderActiveTripBanner() {
       + '<div class="atb-info">'
         + '<div class="atb-title"><span class="atb-status">行程進行中</span>' + (t.spot ? '<span class="atb-spot">' + escapeHtml(t.spot) + '</span>' : '') + '</div>'
         + '<div class="atb-timer" id="atb-timer">' + window.tripsLib.formatTimerDisplay(sec) + '</div>'
-        + '<div class="atb-meta">' + summary.count + ' 條魚 · ' + fmtWeight(summary.totalWeight) + (tallyTotal(t.id) ? ' · <span class="tally-chip">計數 ' + tallyTotal(t.id) + ' 條</span>' : '') + '</div>'
-        + tideChip
+        + '<div class="atb-meta"><span class="atb-counts">' + summary.count + ' 條魚 · ' + fmtWeight(summary.totalWeight) + (tallyTotal(t.id) ? ' · <span class="tally-chip">計數 ' + tallyTotal(t.id) + ' 條</span>' : '') + '</span>' + tideChip + '</div>'
       + '</div>'
       + '<div class="atb-actions"><button class="atb-btn" onclick="event.stopPropagation();addCatchInTrip();">加魚</button>'
       + '<button class="atb-btn" aria-label="快速計數" onclick="event.stopPropagation();openTallySheet();">計數</button>'
       + '<button class="atb-btn" onclick="event.stopPropagation();editActiveTrip();">編輯</button>'
       + '<button class="atb-end" onclick="event.stopPropagation();endTrip(false);">結束</button>'
       + '</div>'
-    + '</div>'
-    + (recordHero ? '<h2 class="atb-record-title">記錄新魚獲</h2>' : '');
+    + '</div>';
 }
 
 function tickActiveTripBanner() {
@@ -5024,6 +5012,11 @@ function openInterest() {
     + '<div style="font-size:11px;color:var(--gray-4);margin:4px 0 10px;">會送去意見箱，附上 App 版本同裝置類型，唔會附上其他個人資料。</div>'
     + '<button type="button" class="btn btn-primary" id="int-send" style="width:100%;" onclick="sendInterest()">送出</button>'
     + '<div id="int-msg" role="status" aria-live="polite" style="font-size:13px;margin-top:8px;min-height:18px;font-weight:600;text-align:center;"></div></div>';
+  ov.onchange = event => {
+    const options = event.target.closest('.int-opts');
+    if (!options) return;
+    options.querySelectorAll('input').forEach(input => input.parentElement.classList.toggle('selected', input.checked));
+  };
   ov.classList.add('show');
 }
 function closeInterest() { const ov = document.getElementById('interest-modal'); if (ov) ov.classList.remove('show'); }
@@ -6818,6 +6811,7 @@ function switchView(name) {
   if (name !== 'record') document.getElementById('record-species-sheet')?.close();
   if (name !== 'trips' && state.justEndedTripId) { state.justEndedTripId = null; state.tripDetailId = null; }
   state.view = name;
+  document.getElementById('app').classList.toggle('record-view', name === 'record');
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const viewEl = document.getElementById('view-'+name);
   if (!viewEl) throw new Error('找不到 view 元素: view-' + name);

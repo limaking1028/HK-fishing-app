@@ -270,7 +270,7 @@ def run(page, url):
     assert page.locator('#main').evaluate("el => el.scrollTop") > 0
     page.get_by_role('button', name='記錄下一條').click()
     expect(page.locator('#main')).to_have_js_property('scrollTop', 0)
-    expect(page.locator('#active-trip-banner.active-trip-record')).to_be_in_viewport(ratio=1)
+    expect(page.locator('#active-trip-banner.on-record .active-trip-banner')).to_be_in_viewport(ratio=1)
     expect(page.locator('#catch-weight')).to_have_value('')
     page.locator('#main').evaluate("el => el.scrollTop = 230")
     expect(page.locator('#atb-timer')).to_be_in_viewport(ratio=1)
