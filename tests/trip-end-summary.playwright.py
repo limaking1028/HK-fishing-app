@@ -54,7 +54,7 @@ def run(p, entry, withCatch, withTally=False):
     act = pg.evaluate("[...document.querySelectorAll('.view.active')].map(v=>v.id)")
     check(act == ['view-trips'], name + ': 得一個 active view = view-trips ' + str(act))
     txt = pg.inner_text('#view-trips')
-    check('行程已結束' in txt, name + ': 標題「行程已結束」')
+    check('行程已結束' in txt and '🏁' not in txt, name + ': 標題「行程已結束」')
     check('總時長' in txt and '總魚獲' in txt and '總重量' in txt and (('個魚種' in txt) == withCatch), name + ': 總時長／總魚獲／總重量（有魚先有魚種數）')
     if withCatch:
         check('黑鱲' in txt and '連尖' in txt and '魚獲清單' in txt, name + ': 魚獲清單有黑鱲、連尖')
