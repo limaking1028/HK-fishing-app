@@ -30,7 +30,7 @@ def run(p, flow, species):
     pg.fill('#catch-notes', '測試備註') if pg.locator('#catch-notes').count() else None
     method = pg.evaluate("(document.getElementById('catch-method')||{}).value||null")
     pg.click('.sp-expand-btn'); pg.wait_for_timeout(400)
-    card = pg.locator(f'.sp-card[data-species="{species}"]'); card.scroll_into_view_if_needed(); pg.wait_for_timeout(300)
+    card = pg.locator(f'#record-species-sheet .sp-card[data-species="{species}"]'); card.scroll_into_view_if_needed(); pg.wait_for_timeout(300)
     y0 = pg.evaluate('scrollY'); shot(pg, f'{flow}-{"other" if species.startswith("其他") else "pick"}-1-before-tap')
     card.click(); pg.wait_for_timeout(900)
     name = flow + (' 其他' if species.startswith('其他') else '')

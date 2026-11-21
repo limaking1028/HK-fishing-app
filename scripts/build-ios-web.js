@@ -23,7 +23,7 @@ fs.mkdirSync(out);
 const FILES = ['index.html', 'privacy.html', 'delete-account.html', 'manifest.json', 'sw.js',
   'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
 for (const f of FILES) if (fs.existsSync(path.join(root, f))) fs.copyFileSync(path.join(root, f), path.join(out, f));
-for (const d of ['lib', 'photos']) if (fs.existsSync(path.join(root,d))) fs.cpSync(path.join(root,d),path.join(out,d),{recursive:true});
+for (const d of ['lib', 'photos', 'assets']) if (fs.existsSync(path.join(root,d))) fs.cpSync(path.join(root,d),path.join(out,d),{recursive:true});
 function visit(dir, fn) {
   for (const entry of fs.readdirSync(dir,{withFileTypes:true})) {
     const f = path.join(dir,entry.name);
