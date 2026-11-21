@@ -19,10 +19,10 @@ test('both iOS bundles parse, all files scan, original web and Android sources u
     const flags=JSON.parse(html.match(/window.HKF_BUILD=(\{[^;]+\});/)[1]);
     assert.equal(flags.pushUi,env==='test');
     assert.ok(html.indexOf('window.HKF_BUILD=') < html.indexOf('./lib/push.js'));
-    for(const id of ['push-enabled','push-record_broken','push-overtaken','push-status','push-explain']) {
+    for(const id of ['push-enabled','push-record_broken','push-overtaken','push-tide_window','push-lb_chance','push-trip_open','push-weekly_summary','push-inactive','push-status','push-explain']) {
       assert.equal(html.includes('id="'+id+'"'),env==='test',id);
     }
-    assert.equal(/<legend>通知<\/legend>/.test(html),env==='test');
+    assert.equal(/<h2>通知<\/h2>/.test(html),env==='test');
     assert.ok(html.includes('src="./lib/push.js"'));
     assert.equal((html.match(/HKF.createClient\(/g)||[]).length,2);
     {

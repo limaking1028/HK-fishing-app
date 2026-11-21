@@ -45,7 +45,7 @@ with sync_playwright() as p:
  expected=['個人資料','使用偏好']+(['通知'] if ios else [])+['私隱','幫助','帳戶','資料管理']
  assert headings==expected,headings
  rect=page.bounding_box();assert rect['x']==0 and rect['y']==0 and rect['width']==390 and rect['height']==844
- assert pg.locator('#settings-version').inner_text()=='釣港 v205'
+ assert pg.locator('#settings-version').inner_text()=='釣港 v215'
  if ios:
   # Real env() emulation plus the transform's matching variables: safe area counted once.
   cdp=ctx.new_cdp_session(pg)

@@ -15,7 +15,8 @@ function transform(file, source, manifest) {
       // Remove whole notification sections from prod DOM; retain the shared push module.
       for (const pattern of [
         /  <div class="modal-overlay" id="push-explain"[\s\S]*?\n  <\/div>/,
-        /      <fieldset[^>]*>\s*<legend>通知<\/legend>[\s\S]*?<\/fieldset>/
+        // Settings page (#83): the whole 通知 group, including the #86 per-type switches.
+        /<section class="settings-group"><h2>通知<\/h2>[\s\S]*?<\/section>/
       ]) {
         const section = s.match(pattern);
         if (!section) throw new Error('Missing push UI section anchor');
@@ -75,7 +76,7 @@ body{padding-top:var(--hkf-banner-height)}
     }
     s = storage(s);
   } else if (file === 'sw.js') {
-    s = replace(s, "const CACHE = 'hk-fishing-v208';", `const CACHE_PREFIX = 'hkf:${manifest.env}:${manifest.ref}:';\nconst CACHE = CACHE_PREFIX + 'photos-v199';`);
+    s = replace(s, "const CACHE = 'hk-fishing-v215';", `const CACHE_PREFIX = 'hkf:${manifest.env}:${manifest.ref}:';\nconst CACHE = CACHE_PREFIX + 'photos-v199';`);
     s = replace(s, 'keys.filter(k => k !== CACHE)', 'keys.filter(k => k.startsWith(CACHE_PREFIX) && k !== CACHE)');
     s = replace(s, 'caches.match(e.request, { ignoreSearch: true })', 'caches.open(CACHE).then(c => c.match(e.request, { ignoreSearch: true }))');
   } else if (file.endsWith('.js')) s = storage(s);

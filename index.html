@@ -1315,7 +1315,7 @@ button { touch-action: manipulation; }
 <div id="app">
   <div id="login-screen"></div>
   <header id="header">
-    <div class="header-title" id="header-title">釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v207</span></div>
+    <div class="header-title" id="header-title">釣港 <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v215</span></div>
     <div class="header-settings" onclick="openNameDialog()"><span id="header-username">我</span><span id="founder-badge" class="founder-badge" hidden></span> <span class="header-edit">設定</span></div>
     <svg class="header-wave" viewBox="0 0 480 12" preserveAspectRatio="none" aria-hidden="true" focusable="false">
       <path d="M0 7C80 16 130 1 220 5S374 14 480 3V12H0Z" fill="#a9dfe4" fill-opacity=".14"/>
@@ -6763,7 +6763,7 @@ function switchView(name) {
   const titles = { record:'記錄魚獲', my:'我的魚獲', trips:'釣魚行程', leaderboard:'排行榜', map:'釣點地圖' };
   const headerTitle = document.getElementById('header-title');
   if (headerTitle) {
-    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v208</span>';
+    headerTitle.innerHTML = (titles[name] || name) + ' <span id="app-version" style="font-size:10px;font-weight:500;opacity:.7;margin-left:4px;vertical-align:1px;">v215</span>';
   }
   renderView(name);
 }

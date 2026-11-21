@@ -53,7 +53,7 @@ with sync_playwright() as p:
         assert page.evaluate('pushLib.isEnabled()') == (env=='test')
         for selector in ['#push-enabled','#push-record_broken','#push-overtaken','#push-status','#push-explain']:
             assert page.locator(selector).count()==(1 if env=='test' else 0),selector
-        assert page.locator('#name-modal fieldset').count()==(1 if env=='test' else 0)
+        assert page.evaluate("[...document.querySelectorAll('#name-modal h2')].filter(h=>h.textContent.trim()==='通知').length")==(1 if env=='test' else 0)
         # Real completion path initializes push after loading the user's offline data.
         page.evaluate("""async () => {
           HKF.setOwner('offline-push-user');
@@ -91,7 +91,7 @@ with sync_playwright() as p:
             page.evaluate('closeNameDialog()')
             page.locator('#push-explain button[onclick="pushLib.enable()"]').tap()
             page.wait_for_function("nativeCalls.includes('permission') && document.getElementById('push-enabled').checked")
-            print('PASS test: notification fieldset retained; startup APNs registration and explicit permission/opt-in still work')
+            print('PASS test: notification settings group retained; startup APNs registration and explicit permission/opt-in still work')
         assert not errors,errors
         assert not any('.supabase.co/' in url for url in remote),remote
         context.close()
