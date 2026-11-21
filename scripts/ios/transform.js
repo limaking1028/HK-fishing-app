@@ -51,7 +51,7 @@ function transform(file, source, manifest) {
 #hkf-test-banner{position:fixed;top:0;left:0;right:0;height:var(--hkf-banner-height);z-index:2147483647;background:#ffd600;color:#111;text-align:center;font-size:16px;line-height:20px;font-weight:bold;padding:calc(var(--hkf-safe-top) + 4px) 8px 4px;pointer-events:none}
 body{padding-top:var(--hkf-banner-height)}
 #app{min-height:calc(100vh - var(--hkf-banner-height));min-height:calc(100dvh - var(--hkf-banner-height))}
-#header{top:var(--hkf-banner-height);padding:12px 16px}
+#header{top:var(--hkf-banner-height);padding-top:12px}
 .login-screen{top:var(--hkf-banner-height)}
 </style></head>`);
       s = s.replace(/(<body[^>]*>)/, '$1<div id="hkf-test-banner" role="status">測試環境</div>');
