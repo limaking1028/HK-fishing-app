@@ -13,6 +13,7 @@ with sync_playwright() as p:
     errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
     def route(r):
         u = r.request.url
+        if 'data.weather.gov.hk' in u or 'data.gov.hk' in u: return r.abort()
         if 'supabase.co' in u: sbreq.append(u); return r.abort()
         if 'open-meteo' in u:
             meteo.append(u)
