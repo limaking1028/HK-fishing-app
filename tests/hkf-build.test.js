@@ -2,6 +2,12 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..');
 const {transform}=require('../scripts/ios/transform');
 const build=env=>cp.spawnSync(process.execPath,['scripts/build-ios-web.js'],{cwd:root,env:{...process.env,APP_ENV:env,HKF_TEST_SUPABASE_ANON_KEY:'sb_publishable_offline_fixture_only'},encoding:'utf8'});
+test('iOS uses a light interface and a fixed dark status bar', () => {
+  const plist = fs.readFileSync(path.join(root, 'ios/App/App/Info.plist'), 'utf8');
+  assert.match(plist, /<key>UIViewControllerBasedStatusBarAppearance<\/key>\s*<false\s*\/>/);
+  assert.match(plist, /<key>UIStatusBarStyle<\/key>\s*<string>UIStatusBarStyleDarkContent<\/string>/);
+  assert.match(plist, /<key>UIUserInterfaceStyle<\/key>\s*<string>Light<\/string>/);
+});
 test('build requires explicit environment and test key; no stale output after invalid config',()=>{
   assert.notEqual(build('').status,0);
   const r=cp.spawnSync(process.execPath,['scripts/build-ios-web.js'],{cwd:root,env:{...process.env,APP_ENV:'test',HKF_TEST_SUPABASE_ANON_KEY:''}});assert.notEqual(r.status,0);

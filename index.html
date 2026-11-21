@@ -1053,7 +1053,7 @@ button { touch-action: manipulation; }
   .guest-login-prompt .btn + .btn { margin-top: 10px; }  /* 訪客鎖定頁：「登入／註冊」同「睇潮汐」兩粒掣之間留位 */
   .header-title { font-size: 17px; font-weight: 800; letter-spacing: .3px; }
   .header-settings { background:rgba(11,72,85,.06); border:1px solid rgba(11,72,85,.16); color:#0b4855; padding:6px 12px; border-radius: 999px; min-height: 36px; max-width: 58%; opacity: 1; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-  .header-settings:active { background: rgba(255,255,255,.24); }
+  .header-settings:active { background:rgba(11,72,85,.12); }
   /* v174：創始釣友 */
   .founder-badge { display: inline-block; font-size: 11px; font-weight: 700; color: #92400e; background: linear-gradient(135deg,#fef3c7,#fde68a); border: 1px solid #fcd34d; border-radius: 999px; padding: 1px 7px; margin-left: 4px; white-space: nowrap; vertical-align: 1px; }
   .founder-badge[hidden] { display: none; }
@@ -1191,6 +1191,10 @@ button { touch-action: manipulation; }
     padding: max(24px, env(safe-area-inset-top)) 24px max(24px, var(--safe-bottom));
     background: linear-gradient(to bottom, transparent 35%, rgba(3,32,40,.22)),
       url("./assets/hong-kong-coast-dawn.webp") center 36% / cover no-repeat, #07384a;
+  }
+  .login-screen::before {
+    content:''; position:fixed; top:env(safe-area-inset-top, 0px); left:0; right:0; height:16px;
+    background:linear-gradient(to bottom, #c5e6fc, rgba(197,230,252,0)); pointer-events:none;
   }
   @media (orientation: portrait) {
     .login-screen { background-size: auto 115%, auto 115%; background-position: center bottom, center bottom; }

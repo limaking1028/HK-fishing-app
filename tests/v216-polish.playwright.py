@@ -227,6 +227,12 @@ def check_trip_and_tide(page):
     expect(hero.locator('h2')).to_have_css('bottom', '34px')
     assert abs(card.bounding_box()['y'] - (header.bounding_box()['y'] + header.bounding_box()['height'])) < 1
     capture(page, 'active-short-spot')
+    settings = header.locator('.header-settings')
+    settings.hover()
+    page.mouse.down()
+    expect(settings).to_have_css('background-color', 'rgba(11, 72, 85, 0.12)')
+    page.mouse.move(0, 0)
+    page.mouse.up()
     main.evaluate('el => el.scrollTop = 400')
     expect(main).to_have_js_property('scrollTop', 400)
     expect(card).to_be_in_viewport(ratio=1)
@@ -312,6 +318,11 @@ def make_page(browser, origin):
         cdp = context.new_cdp_session(page)
         cdp.send('Emulation.setSafeAreaInsetsOverride', {'insets': {'top': 47}})
         assert page.locator('body').evaluate("el => { const style = getComputedStyle(el,'::before'); return [style.height, style.backgroundColor]; }") == ['47px', 'rgb(197, 230, 252)']
+        assert page.locator('.login-screen').evaluate("""el => {
+          const fade = getComputedStyle(el, '::before');
+          return [fade.top, fade.height, fade.backgroundImage.includes('rgb(197, 230, 252)')];
+        }""") == ['47px', '16px', True]
+        capture(page, 'login-safe-area-47')
         cdp.detach()
     return page, errors
 
